@@ -1,9 +1,9 @@
-// FreeGaz's service worker: the app opens with no signal (a pain cave in the
+// CrankHog's service worker: the app opens with no signal (a pain cave in the
 // garage with no Wi-Fi is the normal case). Pages are network-first, falling
 // back to the cached copy; the hashed build assets are cache-first, because a
 // file with a hash in its name never changes. Nothing else is cached, and no
 // ride data ever passes through here (rides live in IndexedDB).
-const CACHE = 'freegaz-v1'
+const CACHE = 'crankhog-v1'
 const SHELL = ['./', 'manifest.webmanifest', 'icons/icon-192.png', 'icons/icon-512.png', 'icons/apple-touch-icon.png']
 
 self.addEventListener('install', (event) => {

@@ -1,6 +1,6 @@
 // The phone remote page: one self-contained HTML document (no external
 // assets), served with a nonce-based CSP. Big glanceable numbers + buttons, in
-// the FreeGaz night palette (docs/BRAND.md). The CSP loads no fonts, so it
+// the CrankHog night palette (docs/BRAND.md). The CSP loads no fonts, so it
 // uses the phone's own; the wordmark is outlined paths and needs none.
 import { BRAND_COLORS, wordmarkSvg } from '@shared/brand'
 
@@ -23,7 +23,7 @@ export function phonePage(opts: { nonce: string; wsPath: string; allowControl: b
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="theme-color" content="#111d36">
-<title>FreeGaz remote</title>
+<title>CrankHog remote</title>
 <style>
   :root { color-scheme: dark; --bg:#111d36; --panel:#182740; --panel2:#1f2f49; --line:#32425a; --ink:#eff4fa; --dim:#bdccde; --faint:#9aadc4; --accent:#77c3ff; --on-accent:#111d36; --power:#cf8020; --hr:#dc374f; --cad:#348dd7; --good:#6add88; --bad:#ff8a88; }
   * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }

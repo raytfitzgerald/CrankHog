@@ -13,7 +13,7 @@ describe('file helpers', () => {
   })
 
   it('writes only inside the target folder', () => {
-    const dir = mkdtempSync(join(tmpdir(), 'freegaz-files-'))
+    const dir = mkdtempSync(join(tmpdir(), 'crankhog-files-'))
     const p = writeInto(dir, 'ride.fit', Uint8Array.from([1, 2, 3]))
     expect(readFileSync(p)).toEqual(Buffer.from([1, 2, 3]))
     expect(() => writeInto(dir, '../escape.fit', Uint8Array.from([1]))).toThrow()

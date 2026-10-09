@@ -4,12 +4,14 @@
 // simulator: always in dev, and with ?sim=1 in the built app. Services that
 // need the main process (Strava, AI keys, the file system) have in-browser
 // stand-ins.
-import type { EventChannel, EventMap, FreegazBridge, InvokeChannel, InvokeReq, InvokeRes } from '@shared/ipc/contract'
+import type { EventChannel, EventMap, CrankHogBridge, InvokeChannel, InvokeReq, InvokeRes } from '@shared/ipc/contract'
 import { AppSettingsSchema, DEFAULT_SETTINGS, mergeSettings, migrateStoredSettings, type AppSettings } from '@shared/settings'
 import { bugIssueUrl } from '@core/support/bug-report'
 import { demoMode } from './demo'
 import * as native from './native'
 
+// Storage keys keep the old brand so the rename doesn't wipe an iPhone's
+// settings or lose a ride that was recording when the app updated.
 const SETTINGS_KEY = 'freegaz.web.settings'
 const query = () => new URLSearchParams(location.search)
 /** Simulated devices: the default while developing, opt-in (?sim=1) in the built web app. */
@@ -67,7 +69,7 @@ function loadSettings(): AppSettings {
 
 type Handlers = { [C in InvokeChannel]: (req: InvokeReq<C>) => Promise<InvokeRes<C>> | InvokeRes<C> }
 
-export function createWebShim(): FreegazBridge {
+export function createWebShim(): CrankHogBridge {
   const listeners = new Map<string, Set<(payload: unknown) => void>>()
   const fire = <E extends EventChannel>(event: E, payload: EventMap[E]) => {
     for (const l of listeners.get(event) ?? []) l(payload)
@@ -76,9 +78,9 @@ export function createWebShim(): FreegazBridge {
   let wakeLock: { release(): Promise<void> } | null = null
 
   const handlers: Handlers = {
-    'app.ping': ({ msg }) => ({ pong: msg, version: `${__FREEGAZ_VERSION__}-${native.isNative() ? 'ios' : 'web'}`, platform: 'web' }),
+    'app.ping': ({ msg }) => ({ pong: msg, version: `${__CRANKHOG_VERSION__}-${native.isNative() ? 'ios' : 'web'}`, platform: 'web' }),
     'app.info': () => ({
-      version: `${__FREEGAZ_VERSION__}-${native.isNative() ? 'ios' : 'web'}`,
+      version: `${__CRANKHOG_VERSION__}-${native.isNative() ? 'ios' : 'web'}`,
       electron: 'n/a',
       chrome: navigator.userAgent.match(/Chrome\/([\d.]+)/)?.[1] ?? 'unknown',
       node: 'n/a',
@@ -178,7 +180,7 @@ export function createWebShim(): FreegazBridge {
       setTimeout(() => URL.revokeObjectURL(url), 10_000)
       return { path: `Downloads/${defaultName}` }
     },
-    'files.exportDir': () => ({ dir: native.isNative() ? 'On My iPhone → FreeGaz → Rides' : 'Downloads' }),
+    'files.exportDir': () => ({ dir: native.isNative() ? 'On My iPhone → CrankHog → Rides' : 'Downloads' }),
     'files.chooseExportDir': () => ({ dir: null }),
     'files.reveal': () => ({ ok: false }),
     // ride moments need the Mac app's window capture

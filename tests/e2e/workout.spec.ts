@@ -27,7 +27,7 @@ async function openWorkout(page: Page, name: string) {
 
 const simRider = (page: Page, behavior: unknown) =>
   page.evaluate((b) => {
-    ;(window as unknown as { __freegazTest: { runtime: { sim: { setBehavior(b: unknown): void } } } }).__freegazTest.runtime.sim.setBehavior(b)
+    ;(window as unknown as { __crankhogTest: { runtime: { sim: { setBehavior(b: unknown): void } } } }).__crankhogTest.runtime.sim.setBehavior(b)
   }, behavior)
 
 async function finishRide(page: Page) {
@@ -72,7 +72,7 @@ test('captures the hardest effort as a picture, saved next to the FIT file', asy
   await expect(moments.getByRole('img', { name: /^Hardest effort: Hardest 30 s · \d+ W/ })).toBeVisible()
   await expect(page.getByTestId('copy-moment-hard')).toBeVisible()
 
-  const dir = join(ctx.userData, 'Documents', 'FreeGaz', 'Rides')
+  const dir = join(ctx.userData, 'Documents', 'CrankHog', 'Rides')
   const pic = readdirSync(dir).find((f) => f.includes('Race Openers') && f.endsWith(' - hardest effort.jpg'))
   expect(pic).toBeDefined()
   const bytes = readFileSync(join(dir, pic!))
@@ -89,7 +89,7 @@ test('20-minute FTP test: ERG off for the effort, and the result appears after t
   // make us skip past the effort.
   const reached = await page.evaluate(async () => {
     type Rides = { session: { planTick: { segmentLabel: string | null } } | null; command(c: { type: 'skip' }): void }
-    const rides = (window as unknown as { __freegazTest: { runtime: { rides: Rides } } }).__freegazTest.runtime.rides
+    const rides = (window as unknown as { __crankhogTest: { runtime: { rides: Rides } } }).__crankhogTest.runtime.rides
     for (let i = 0; i < 20; i++) {
       if (rides.session?.planTick.segmentLabel === '20-min test effort') return true
       rides.command({ type: 'skip' })

@@ -2,7 +2,7 @@
 
 /**
  * Collapse runs of whitespace (including newlines) to one space and trim.
- * Labels and cue messages are single-line in every format FreeGaz reads or
+ * Labels and cue messages are single-line in every format CrankHog reads or
  * writes (XML attribute normalization does the same in Zwift), so the
  * compiler normalizes them; empty results become `undefined`.
  */

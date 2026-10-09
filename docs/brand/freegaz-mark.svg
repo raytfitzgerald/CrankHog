@@ -1,9 +1,0 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="158 286 708 452" role="img" aria-label="FreeGaz">
-  <path d="M384 413 L640 413 A99 99 0 0 1 640 611 L384 611 A99 99 0 0 1 384 413 Z" fill="#1846ab"/>
-  <path d="M384 362 L640 362 A150 150 0 0 1 640 662 L384 662 A150 150 0 0 1 384 362 Z" fill="none" stroke="#f4f8fc" stroke-width="104"/>
-  <path d="M384 398 L640 398 A114 114 0 0 1 640 626 L384 626 A114 114 0 0 1 384 398 Z" fill="none" stroke="#77c3ff" stroke-width="20"/>
-  <path d="M384 376 L640 376 A136 136 0 0 1 640 648 L384 648 A136 136 0 0 1 384 376 Z" fill="none" stroke="#111d36" stroke-width="6"/>
-  <path d="M384 356 L640 356 A156 156 0 0 1 640 668 L384 668 A156 156 0 0 1 384 356 Z" fill="none" stroke="#e0383b" stroke-width="9"/>
-  <path d="M384 330 L640 330 A182 182 0 0 1 640 694 L384 694 A182 182 0 0 1 384 330 Z" fill="none" stroke="#1e59cd" stroke-width="9"/>
-  <circle cx="729" cy="369.5" r="30" fill="#111d36" stroke="#f4f8fc" stroke-width="10"/>
-</svg>

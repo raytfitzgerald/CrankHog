@@ -69,7 +69,7 @@ export function RemoteSection() {
         </Field>
         <Field label="" hint="">
           <div className="flex items-center gap-2 text-xs text-ink-faint">
-            <MonitorUp className="size-3.5" /> macOS may ask to allow FreeGaz to find devices on your local network. Allow it.
+            <MonitorUp className="size-3.5" /> macOS may ask to allow CrankHog to find devices on your local network. Allow it.
           </div>
         </Field>
       </Section>

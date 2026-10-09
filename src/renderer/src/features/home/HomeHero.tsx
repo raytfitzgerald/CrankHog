@@ -3,15 +3,17 @@ import { Link } from '@tanstack/react-router'
 import { ArrowRight, Play } from 'lucide-react'
 import { previewLine } from '@core/coach'
 import { heroWords } from '@core/home/hero'
-import { pickRival, rivalTaunt } from '@core/home/rival'
+import { rivalTaunt } from '@core/home/rival'
+import { HOG, TRACK_QUIPS, hogLine } from '@core/mascot/hog'
 import { PROFESSIONAL, packById } from '@core/persona'
 import type { RideSummary } from '@core/ride/types'
 import type { Workout } from '@core/workout/model'
+import { HogHead } from '../../brand/hog/HogHead'
 import { CoachHead, RiderHead } from '../../coach/heads'
 import { riderInitials, useRider } from '../../db/rider'
 import { useSettings } from '../../stores/settings'
 import { Button } from '../../ui/Button'
-import { weekRiders } from './track'
+import { HOG_LANE, HOG_LAP_S, HOG_SCALE, weekRiders } from './track'
 import { Velodrome } from './Velodrome'
 
 /**
@@ -38,14 +40,14 @@ export function HomeHero({
   const rider = useRider()
   const words = heroWords({ now: new Date(now), ridesThisWeek: riders.length, ridesEver: rides.filter((r) => !r.simulated).length, tsb })
   const first = rider.name?.split(/\s+/)[0] ?? null
-  // nothing ridden yet this week: another coach does laps, and yours yells at them (and at you)
-  const [rivalId] = useState(() => pickRival(persona.meta.id))
-  const rival = coach.enabled && riders.length === 0 ? (packById(rivalId)?.meta ?? null) : null
+  // Sir Loin is up on the stayers' line every week; on a week with no rides of
+  // your own he has the place to himself, and your coach yells at him (and you)
+  const [hogLabel] = useState(() => hogLine(TRACK_QUIPS))
+  const hog = { id: HOG.id, label: riders.length === 0 ? `${HOG.name}, doing laps while you don't` : hogLabel, lapS: HOG_LAP_S, lane: HOG_LANE, scale: HOG_SCALE, head: <HogHead /> }
   // a fresh line on every visit, from whoever the rider picked
   const [line] = useState(() => (coach.enabled ? previewLine(persona, { spice: coach.spice, profanity: coach.profanity, trigger: 'ride_start', rideKinds: ['workout'], withoutFacts: ['workoutName'] }) : null))
-  const [taunt] = useState(() => rivalTaunt(persona.meta.id, packById(rivalId)?.meta.name ?? 'Somebody'))
-  const said = rival ? taunt : line?.text
-  const onTrack = rival ? [{ id: `rival-${rival.id}`, label: `${rival.name}, doing laps while you don't`, lapS: 8, head: <CoachHead personaId={rival.id} /> }] : riders
+  const [taunt] = useState(() => rivalTaunt(persona.meta.id))
+  const said = coach.enabled && riders.length === 0 ? taunt : line?.text
 
   return (
     <section className="mb-6 grid grid-cols-[minmax(0,1fr)] items-center gap-6 overflow-hidden rounded-3xl border border-line bg-panel p-5 md:p-6 lg:grid-cols-[1.05fr_1fr] lg:p-8" data-testid="home-hero" aria-label="This week">
@@ -87,7 +89,7 @@ export function HomeHero({
             <span className="absolute -bottom-[7px] left-1/2 size-3.5 -translate-x-1/2 rotate-45 border-b border-r border-line-strong bg-panel-2" aria-hidden />
           </figure>
         )}
-        <Velodrome riders={onTrack} head={<RiderHead photo={rider.photo} initials={riderInitials(rider.name)} />} coach={coach.enabled ? <CoachHead personaId={persona.meta.id} /> : undefined} className="w-full" />
+        <Velodrome riders={riders} hog={hog} head={<RiderHead photo={rider.photo} initials={riderInitials(rider.name)} />} coach={coach.enabled ? <CoachHead personaId={persona.meta.id} /> : undefined} className="w-full" />
       </div>
     </section>
   )

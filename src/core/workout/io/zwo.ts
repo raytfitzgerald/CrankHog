@@ -19,7 +19,7 @@
 //   midpoint, with low/high kept on the target.
 // - IntervalsT Cadence is the on cadence, CadenceResting the off cadence.
 //
-// FreeGaz extensions, which Zwift ignores, keep exports lossless: Label on
+// CrankHog extensions, which Zwift ignores, keep exports lossless: Label on
 // every block, OnLabel/OffLabel on IntervalsT, and cadence ranges on
 // IntervalsT (CadenceLow/CadenceHigh, CadenceRestingLow/CadenceRestingHigh).
 //
@@ -103,8 +103,8 @@ export function parseZwoWithWarnings(xml: string, opts: ZwoParseOptions = {}): Z
   if (sport && sport !== 'bike') {
     throw new WorkoutFormatError(
       sport === 'run'
-        ? 'This is a running workout (sportType "run"). FreeGaz can only ride bike workouts.'
-        : `Unsupported sportType "${meta.sport ?? ''}": FreeGaz can only ride bike workouts.`,
+        ? 'This is a running workout (sportType "run"). CrankHog can only ride bike workouts.'
+        : `Unsupported sportType "${meta.sport ?? ''}": CrankHog can only ride bike workouts.`,
     )
   }
   if (!body) throw new WorkoutFormatError('The file has no <workout> element, so there is nothing to ride.')

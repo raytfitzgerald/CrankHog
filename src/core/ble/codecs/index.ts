@@ -1,5 +1,5 @@
 // Bluetooth GATT codecs: pure byte ↔ value translation for every
-// characteristic FreeGaz reads or writes. No I/O, no timers, no state apart
+// characteristic CrankHog reads or writes. No I/O, no timers, no state apart
 // from the split-record assembler and the revolution-rate calculator.
 
 export * from './bytes'

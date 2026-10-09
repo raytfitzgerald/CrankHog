@@ -79,7 +79,7 @@ jobs:
         run: npm run selftest:packaged
       - uses: actions/upload-artifact@v4
         with:
-          name: FreeGaz-dmg
+          name: CrankHog-dmg
           path: release/*/*.dmg
           retention-days: 14
       - name: Publish release (tags only)
@@ -94,6 +94,6 @@ jobs:
           NOTES="docs/releases/${GITHUB_REF_NAME}.md"
           if [ -f "$NOTES" ]; then set -- --notes-file "$NOTES"; else set -- --notes "Ad-hoc signed, un-notarized build for Apple Silicon Macs. The README's Install section has the one-time Gatekeeper step."; fi
           gh release create "${GITHUB_REF_NAME}" release/*/*.dmg \
-            --title "FreeGaz ${GITHUB_REF_NAME}" \
+            --title "CrankHog ${GITHUB_REF_NAME}" \
             "$@" \
             --verify-tag $PRE

@@ -23,7 +23,7 @@ export interface LibraryEntry {
   builtin: boolean
   favorite: boolean
   /** Which Workouts tab it lives on. */
-  folder: 'freegaz' | WorkoutFolder
+  folder: 'crankhog' | WorkoutFolder
   /** Position in the Training plan, for workouts filed there. */
   planOrder?: number
   timeline: Timeline
@@ -49,7 +49,7 @@ export async function loadLibrary(ftpW: number): Promise<LibraryEntry[]> {
   const mine = stored
     .sort((a, b) => b.updatedAt - a.updatedAt)
     .map((s) => ({ ...describeWorkout(s.json, ftpW), favorite: s.favorite, folder: s.json.folder ?? 'custom', planOrder: s.planOrder }) satisfies LibraryEntry)
-  const builtins = BUILTINS.map((w) => ({ ...describeWorkout(w, ftpW), favorite: builtinFavs.has(w.id), folder: 'freegaz' }) satisfies LibraryEntry)
+  const builtins = BUILTINS.map((w) => ({ ...describeWorkout(w, ftpW), favorite: builtinFavs.has(w.id), folder: 'crankhog' }) satisfies LibraryEntry)
   return [...mine, ...builtins]
 }
 
@@ -89,7 +89,7 @@ async function nextPlanOrder(): Promise<number> {
 /** Files one of the rider's workouts in Custom workouts or the Training plan (at its end). */
 export async function moveToFolder(id: string, folder: WorkoutFolder): Promise<void> {
   const row = await db().workouts.get(id)
-  if (!row) throw new Error('Only your own workouts can be moved. Copy a FreeGaz workout to the builder first.')
+  if (!row) throw new Error('Only your own workouts can be moved. Copy a CrankHog workout to the builder first.')
   const json: Workout = { ...row.json }
   if (folder === 'plan') json.folder = 'plan'
   else delete json.folder
@@ -156,7 +156,7 @@ export function parseWorkoutFile(fileName: string, text: string): ImportResult {
     if (r.workout.segments.length === 0) throw new Error(r.errors[0] ? `Line ${r.errors[0].line}: ${r.errors[0].message}` : 'No workout steps found.')
     return { workout: { ...r.workout, source: 'import' }, warnings: r.errors.map((e) => `Line ${e.line}: ${e.message}`) }
   }
-  throw new Error(`FreeGaz can't read ${ext || 'this'} files. Use .zwo, .mrc, .erg or intervals.icu text (.txt).`)
+  throw new Error(`CrankHog can't read ${ext || 'this'} files. Use .zwo, .mrc, .erg or intervals.icu text (.txt).`)
 }
 
 export type ExportFormat = 'zwo' | 'mrc' | 'erg' | 'txt'

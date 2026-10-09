@@ -78,7 +78,7 @@ const twentyMinSpec = (): FtpTestSpec => ({ protocol: '20min', effortLabel: TWEN
 export const FTP_TEST_20MIN: Workout = {
   id: 'builtin:ftp-test-20min',
   name: 'FTP Test: 20 Minutes',
-  author: 'FreeGaz',
+  author: 'CrankHog',
   description:
     'The classic 20-minute test: a structured warm-up, a 5-minute blowout to clear the legs, then 20 minutes as hard as you can hold. ERG is off for the efforts, so pace with your gears; FTP is 95 % of your 20-minute average.',
   tags: ['test', 'ftp'],
@@ -101,7 +101,7 @@ export const FTP_TEST_20MIN: Workout = {
 export const FTP_TEST_20MIN_GUIDED: Workout = {
   id: 'builtin:ftp-test-20min-guided',
   name: 'FTP Test: 20 Minutes (Guided)',
-  author: 'FreeGaz',
+  author: 'CrankHog',
   description:
     'The 20-minute test with a guided blowout: ERG holds 110 % then 120 % of your current FTP instead of an all-out effort, which is easier to pace if you are new to testing. FTP is 95 % of your 20-minute average.',
   tags: ['test', 'ftp'],
@@ -133,7 +133,7 @@ const EIGHT_MIN_CUES: TextEvent[] = [
 export const EIGHT_MIN_TEST: Workout = {
   id: 'builtin:ftp-test-8min',
   name: 'FTP Test: 2 × 8 Minutes',
-  author: 'FreeGaz',
+  author: 'CrankHog',
   description:
     'Two 8-minute maximal efforts with ten minutes of recovery between them. Shorter efforts are easier to pace than a 20-minute test; FTP is 90 % of the average of both efforts, so give the second one everything too.',
   tags: ['test', 'ftp'],
@@ -212,7 +212,7 @@ export function rampTest(opts: RampTestOptions = {}): Workout {
   return {
     id: isDefault ? 'builtin:ramp-test' : `builtin:ramp-test:${params}`,
     name: 'FTP Test: Ramp',
-    author: 'FreeGaz',
+    author: 'CrankHog',
     description: `One-minute steps that get ${formatNumber(stepW, 0)} W harder until you can't hold the target, so the test finds your limit for you. FTP is 75 % of your best one-minute power; ERG stays on throughout.`,
     tags: ['test', 'ftp'],
     sportType: 'bike',

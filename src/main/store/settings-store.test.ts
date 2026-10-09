@@ -5,7 +5,7 @@ import { describe, expect, it } from 'vitest'
 import { DEFAULT_SETTINGS } from '@shared/settings'
 import { SettingsStore } from './settings-store'
 
-const dir = () => mkdtempSync(join(tmpdir(), 'freegaz-settings-'))
+const dir = () => mkdtempSync(join(tmpdir(), 'crankhog-settings-'))
 
 describe('SettingsStore', () => {
   it('starts from defaults when no file exists', () => {

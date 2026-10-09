@@ -1,4 +1,4 @@
-// The FreeGaz wordmark and its track lines as React components. The letters
+// The CrankHog wordmark and its track lines as React components. The letters
 // and the measurement line take the text colour; the other lines are brand
 // constants (styles.css --color-stayer, --color-sprinter, --color-azure).
 import { WORDMARK } from '@shared/brand'
@@ -6,7 +6,7 @@ import { WORDMARK } from '@shared/brand'
 export function Wordmark({ className }: { className?: string }) {
   const l = WORDMARK.lines
   return (
-    <svg viewBox={WORDMARK.viewBox} className={className} role="img" aria-label="FreeGaz">
+    <svg viewBox={WORDMARK.viewBox} className={className} role="img" aria-label="CrankHog">
       <path d={WORDMARK.word} fill="currentColor" />
       <path d={l.stayer} fill="var(--color-stayer)" />
       <path d={l.sprinter} fill="var(--color-sprinter)" />

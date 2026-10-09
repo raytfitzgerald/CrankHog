@@ -76,7 +76,7 @@ export function RideDetailPage() {
         open={confirmDelete}
         onOpenChange={setConfirmDelete}
         title="Delete this ride?"
-        description="It will be removed from FreeGaz. The FIT file in your export folder is kept."
+        description="It will be removed from CrankHog. The FIT file in your export folder is kept."
         footer={
           <>
             <Button variant="ghost" onClick={() => setConfirmDelete(false)}>

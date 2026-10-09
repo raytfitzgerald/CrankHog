@@ -1,8 +1,8 @@
 # Packaging for macOS (Apple Silicon). Builds an ad-hoc signed, un-notarized DMG.
 # For stable macOS permission grants across rebuilds, sign with a self-signed
-# identity instead:  CSC_NAME="FreeGaz Local" npm run dist   (see README).
+# identity instead:  CSC_NAME="CrankHog Local" npm run dist   (see README).
 appId: io.github.raytfitzgerald.freegaz
-productName: FreeGaz
+productName: CrankHog
 copyright: Copyright © 2026 Ray Fitzgerald
 
 directories:
@@ -37,15 +37,15 @@ mac:
   hardenedRuntime: false
   gatekeeperAssess: false
   extendInfo:
-    NSBluetoothAlwaysUsageDescription: FreeGaz connects to your smart trainer, heart-rate monitor and other sensors over Bluetooth.
-    NSBluetoothPeripheralUsageDescription: FreeGaz connects to your smart trainer, heart-rate monitor and other sensors over Bluetooth.
-    NSAppleEventsUsageDescription: FreeGaz can control Spotify or Music playback from its keyboard shortcuts.
-    NSLocalNetworkUsageDescription: FreeGaz serves the optional phone remote on your local network.
-    NSDocumentsFolderUsageDescription: FreeGaz saves your ride files (FIT) to Documents/FreeGaz.
+    NSBluetoothAlwaysUsageDescription: CrankHog connects to your smart trainer, heart-rate monitor and other sensors over Bluetooth.
+    NSBluetoothPeripheralUsageDescription: CrankHog connects to your smart trainer, heart-rate monitor and other sensors over Bluetooth.
+    NSAppleEventsUsageDescription: CrankHog can control Spotify or Music playback from its keyboard shortcuts.
+    NSLocalNetworkUsageDescription: CrankHog serves the optional phone remote on your local network.
+    NSDocumentsFolderUsageDescription: CrankHog saves your ride files (FIT) to Documents/CrankHog.
 
 dmg:
-  title: FreeGaz ${version}
-  artifactName: FreeGaz-${version}-${arch}.dmg
+  title: CrankHog ${version}
+  artifactName: CrankHog-${version}-${arch}.dmg
 
 electronFuses:
   runAsNode: false

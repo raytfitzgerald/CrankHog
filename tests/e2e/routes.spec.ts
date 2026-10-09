@@ -25,7 +25,7 @@ function syntheticGpx(): string {
     const lon = 8 + s / (111_320 * Math.cos((46 * Math.PI) / 180))
     pts.push(`<trkpt lat="46.0000000" lon="${lon.toFixed(7)}"><ele>${ele.toFixed(2)}</ele></trkpt>`)
   }
-  return `<?xml version="1.0"?><gpx version="1.1" creator="FreeGaz e2e" xmlns="http://www.topografix.com/GPX/1/1"><trk><name>E2E Synthetic Hill</name><trkseg>${pts.join('')}</trkseg></trk></gpx>`
+  return `<?xml version="1.0"?><gpx version="1.1" creator="CrankHog e2e" xmlns="http://www.topografix.com/GPX/1/1"><trk><name>E2E Synthetic Hill</name><trkseg>${pts.join('')}</trkseg></trk></gpx>`
 }
 
 test('imports a GPX route into the library', async () => {
@@ -47,7 +47,7 @@ test('imports a GPX route into the library', async () => {
 test('rides a demo route in Reactive mode: speed and grade follow the road, then saves', async () => {
   const { page } = ctx
   await page.getByRole('link', { name: 'Routes' }).click()
-  await page.getByTestId('route-card').filter({ hasText: 'FreeGaz Six Percent' }).click()
+  await page.getByTestId('route-card').filter({ hasText: 'CrankHog Six Percent' }).click()
   await page.getByTestId('ride-route-reactive').click()
   await expect(page.getByTestId('route-view')).toBeVisible()
 
@@ -68,7 +68,7 @@ test('rides a demo route in Reactive mode: speed and grade follow the road, then
 
   await page.getByTestId('finish-ride').click()
   await page.getByTestId('confirm-finish').click()
-  await expect(page.getByTestId('saved-ride')).toContainText('FreeGaz Six Percent', { timeout: 15_000 })
+  await expect(page.getByTestId('saved-ride')).toContainText('CrankHog Six Percent', { timeout: 15_000 })
 })
 
 test('a ride on an imported GPX writes GPS into the FIT file, so Strava draws the map', async () => {
@@ -82,7 +82,7 @@ test('a ride on an imported GPX writes GPS into the FIT file, so Strava draws th
   await page.getByTestId('confirm-finish').click()
   await expect(page.getByTestId('saved-ride')).toContainText('E2E Synthetic Hill', { timeout: 15_000 })
 
-  const dir = join(ctx.userData, 'Documents', 'FreeGaz', 'Rides')
+  const dir = join(ctx.userData, 'Documents', 'CrankHog', 'Rides')
   const file = readdirSync(dir).find((f) => f.includes('E2E Synthetic Hill') && f.endsWith('.fit'))!
   const fit = (await new FitParser({ mode: 'list', force: true }).parseAsync(readFileSync(join(dir, file)))) as unknown as { records: { position_lat?: number; position_long?: number }[] }
   const withGps = fit.records.filter((r) => typeof r.position_lat === 'number')

@@ -1,4 +1,4 @@
-// The journeys FreeGaz ships: where each one starts, the towns it routes
+// The journeys CrankHog ships: where each one starts, the towns it routes
 // through, and where it ends. `scripts/journeys/build.mjs` turns this into
 // road geometry, elevation and milestones under src/renderer/src/journeys/data.
 //

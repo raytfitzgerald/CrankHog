@@ -8,7 +8,7 @@ import { UploadOutbox, type OutboxItem, type Uploader } from './outbox'
 function setup(uploader: Uploader) {
   let now = 1_000_000
   const events: OutboxItem[] = []
-  const dir = mkdtempSync(join(tmpdir(), 'freegaz-outbox-'))
+  const dir = mkdtempSync(join(tmpdir(), 'crankhog-outbox-'))
   const make = () =>
     new UploadOutbox(join(dir, 'outbox.json'), { strava: uploader, intervals: uploader }, () => Uint8Array.from([1]), (i) => events.push(i), () => now)
   return { make, events, advance: (ms: number) => (now += ms), dir }

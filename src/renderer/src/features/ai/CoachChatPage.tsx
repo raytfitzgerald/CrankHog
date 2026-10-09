@@ -128,7 +128,7 @@ export function CoachChatPage() {
     <div className="mx-auto flex h-full max-w-4xl flex-col px-4 md:px-8 pb-6">
       <PageHeader
         title="Coach"
-        subtitle="Ask about your training. Only rides recorded in FreeGaz are shared with your AI provider."
+        subtitle="Ask about your training. Only rides recorded in CrankHog are shared with your AI provider."
         actions={
           messages.length > 0 && (
             <Button size="sm" variant="ghost" onClick={() => void clear()}>

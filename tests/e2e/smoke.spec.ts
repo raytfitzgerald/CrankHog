@@ -12,20 +12,20 @@ test.afterAll(async () => {
 })
 
 test('window boots with the app shell', async () => {
-  await expect(ctx.page).toHaveTitle('FreeGaz')
+  await expect(ctx.page).toHaveTitle('CrankHog')
   await expect(ctx.page.getByRole('navigation', { name: 'Main' })).toBeVisible()
-  await expect(ctx.page.getByTestId('app-info')).toContainText('FreeGaz')
+  await expect(ctx.page.getByTestId('app-info')).toContainText('CrankHog')
 })
 
 test('IPC ping round-trips through the typed bridge', async () => {
-  const res = await ctx.page.evaluate(() => window.freegaz.invoke('app.ping', { msg: 'pedal harder' }))
+  const res = await ctx.page.evaluate(() => window.crankhog.invoke('app.ping', { msg: 'pedal harder' }))
   expect(res.pong).toBe('pedal harder')
   expect(res.version).toMatch(/^\d+\.\d+\.\d+/)
 })
 
 test('test runs export into the throwaway profile, never the real Documents', async () => {
-  const info = await ctx.page.evaluate(() => window.freegaz.invoke('app.info', {}))
-  const { dir } = await ctx.page.evaluate(() => window.freegaz.invoke('files.exportDir', {}))
+  const info = await ctx.page.evaluate(() => window.crankhog.invoke('app.info', {}))
+  const { dir } = await ctx.page.evaluate(() => window.crankhog.invoke('files.exportDir', {}))
   expect(info.documents.startsWith(ctx.userData)).toBe(true)
   expect(dir.startsWith(ctx.userData)).toBe(true)
 })
@@ -34,7 +34,7 @@ test('main rejects invalid IPC payloads', async () => {
   const err = await ctx.page.evaluate(async () => {
     try {
       // @ts-expect-error deliberately wrong payload shape
-      await window.freegaz.invoke('app.ping', { msg: 42 })
+      await window.crankhog.invoke('app.ping', { msg: 42 })
       return null
     } catch (e) {
       return String(e)
@@ -95,7 +95,7 @@ test('Report a bug opens a pre-filled GitHub issue, with diagnostics the reporte
     }
   })
   await page.getByTestId('report-bug').click()
-  await expect(page.getByTestId('bug-diagnostics')).toContainText('FreeGaz')
+  await expect(page.getByTestId('bug-diagnostics')).toContainText('CrankHog')
   await page.getByTestId('bug-title').fill('Theme flips after a units change')
   await page.getByTestId('bug-what').fill('Light mode turned dark.')
   await page.getByTestId('bug-send').click()
@@ -112,12 +112,15 @@ test('Report a bug opens a pre-filled GitHub issue, with diagnostics the reporte
   await expect(page.getByTestId('bug-report')).toHaveCount(0)
 })
 
-test('Home opens on the velodrome hero: before the first ride, a rival coach laps it and yours yells', async () => {
+test('Home opens on the velodrome hero: before the first ride, Sir Loin laps it and the coach yells', async () => {
   const { page } = ctx
   await page.getByRole('link', { name: 'Home', exact: true }).click()
   const hero = page.getByTestId('home-hero')
   await expect(hero.getByTestId('hero-title')).toHaveText("You're not on the track yet.")
-  await expect(hero.getByTestId('velodrome-rider')).toHaveCount(1)
+  // no rides yet: the rider's own place is a dashed ghost, and the hog has the track
+  await expect(hero.getByTestId('velodrome-rider')).toHaveCount(0)
+  await expect(hero.getByTestId('velodrome-ghost')).toBeVisible()
+  await expect(hero.getByTestId('velodrome-hog')).toHaveCount(1)
   await expect(hero.getByTestId('velodrome-coach')).toBeVisible()
   await expect(hero.getByTestId('hero-coach')).toContainText('Drill Sergeant')
   await hero.getByTestId('hero-ride').click()

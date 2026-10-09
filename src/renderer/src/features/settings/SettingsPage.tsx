@@ -31,7 +31,7 @@ export function SettingsPage() {
   const initial = TABS.some((t) => t.id === tab) ? tab! : 'athlete'
   return (
     <div className="mx-auto max-w-6xl px-4 md:px-8 pb-12">
-      <PageHeader title="Settings" subtitle={__FREEGAZ_WEB__ ? 'Everything is stored in this browser, on this device.' : 'Everything is stored on this Mac. Keys and tokens are encrypted with your macOS Keychain.'} />
+      <PageHeader title="Settings" subtitle={__CRANKHOG_WEB__ ? 'Everything is stored in this browser, on this device.' : 'Everything is stored on this Mac. Keys and tokens are encrypted with your macOS Keychain.'} />
       <Tabs.Root defaultValue={initial} orientation="vertical" className="flex flex-col gap-4 md:flex-row md:gap-6">
         <Tabs.List className="-mx-4 flex shrink-0 gap-1 overflow-x-auto px-4 md:mx-0 md:w-52 md:flex-col md:overflow-visible md:px-0" aria-label="Settings sections">
           {TABS.map(({ id, label, icon: Icon }) => (

@@ -1,7 +1,7 @@
 // The installable web app (phones, via the browser) and `npm run dev:web`.
 // The preload bridge is replaced by src/renderer/src/platform/web-shim.ts.
-// `npm run build:web` writes out/web; FREEGAZ_WEB_BASE sets the path it is
-// served from (GitHub Pages serves it under /FreeGaz/).
+// `npm run build:web` writes out/web; CRANKHOG_WEB_BASE sets the path it is
+// served from (GitHub Pages serves it under /CrankHog/).
 import { resolve } from 'node:path'
 import { defineConfig, type Plugin } from 'vite'
 import react from '@vitejs/plugin-react'
@@ -11,7 +11,7 @@ import pkg from './package.json' with { type: 'json' }
 /** Manifest, icons and home-screen tags: the web build only, so the desktop app's page is unchanged. */
 function installable(): Plugin {
   return {
-    name: 'freegaz-installable',
+    name: 'crankhog-installable',
     transformIndexHtml: {
       order: 'post',
       handler: (html) =>
@@ -23,7 +23,7 @@ function installable(): Plugin {
             '<meta name="apple-mobile-web-app-capable" content="yes" />',
             '<meta name="mobile-web-app-capable" content="yes" />',
             '<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />',
-            '<meta name="apple-mobile-web-app-title" content="FreeGaz" />',
+            '<meta name="apple-mobile-web-app-title" content="CrankHog" />',
             '<link rel="apple-touch-icon" href="icons/apple-touch-icon.png" />',
             '<link rel="icon" type="image/png" sizes="192x192" href="icons/icon-192.png" />',
             '</head>',
@@ -35,7 +35,7 @@ function installable(): Plugin {
 
 export default defineConfig({
   root: resolve(__dirname, 'src/renderer'),
-  base: process.env.FREEGAZ_WEB_BASE ?? '/',
+  base: process.env.CRANKHOG_WEB_BASE ?? '/',
   publicDir: resolve(__dirname, 'src/renderer/web-public'),
   resolve: {
     alias: {
@@ -44,12 +44,12 @@ export default defineConfig({
       '@renderer': resolve(__dirname, 'src/renderer/src'),
     },
   },
-  define: { __FREEGAZ_WEB__: 'true', __FREEGAZ_VERSION__: JSON.stringify(pkg.version) },
+  define: { __CRANKHOG_WEB__: 'true', __CRANKHOG_VERSION__: JSON.stringify(pkg.version) },
   plugins: [react(), tailwindcss(), installable()],
   server: { port: 5198, strictPort: true },
   build: {
-    // the iPhone app's copy builds to out/ios-web (FREEGAZ_WEB_OUT), next to the Pages one
-    outDir: resolve(__dirname, process.env.FREEGAZ_WEB_OUT ?? 'out/web'),
+    // the iPhone app's copy builds to out/ios-web (CRANKHOG_WEB_OUT), next to the Pages one
+    outDir: resolve(__dirname, process.env.CRANKHOG_WEB_OUT ?? 'out/web'),
     emptyOutDir: true,
     // the phone app is one page; the mini-HUD is desktop-only
     rollupOptions: { input: { index: resolve(__dirname, 'src/renderer/index.html') } },

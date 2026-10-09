@@ -53,7 +53,7 @@ export interface KvEntry {
   value: unknown
 }
 
-export class FreeGazDb extends Dexie {
+export class CrankHogDb extends Dexie {
   rides!: EntityTable<RideSummary, 'id'>
   rideStreams!: EntityTable<RideStreams, 'rideId'>
   workouts!: EntityTable<StoredWorkout, 'id'>
@@ -64,6 +64,9 @@ export class FreeGazDb extends Dexie {
   routeRides!: EntityTable<StoredRouteRide, 'rideId'>
   journeys!: EntityTable<Journey, 'id'>
 
+  // The database name keeps the old brand for the same reason the app://
+  // origin does (app-protocol.ts): renaming it would orphan every ride ever
+  // recorded. Users never see it. Do not 'tidy' this.
   constructor(name = 'freegaz') {
     super(name)
     this.version(1).stores({
@@ -87,10 +90,10 @@ export class FreeGazDb extends Dexie {
   }
 }
 
-let instance: FreeGazDb | null = null
+let instance: CrankHogDb | null = null
 
-export function db(): FreeGazDb {
-  instance ??= new FreeGazDb()
+export function db(): CrankHogDb {
+  instance ??= new CrankHogDb()
   return instance
 }
 

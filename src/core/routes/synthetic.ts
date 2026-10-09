@@ -89,11 +89,11 @@ export function syntheticRoute(spec: SyntheticSpec, opts?: ProfileOptions): Rout
   return buildRoute(syntheticPoints(spec), { id: spec.id, name: spec.name ?? 'Synthetic route', source: 'synthetic' }, opts)
 }
 
-/** Built-in demo routes. The names are FreeGaz's own. */
+/** Built-in demo routes. The names are CrankHog's own. */
 export const DEMO_ROUTE_SPECS: readonly SyntheticSpec[] = [
   {
     id: 'demo-test-loop',
-    name: 'FreeGaz Test Loop',
+    name: 'CrankHog Test Loop',
     shape: 'loop',
     segments: [
       { kind: 'flat', lengthM: 1000, speedKmh: 32 },
@@ -102,10 +102,10 @@ export const DEMO_ROUTE_SPECS: readonly SyntheticSpec[] = [
       { kind: 'climb', lengthM: 2000, gradePct: -4, speedKmh: 42 },
     ],
   },
-  { id: 'demo-flat-five', name: 'FreeGaz Flat Five', segments: [{ kind: 'flat', lengthM: 5000 }] },
+  { id: 'demo-flat-five', name: 'CrankHog Flat Five', segments: [{ kind: 'flat', lengthM: 5000 }] },
   {
     id: 'demo-six-percent',
-    name: 'FreeGaz Six Percent',
+    name: 'CrankHog Six Percent',
     segments: [
       { kind: 'flat', lengthM: 500 },
       { kind: 'climb', lengthM: 3000, gradePct: 6 },
@@ -114,7 +114,7 @@ export const DEMO_ROUTE_SPECS: readonly SyntheticSpec[] = [
   },
   {
     id: 'demo-rollers',
-    name: 'FreeGaz Rollers',
+    name: 'CrankHog Rollers',
     segments: [{ kind: 'rolling', lengthM: 10000, amplitudeM: 15, wavelengthM: 1250 }],
   },
 ]

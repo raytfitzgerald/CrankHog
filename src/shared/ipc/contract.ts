@@ -89,7 +89,7 @@ export const invoke = {
       documents: z.string(),
       isPackaged: z.boolean(),
       isTest: z.boolean(),
-      /** Start with simulated devices (FREEGAZ_SIM=1). */
+      /** Start with simulated devices (CRANKHOG_SIM=1). */
       sim: z.boolean(),
       /** Allow time warp > 1x (only ever honoured while all devices are simulated). */
       warp: z.number(),
@@ -286,8 +286,8 @@ export interface SendMap {
 export type SendChannel = keyof SendMap
 export type EventChannel = keyof EventMap
 
-/** Shape of `window.freegaz`, implemented by the preload (Electron) or the web shim (browser). */
-export interface FreegazBridge {
+/** Shape of `window.crankhog`, implemented by the preload (Electron) or the web shim (browser). */
+export interface CrankHogBridge {
   readonly platform: 'electron' | 'web'
   invoke<C extends InvokeChannel>(channel: C, req: InvokeReq<C>): Promise<InvokeRes<C>>
   on<E extends EventChannel>(event: E, listener: (payload: EventMap[E]) => void): () => void

@@ -1,10 +1,10 @@
-// The developer's bike fund: optional tip links. FreeGaz stays free; these
+// The developer's bike fund: optional tip links. CrankHog stays free; these
 // only open the tip page in the browser. A service with no handle is hidden,
 // so the whole thing disappears until at least one handle is set.
 
 export const BIKE_FUND_TITLE = "Contribute to the developer's bike fund"
 export const BIKE_FUND_BLURB =
-  "FreeGaz is free and always will be. If it saved you a subscription, you can put a little toward the developer's next bike. Totally optional, and it unlocks nothing."
+  "CrankHog is free and always will be. If it saved you a subscription, you can put a little toward the developer's next bike. Totally optional, and it unlocks nothing."
 
 export type TipService = 'venmo' | 'buymeacoffee' | 'kofi'
 

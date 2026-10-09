@@ -35,7 +35,7 @@ export default defineConfig({
   renderer: {
     root: resolve(__dirname, 'src/renderer'),
     resolve: { alias },
-    define: { __FREEGAZ_WEB__: 'false', __FREEGAZ_VERSION__: JSON.stringify(pkg.version) },
+    define: { __CRANKHOG_WEB__: 'false', __CRANKHOG_VERSION__: JSON.stringify(pkg.version) },
     plugins: [react(), tailwindcss()],
     server: { port: 5199, strictPort: true },
     build: {

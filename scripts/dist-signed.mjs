@@ -7,17 +7,17 @@
 //
 // Needs, once per Mac (see README → Releasing a signed build):
 // - a "Developer ID Application" certificate in the login keychain;
-// - notarytool credentials saved as a keychain profile, `freegaz` by default
-//   (override with FREEGAZ_NOTARY_PROFILE).
+// - notarytool credentials saved as a keychain profile, `crankhog` by default
+//   (override with CRANKHOG_NOTARY_PROFILE).
 import { execFileSync } from 'node:child_process'
 import { existsSync, readFileSync } from 'node:fs'
 
-const profile = process.env.FREEGAZ_NOTARY_PROFILE ?? 'freegaz'
+const profile = process.env.CRANKHOG_NOTARY_PROFILE ?? 'crankhog'
 const { version } = JSON.parse(readFileSync('package.json', 'utf8'))
 const dir = `release/${version}`
-const app = `${dir}/mac-arm64/FreeGaz.app`
-const dmg = `${dir}/FreeGaz-${version}-arm64.dmg`
-const zip = `${dir}/FreeGaz-${version}-arm64-mac.zip`
+const app = `${dir}/mac-arm64/CrankHog.app`
+const dmg = `${dir}/CrankHog-${version}-arm64.dmg`
+const zip = `${dir}/CrankHog-${version}-arm64-mac.zip`
 const feed = `${dir}/latest-mac.yml`
 const upload = process.argv.includes('--upload')
 const tag = `v${version}`

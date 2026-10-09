@@ -23,7 +23,7 @@ describe('parseZwo', () => {
   it('reads metadata case-insensitively, decoding entities', () => {
     expect(w).toMatchObject({
       name: 'Fixture & Friends',
-      author: 'FreeGaz Tests',
+      author: 'CrankHog Tests',
       description: 'Exercises every block type.\nSecond line, café included.',
       tags: ['Intervals', 'Fixture'],
       sportType: 'bike',
@@ -170,7 +170,7 @@ describe('toZwo', () => {
 
   it('writes valid, pretty XML for bike', () => {
     const xml = toZwo(imported)
-    expect(xml.startsWith('<?xml version="1.0" encoding="UTF-8"?>\n<workout_file>\n  <author>FreeGaz Tests</author>')).toBe(true)
+    expect(xml.startsWith('<?xml version="1.0" encoding="UTF-8"?>\n<workout_file>\n  <author>CrankHog Tests</author>')).toBe(true)
     expect(xml).toContain('<sportType>bike</sportType>')
     expect(XMLValidator.validate(xml)).toBe(true)
     expect(xml.endsWith('</workout_file>\n')).toBe(true)
@@ -220,7 +220,7 @@ describe('toZwo', () => {
     expect(back.segments[0]).toMatchObject({ label: 'A <b> & "c"', text: [{ offsetS: 0, message: `Don't "stop" <now> & later` }] })
   })
 
-  it('keeps labels, interval part labels and cadence ranges via FreeGaz attributes', () => {
+  it('keeps labels, interval part labels and cadence ranges via CrankHog attributes', () => {
     const w = workout([
       {
         kind: 'intervals',

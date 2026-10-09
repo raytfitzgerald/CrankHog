@@ -48,7 +48,7 @@ test('a free ride dropped at the Eiffel Tower goes somewhere, and the FIT file h
   await expect(page.getByTestId('saved-ride')).toContainText('Eiffel Tower to Rambouillet')
   await expect(page.getByTestId('saved-journey')).toContainText(/Eiffel Tower to Rambouillet · [\d.]+ km ridden/)
 
-  const dir = join(ctx.userData, 'Documents', 'FreeGaz', 'Rides')
+  const dir = join(ctx.userData, 'Documents', 'CrankHog', 'Rides')
   const file = readdirSync(dir).find((f) => f.includes('Eiffel Tower to Rambouillet') && f.endsWith('.fit'))!
   expect(file).toBeDefined()
   const fit = (await new FitParser({ mode: 'list', force: true }).parseAsync(readFileSync(join(dir, file)))) as unknown as {

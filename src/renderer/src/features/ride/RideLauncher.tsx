@@ -109,7 +109,7 @@ function Readiness() {
       {item('Heart rate', hr?.name, false)}
       {!trainer && (
         <div className="ml-auto flex flex-wrap items-center gap-2">
-          {__FREEGAZ_WEB__ && !getRuntime().sim && (
+          {__CRANKHOG_WEB__ && !getRuntime().sim && (
             <Button size="sm" variant="ghost" onClick={() => setDemoMode(true)} data-testid="readiness-demo">
               Try demo mode
             </Button>

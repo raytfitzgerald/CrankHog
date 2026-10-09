@@ -22,7 +22,7 @@ const MORE = NAV.filter((n) => !TABS.has(n.to))
 export function MobileTopBar() {
   return (
     <header className="flex shrink-0 items-center justify-between gap-3 border-b border-line bg-panel px-4 pb-2 pt-[max(0.5rem,env(safe-area-inset-top))] md:hidden">
-      <Link to="/" aria-label="FreeGaz home">
+      <Link to="/" aria-label="CrankHog home">
         <Wordmark className="h-7 w-auto text-ink" />
       </Link>
       <DeviceStatusBar />

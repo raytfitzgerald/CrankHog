@@ -7,7 +7,7 @@ import { followTheme, windowBackground } from './theme'
 
 export function createMainWindow(appearance: () => AppSettings['appearance']): BrowserWindow {
   const win = new BrowserWindow({
-    title: 'FreeGaz',
+    title: 'CrankHog',
     width: 1480,
     height: 920,
     minWidth: 1100,
@@ -32,7 +32,7 @@ export function createMainWindow(appearance: () => AppSettings['appearance']): B
   win.on('closed', stopFollowing)
 
   win.once('ready-to-show', () => {
-    if (!env.isTest || process.env.FREEGAZ_SHOW === '1') win.show()
+    if (!env.isTest || process.env.CRANKHOG_SHOW === '1') win.show()
   })
 
   // No in-app navigation away from the app; external links open in the browser.
@@ -54,7 +54,7 @@ export function createMainWindow(appearance: () => AppSettings['appearance']): B
     while (reloads.length > 0 && now - reloads[0]! > 60_000) reloads.shift()
     if (reloads.length >= 3) return
     reloads.push(now)
-    console.error(`[freegaz] renderer gone (${details.reason}); reloading`)
+    console.error(`[crankhog] renderer gone (${details.reason}); reloading`)
     setTimeout(() => {
       if (!win.isDestroyed()) win.webContents.reload()
     }, 300)

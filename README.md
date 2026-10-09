@@ -1,7 +1,7 @@
 <h1>
   <picture>
-    <source media="(prefers-color-scheme: dark)" srcset="docs/brand/freegaz-wordmark-night.svg">
-    <img src="docs/brand/freegaz-wordmark.svg" alt="FreeGaz" width="300">
+    <source media="(prefers-color-scheme: dark)" srcset="docs/brand/crankhog-wordmark-night.svg">
+    <img src="docs/brand/crankhog-wordmark.svg" alt="CrankHog" width="300">
   </picture>
 </h1>
 
@@ -9,13 +9,13 @@
 
 You bought the smart trainer. You bought the bike. You turned a corner of the garage into a pain cave, complete with a fan older than your car. Then an app asked for a monthly subscription so you could pedal. In your garage. On the trainer you already paid for. Going nowhere.
 
-FreeGaz is free. No subscription, no "Premium" tier, no annual plan with the cancel button hidden four menus deep, and no "your trial has ended" email on the morning of your FTP test. ERG, workouts, FTP tests, routes, the builder, the charts and a coach who will call you a statue mid-interval: all of it, for the grand total of nothing. The only thing it charges is your legs.
+CrankHog is free. No subscription, no "Premium" tier, no annual plan with the cancel button hidden four menus deep, and no "your trial has ended" email on the morning of your FTP test. ERG, workouts, FTP tests, routes, the builder, the charts and a coach who will call you a statue mid-interval: all of it, for the grand total of nothing. The only thing it charges is your legs.
 
 It's a data-obsessed indoor cycling trainer for macOS, and [for your phone](#on-your-phone). It drives your smart trainer in ERG, level, slope or heart-rate mode, plays and builds structured workouts, runs an FTP test that actually saves your FTP, rides real routes, and records every second on your Mac as a FIT file. Your rides stay yours.
 
 <p align="center"><img src="docs/screenshots/home.png" alt="Home: a velodrome seen from above with this week's rides lapping it, the Drill Sergeant shouting from the infield through a megaphone, and a headline that reads your week" width="900"></p>
 
-> FreeGaz is not affiliated with or endorsed by FulGaz, Zwift, TrainerRoad or Wahoo. Product names are trademarks of their owners.
+> CrankHog is not affiliated with or endorsed by FulGaz, Zwift, TrainerRoad or Wahoo. Product names are trademarks of their owners.
 
 ## A quick tour
 
@@ -38,14 +38,14 @@ It's a data-obsessed indoor cycling trainer for macOS, and [for your phone](#on-
 
 <p align="center"><img src="docs/screenshots/coach.png" alt="Coach settings: the personas, a sample line, spice from gentle to feral, and profanity from clean to unhinged" width="900"></p>
 
-**Workouts you can see before they hurt you,** on three shelves: FreeGaz's own workouts, your Custom ones, and a Training plan you put in order.
+**Workouts you can see before they hurt you,** on three shelves: CrankHog's own workouts, your Custom ones, and a Training plan you put in order.
 
 <p align="center">
-  <img src="docs/screenshots/workouts.png" alt="The Workouts page on its FreeGaz workouts tab: every workout drawn as its power profile at your FTP, with Custom workouts and Training plan tabs beside it" width="440">
+  <img src="docs/screenshots/workouts.png" alt="The Workouts page on its CrankHog workouts tab: every workout drawn as its power profile at your FTP, with Custom workouts and Training plan tabs beside it" width="440">
   <img src="docs/screenshots/training-plan.png" alt="The Training plan tab: three workouts numbered in order, with arrows to reorder them" width="440">
 </p>
 
-**And some workouts your old app would never have shipped.** The FreeGaz shelf includes eight rude ones, where the power chart is the joke. The Bird is four knuckles at threshold and a middle finger at 150 % FTP. Mount Stupid is the Dunning-Kruger curve. Stairway to Hell has no landing. Liar Liar says "last one" seven times. Sawtooth Motherfucker is exactly what it sounds like. The cues swear, bleeped to match your profanity setting.
+**And some workouts your old app would never have shipped.** The CrankHog shelf includes eight rude ones, where the power chart is the joke. The Bird is four knuckles at threshold and a middle finger at 150 % FTP. Mount Stupid is the Dunning-Kruger curve. Stairway to Hell has no landing. Liar Liar says "last one" seven times. Sawtooth Motherfucker is exactly what it sounds like. The cues swear, bleeped to match your profanity setting.
 
 <p align="center"><img src="docs/screenshots/the-bird.png" alt="The Bird: a workout whose power profile is a hand with the middle finger raised, at 150 % FTP" width="700"></p>
 
@@ -115,7 +115,7 @@ It's a data-obsessed indoor cycling trainer for macOS, and [for your phone](#on-
 - **Your units.** Metric or imperial, with speed (km/h or mph) and weight (kg or lb) set on their own. Tap the unit on the speed tile to flip it mid-ride.
 
 **Building workouts**
-- **Three shelves.** FreeGaz's own workouts, your Custom workouts, and your Training plan: a numbered list you put in order. Anything you build lands in Custom unless you file it in the plan.
+- **Three shelves.** CrankHog's own workouts, your Custom workouts, and your Training plan: a numbered list you put in order. Anything you build lands in Custom unless you file it in the plan.
 - **A builder like zwofactory.com**, with blocks you can grab:
   - drag a block's edge to change its duration, or its top to change its power;
   - drag a block to reorder it;
@@ -154,7 +154,7 @@ It's a data-obsessed indoor cycling trainer for macOS, and [for your phone](#on-
 - **Home.** The velodrome of this week's rides (or a rival coach doing laps while you don't), your coach shouting from the infield, a suggested workout, your FTP with a retest nudge, form, this week, your latest ride, and achievements and streaks.
 - **You.** Add your name and a photo in **Settings → Athlete & FTP** and your own face rides the ride-along bike and laps the velodrome.
 - **FIT files:**
-  - every ride is saved as a FIT file in `~/Documents/FreeGaz/Rides`;
+  - every ride is saved as a FIT file in `~/Documents/CrankHog/Rides`;
   - import old Garmin or Wahoo FIT files so your fitness charts are complete;
   - rebuild your history from the FIT folder.
 - **Backups:** back up and restore everything as a zip.
@@ -163,18 +163,18 @@ It's a data-obsessed indoor cycling trainer for macOS, and [for your phone](#on-
 
 Requirements: a Mac with Apple Silicon and Bluetooth.
 
-**From a release:** download `FreeGaz-<version>-arm64.dmg` from [Releases](https://github.com/raytfitzgerald/FreeGaz/releases) and drag FreeGaz to Applications. From 0.4.0, releases are signed with a Developer ID and notarized by Apple, so the first launch only asks the usual "downloaded from the Internet" question. Click **Open**.
+**From a release:** download `CrankHog-<version>-arm64.dmg` from [Releases](https://github.com/raytfitzgerald/FreeGaz/releases) and drag CrankHog to Applications. From 0.4.0, releases are signed with a Developer ID and notarized by Apple, so the first launch only asks the usual "downloaded from the Internet" question. Click **Open**.
 
 <details>
 <summary>Releases up to 0.3.0 aren't notarized</summary>
 
-macOS blocks their first launch with "Apple could not verify FreeGaz is free of malware". Click **Done** (not Move to Trash), then either:
+macOS blocks their first launch with "Apple could not verify CrankHog is free of malware". Click **Done** (not Move to Trash), then either:
 
-- open **System Settings → Privacy & Security**, scroll down to the message about FreeGaz, click **Open Anyway** and confirm. You only need to do this once; or
+- open **System Settings → Privacy & Security**, scroll down to the message about CrankHog, click **Open Anyway** and confirm. You only need to do this once; or
 - run this in Terminal:
 
   ```bash
-  xattr -dr com.apple.quarantine /Applications/FreeGaz.app
+  xattr -dr com.apple.quarantine /Applications/CrankHog.app
   ```
 
 The right-click **Open** shortcut no longer works on macOS 15 (Sequoia) and later.
@@ -191,23 +191,23 @@ npm run dev
 
 From 0.5.0, the Mac app updates itself. It checks GitHub's releases a little after launch and every six hours, downloads a new version in the background, and installs it the next time you quit, or straight away from **Restart to update** in the sidebar. Nothing restarts during a ride. **Settings → About** has **Check for updates**, a switch to turn automatic updates off, and one for pre-releases (every 0.x release is one). The check only asks GitHub which release is newest; it sends nothing about you or your rides.
 
-0.4.0 and earlier can't update themselves: download 0.5.0 from [freegaz.app](https://freegaz.app) once, and it takes over from there.
+0.4.0 and earlier can't update themselves: download 0.5.0 from [crankhog.app](https://crankhog.app) once, and it takes over from there.
 
 ### On your phone
 
-FreeGaz also runs as an app on your phone, no app store involved: open **[raytfitzgerald.github.io/FreeGaz](https://raytfitzgerald.github.io/FreeGaz/)** and add it to your home screen. It gets its own icon, opens full screen and works with no signal, which is handy, because the pain cave never has Wi-Fi.
+CrankHog also runs as an app on your phone, no app store involved: open **[raytfitzgerald.github.io/FreeGaz](https://raytfitzgerald.github.io/FreeGaz/)** and add it to your home screen. It gets its own icon, opens full screen and works with no signal, which is handy, because the pain cave never has Wi-Fi.
 
 **Android (Chrome).** This is the full experience, trainer included.
 
 1. Open the link in **Chrome**.
 2. Tap **⋮ → Add to Home screen → Install**. Chrome may offer an **Install app** banner first, which does the same thing.
-3. Open FreeGaz from your home screen, go to **More → Devices** and tap **Pair** on the trainer and the heart-rate strap. Chrome asks which device to use. Turn on Bluetooth and Location if it asks: Android needs Location for Bluetooth scanning.
+3. Open CrankHog from your home screen, go to **More → Devices** and tap **Pair** on the trainer and the heart-rate strap. Chrome asks which device to use. Turn on Bluetooth and Location if it asks: Android needs Location for Bluetooth scanning.
 
 **iPhone and iPad (Safari).**
 
 1. Open the link in **Safari**. Other iPhone browsers can't add a web app to the home screen.
 2. Tap **Share** (the square with the arrow), then **Add to Home Screen → Add**.
-3. Open FreeGaz from your home screen.
+3. Open CrankHog from your home screen.
 
 Apple doesn't let any iPhone browser use Bluetooth devices, so the iPhone app can't control your trainer or read your strap. Everything else works: the workout library, the builder, history, fitness and the coaches. To ride with the trainer, use the Mac app or an Android phone. To see how a ride looks, open the Devices page and tap *look around with simulated devices*.
 
@@ -219,9 +219,9 @@ Apple doesn't let any iPhone browser use Bluetooth devices, so the iPhone app ca
 
 ## First ride
 
-1. **Free your trainer.** A KICKR accepts several Bluetooth connections but only one controller. Quit Zwift and the Wahoo app, and unpair any head unit that controls it. If something else grabs control, FreeGaz says so.
+1. **Free your trainer.** A KICKR accepts several Bluetooth connections but only one controller. Quit Zwift and the Wahoo app, and unpair any head unit that controls it. If something else grabs control, CrankHog says so.
 2. **Heart rate from a Garmin watch.** Turn on heart-rate broadcast: on most models it's **Settings → Health & Wellness (or Wrist Heart Rate) → Broadcast Heart Rate**. A chest strap needs no setup.
-3. **Connect.** Open **Devices**, then **Connect trainer** and **Connect heart rate**, and pick each from the list. macOS asks for Bluetooth permission the first time. FreeGaz remembers your devices and reconnects them at launch.
+3. **Connect.** Open **Devices**, then **Connect trainer** and **Connect heart rate**, and pick each from the list. macOS asks for Bluetooth permission the first time. CrankHog remembers your devices and reconnects them at launch.
 4. **Tell it about you.** In **Settings → Athlete & FTP**, enter your weight and your FTP if you know it. If you don't, open **Workouts → FTP tests** and take the ramp test (about 20 minutes).
 5. **Ride.** Press the big **Ride** button, pick a kind of ride and set it up. Press **Finish** when you're done; the ride is saved, and so is its FIT file.
 
@@ -243,12 +243,12 @@ Apple doesn't let any iPhone browser use Bluetooth devices, so the iPhone app ca
 
 **Strava.** Strava only lets each user connect their own API app, and since June 2026 creating one needs a **Strava subscription**.
 1. Go to [strava.com/settings/api](https://www.strava.com/settings/api) and create an app. Set **Authorization Callback Domain** to `127.0.0.1`.
-2. In FreeGaz, open **Settings → Strava & sync**. Paste the app's Client ID and Client Secret, press **Connect**, and approve in your browser.
+2. In CrankHog, open **Settings → Strava & sync**. Paste the app's Client ID and Client Secret, press **Connect**, and approve in your browser.
 3. Turn on auto-upload if you like. Rides go up as Virtual Rides and are marked as trainer rides.
 
-FreeGaz only uploads. It never reads your Strava data. Without a subscription, use **Strava upload** on any ride: it opens Strava's upload page and shows you the FIT file to drag in.
+CrankHog only uploads. It never reads your Strava data. Without a subscription, use **Strava upload** on any ride: it opens Strava's upload page and shows you the FIT file to drag in.
 
-**Ride moments.** Every ride also saves two pictures next to its FIT file: your hardest 30 seconds, and a coach line picked at random, speech bubble included. They show the ride-along, the big numbers and the workout chart, like the shots Zwift adds to your post. Strava only lets partner apps attach photos, so FreeGaz can't add them itself. The saved-ride card has **Copy** and **Open on Strava**, so adding one takes a paste. Turn them off in **Settings → Strava & sync**.
+**Ride moments.** Every ride also saves two pictures next to its FIT file: your hardest 30 seconds, and a coach line picked at random, speech bubble included. They show the ride-along, the big numbers and the workout chart, like the shots Zwift adds to your post. Strava only lets partner apps attach photos, so CrankHog can't add them itself. The saved-ride card has **Copy** and **Open on Strava**, so adding one takes a paste. Turn them off in **Settings → Strava & sync**.
 
 **intervals.icu.** Paste your API key and athlete ID (from intervals.icu → Settings → Developer) in **Settings → Strava & sync**.
 
@@ -264,7 +264,7 @@ Keys are encrypted with your macOS Keychain and never reach the app's UI process
 
 ## Your data
 
-Everything stays on this Mac. Rides live in the app's database, plus a FIT file per ride in `~/Documents/FreeGaz/Rides`; you can change that folder, for example to one in iCloud Drive for free sync. **Settings → Data & backup** saves or restores a full backup zip, or scans the FIT folder to rebuild your history on a new Mac. Nothing leaves the machine unless you connect Strava or intervals.icu, turn on an AI provider, or send a bug report. The update check asks GitHub for the newest release and sends no data of yours.
+Everything stays on this Mac. Rides live in the app's database, plus a FIT file per ride in `~/Documents/CrankHog/Rides`; you can change that folder, for example to one in iCloud Drive for free sync. **Settings → Data & backup** saves or restores a full backup zip, or scans the FIT folder to rebuild your history on a new Mac. Nothing leaves the machine unless you connect Strava or intervals.icu, turn on an AI provider, or send a bug report. The update check asks GitHub for the newest release and sends no data of yours.
 
 ## Reporting a bug
 
@@ -278,25 +278,25 @@ Use **Report a bug** at the bottom of the sidebar (or **Settings → About**). I
 | `npm run dev:web` | Run the UI alone in a browser with simulated devices (no Electron) |
 | `npm run check` | Typecheck + lint (with architecture boundaries) + unit and simulator tests |
 | `npm run e2e` | Build, then run the Playwright Electron end-to-end suite |
-| `npm run dist` | Build `release/<version>/FreeGaz-<version>-arm64.dmg` |
+| `npm run dist` | Build `release/<version>/CrankHog-<version>-arm64.dmg` |
 | `npm run dist:signed` | The same DMG, signed with a Developer ID, notarized and stapled (see below) |
 | `npm run selftest:packaged` | Boot the packaged app and round-trip one IPC call |
 | `npm run licenses` | Verify every shipped dependency is MIT-compatible |
 | `npm run icon` | Re-render the app icon |
 
-To try it without hardware, `FREEGAZ_SIM=1 npm run dev` runs the app against a simulated KICKR and HR strap that speak real Bluetooth bytes. Add `FREEGAZ_WARP=10` to speed up time ten-fold; simulated and time-warped rides are always flagged, and never count towards Strava, fitness or FTP.
+To try it without hardware, `CRANKHOG_SIM=1 npm run dev` runs the app against a simulated KICKR and HR strap that speak real Bluetooth bytes. Add `CRANKHOG_WARP=10` to speed up time ten-fold; simulated and time-warped rides are always flagged, and never count towards Strava, fitness or FTP.
 
-Ad-hoc signatures change on every build, so macOS forgets permission grants such as Bluetooth and Automation. To keep them, create a self-signed "Code Signing" certificate named `FreeGaz Local` in Keychain Access and build with `CSC_NAME="FreeGaz Local" npm run dist`.
+Ad-hoc signatures change on every build, so macOS forgets permission grants such as Bluetooth and Automation. To keep them, create a self-signed "Code Signing" certificate named `CrankHog Local` in Keychain Access and build with `CSC_NAME="CrankHog Local" npm run dist`.
 
 ### Releasing a signed build
 
 `npm run dist` makes an ad-hoc signed DMG, which macOS blocks on first launch. `npm run dist:signed` makes the same DMG signed with a Developer ID, with the hardened runtime, notarized by Apple and stapled, so it opens with only the usual "downloaded from the Internet" prompt. It needs a paid Apple Developer Program membership, and two things set up once per Mac:
 
 1. **A Developer ID Application certificate** in your login keychain. Create it at [developer.apple.com → Certificates](https://developer.apple.com/account/resources/certificates/add) from a certificate request made in Keychain Access. Without Xcode, also install Apple's [Developer ID G2 intermediate](https://www.apple.com/certificateauthority/DeveloperIDG2CA.cer), or the certificate shows as not valid. `security find-identity -v -p codesigning` should list it.
-2. **Notarization credentials** in a keychain profile named `freegaz` (set `FREEGAZ_NOTARY_PROFILE` to use another name). Make an app-specific password at [account.apple.com](https://account.apple.com), then run:
+2. **Notarization credentials** in a keychain profile named `crankhog` (set `CRANKHOG_NOTARY_PROFILE` to use another name). Make an app-specific password at [account.apple.com](https://account.apple.com), then run:
 
    ```bash
-   xcrun notarytool store-credentials freegaz --apple-id YOUR_APPLE_ID --team-id YOUR_TEAM_ID
+   xcrun notarytool store-credentials crankhog --apple-id YOUR_APPLE_ID --team-id YOUR_TEAM_ID
    ```
 
 The script checks both before it builds. Then it signs, notarizes and staples the app and the DMG, builds the zip and `latest-mac.yml` that the in-app updater installs from, and runs `spctl` the way Gatekeeper will. Notarization usually takes a few minutes. CI keeps building the ad-hoc DMG, because the certificate never leaves your Mac. To release:
@@ -306,7 +306,7 @@ The script checks both before it builds. Then it signs, notarizes and staples th
 
 If signing fails with "A timestamp was expected but was not found", `codesign` can't reach Apple's timestamp server. On some home routers that happens only over IPv6. Turn IPv6 off for the build (`sudo networksetup -setv6off Wi-Fi`, then `-setv6automatic Wi-Fi` afterwards) and run it again.
 
-The first signed build is a new code identity, so macOS asks once more for Bluetooth, and once to let FreeGaz read "FreeGaz Safe Storage" in the keychain (choose **Always Allow**). Rides, settings and saved keys carry over.
+The first signed build is a new code identity, so macOS asks once more for Bluetooth, and once to let CrankHog read "CrankHog Safe Storage" in the keychain (choose **Always Allow**). Rides, settings and saved keys carry over.
 
 ### Architecture
 
@@ -319,7 +319,7 @@ The first signed build is a new code identity, so macOS asks once more for Bluet
   - the crash-safe ride journal and files;
   - secrets (macOS Keychain via `safeStorage`);
   - Strava and intervals.icu, AI, music, and the phone remote.
-- `src/preload`: a small bridge that exposes `window.freegaz` (typed `invoke` / `on`) for allowlisted channels only.
+- `src/preload`: a small bridge that exposes `window.crankhog` (typed `invoke` / `on`) for allowlisted channels only.
 - `src/renderer`: the React UI and the ride engine. Web Bluetooth lives here.
 - `src/shared`: the zod-validated IPC contract that everything above agrees on.
 
@@ -331,7 +331,7 @@ Security defaults:
 
 ## Brand
 
-FreeGaz looks like a velodrome: Stayer Blue, midnight boards, four painted lines, and square race-number digits. The colours, type, logo and voice are in [docs/BRAND.md](docs/BRAND.md), and the logo files are in [docs/brand/](docs/brand/).
+CrankHog looks like a velodrome: Stayer Blue, midnight boards, four painted lines, and square race-number digits. The colours, type, logo and voice are in [docs/BRAND.md](docs/BRAND.md), and the logo files are in [docs/brand/](docs/brand/).
 
 ## License
 

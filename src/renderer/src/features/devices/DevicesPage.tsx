@@ -57,7 +57,7 @@ function NoBluetoothNotice() {
   )
 }
 
-/** Web and iPhone apps: try FreeGaz with a simulated trainer and strap, or leave that again. */
+/** Web and iPhone apps: try CrankHog with a simulated trainer and strap, or leave that again. */
 function DemoModeCard({ on }: { on: boolean }) {
   return (
     <div className="mb-4 flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-line bg-panel px-5 py-4 text-sm" data-testid="demo-mode">
@@ -68,7 +68,7 @@ function DemoModeCard({ on }: { on: boolean }) {
           <p className="text-ink-dim">
             {on
               ? 'A simulated trainer and heart-rate strap stand in for real ones. Rides you record are marked simulated: they never upload or count in your fitness.'
-              : 'Try FreeGaz with a simulated trainer and heart-rate strap. Workouts, journeys and the coach all work, and the rides are marked simulated.'}
+              : 'Try CrankHog with a simulated trainer and heart-rate strap. Workouts, journeys and the coach all work, and the rides are marked simulated.'}
           </p>
         </div>
       </div>
@@ -89,7 +89,7 @@ export function DevicesPage() {
     <div className="mx-auto max-w-6xl px-4 md:px-8 pb-10">
       <PageHeader
         title="Devices"
-        subtitle={rt.sim ? 'Simulator mode: every device here is virtual.' : 'Paired devices reconnect automatically when FreeGaz starts.'}
+        subtitle={rt.sim ? 'Simulator mode: every device here is virtual.' : 'Paired devices reconnect automatically when CrankHog starts.'}
         actions={
           <Button onClick={() => void rt.autoConnect()}>
             <Bluetooth className="size-4" /> Connect remembered
@@ -97,8 +97,8 @@ export function DevicesPage() {
         }
       />
 
-      {__FREEGAZ_WEB__ && !rt.sim && !isNative() && !('bluetooth' in navigator) && <NoBluetoothNotice />}
-      {__FREEGAZ_WEB__ && <DemoModeCard on={rt.sim !== null} />}
+      {__CRANKHOG_WEB__ && !rt.sim && !isNative() && !('bluetooth' in navigator) && <NoBluetoothNotice />}
+      {__CRANKHOG_WEB__ && <DemoModeCard on={rt.sim !== null} />}
 
       <div className="grid gap-4 md:grid-cols-2">
         {PRIMARY.map((role) => (

@@ -6,7 +6,7 @@ import { encodeMeta, encodeRecord, parseJournal } from '@core/ride/journal'
 import type { RideRecord } from '@core/ride/recorder'
 import { JournalStore } from './journal-store'
 
-const dir = () => mkdtempSync(join(tmpdir(), 'freegaz-journal-'))
+const dir = () => mkdtempSync(join(tmpdir(), 'crankhog-journal-'))
 const meta = (rideId: string) => encodeMeta({ rideId, startedAt: 1, name: 'Ride', kind: 'free', simulated: false, ftpW: 250, weightKg: 75 })
 const rec = (t: number): RideRecord => ({
   t, ts: t * 1000, power: 200, cadence: 90, hr: 140, speed: 9, distance: t * 9, altitude: null, grade: null,

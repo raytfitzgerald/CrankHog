@@ -13,7 +13,7 @@ const pick = async (group: string, option: string) => {
 
 beforeEach(() => {
   localStorage.clear()
-  window.freegaz = createWebShim()
+  window.crankhog = createWebShim()
   settingsStore.setState(DEFAULT_SETTINGS, true)
 })
 afterEach(cleanup)

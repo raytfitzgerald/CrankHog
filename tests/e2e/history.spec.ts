@@ -18,7 +18,7 @@ async function seedRides(page: Page) {
       id: `demo-${i}`, name, kind, simulated: false, startedAt: at(day, h), endedAt: at(day, h) + 3_600_000, movingS: 3600, elapsedS: 3700, kj: 700,
       tss: Math.round(IF * IF * 100), intensityFactor: IF, np: 220, avgPower: 210, mmp: [], laps: [], powerZonesS: [], hrZonesS: [], athlete: { ftpW: 250, weightKg: 75 }, createdAt: Date.now(), updatedAt: Date.now(),
     })
-    const rides = [mk(1, 2, 7, 'Sweet Spot 3×12', 0.88, 'workout'), mk(2, 5, 9, 'Endurance 60', 0.65, 'free'), mk(3, 5, 18, 'Race Openers', 0.7, 'workout'), mk(4, 9, 8, 'FreeGaz Six Percent', 0.8, 'route'), mk(5, 12, 7, 'VO2 Max 5×4', 1.0, 'workout')]
+    const rides = [mk(1, 2, 7, 'Sweet Spot 3×12', 0.88, 'workout'), mk(2, 5, 9, 'Endurance 60', 0.65, 'free'), mk(3, 5, 18, 'Race Openers', 0.7, 'workout'), mk(4, 9, 8, 'CrankHog Six Percent', 0.8, 'route'), mk(5, 12, 7, 'VO2 Max 5×4', 1.0, 'workout')]
     await new Promise<void>((resolve, reject) => {
       const req = indexedDB.open('freegaz')
       req.onsuccess = () => {

@@ -34,11 +34,11 @@ async function decode(bytes: Uint8Array): Promise<DecodedFit> {
 const at = (s: number) => new Date(T0 + s * 1000)
 
 describe('importFitActivity', () => {
-  it('round-trips a FreeGaz FIT file second for second', async () => {
+  it('round-trips a CrankHog FIT file second for second', async () => {
     const records = Array.from({ length: 180 }, (_, t) => rec(t, t === 40 ? { power: null, hr: null } : {}))
     const fin = finalizeRide({ rideId: 'r-rt', name: 'Round trip', kind: 'free', simulated: false, startedAt: T0, athlete: { ftpW: 250, weightKg: 75 }, records, utcOffsetMin: 0, softwareVersion: 10, now: T0 + 400_000 })
     const imp = importFitActivity(await decode(fin.fit!))
-    expect(imp.fromFreeGaz).toBe(true)
+    expect(imp.fromCrankHog).toBe(true)
     expect(imp.startedAt).toBe(T0)
     expect(imp.records).toHaveLength(180)
     for (const k of ['power', 'hr', 'cadence', 'targetW', 'lrBalance', 'lap'] as const) {

@@ -24,7 +24,7 @@ import { SpeechQueue, type Voice } from './speech-queue'
 import { markLine, markMuted, markSpeaking, markWord } from './talk'
 
 /** Dispatched on window by RideRunner for the C key and the phone's mute button. */
-export const MUTE_EVENT = 'freegaz:mute-coach'
+export const MUTE_EVENT = 'crankhog:mute-coach'
 export const MUTED_TEXT = 'Coach muted. Press C or the mute button to unmute.'
 export const UNMUTED_TEXT = 'Coach back on.'
 

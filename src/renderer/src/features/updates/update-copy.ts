@@ -9,9 +9,9 @@ export function updateStatusText(s: UpdateStatus): string {
       return {
         dev: 'Updates arrive in the installed app. This is a development build.',
         web: 'The web app updates itself the next time it opens online.',
-        unsigned: "This build isn't signed with a Developer ID, so it can't update itself. Download new versions from freegaz.app.",
+        unsigned: "This build isn't signed with a Developer ID, so it can't update itself. Download new versions from crankhog.app.",
         platform: 'In-app updates are for the Mac app.',
-        failed: "The updater couldn't start. Download new versions from freegaz.app.",
+        failed: "The updater couldn't start. Download new versions from crankhog.app.",
       }[s.reason]
     case 'idle':
       return s.checkedAt ? `Last checked at ${time(s.checkedAt)}.` : 'Not checked yet.'
@@ -20,11 +20,11 @@ export function updateStatusText(s: UpdateStatus): string {
     case 'up-to-date':
       return `You're up to date. Checked at ${time(s.checkedAt)}.`
     case 'available':
-      return `FreeGaz ${s.version} is available.`
+      return `CrankHog ${s.version} is available.`
     case 'downloading':
-      return `Downloading FreeGaz ${s.version}… ${s.percent} %`
+      return `Downloading CrankHog ${s.version}… ${s.percent} %`
     case 'ready':
-      return `FreeGaz ${s.version} is ready. It installs when you restart FreeGaz or quit it.`
+      return `CrankHog ${s.version} is ready. It installs when you restart CrankHog or quit it.`
     case 'error':
       return s.message
   }

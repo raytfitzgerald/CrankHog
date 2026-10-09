@@ -11,7 +11,7 @@ const fmt = (s: number | null | undefined) => {
   return h ? `${h}:${String(m).padStart(2, '0')}:${String(x).padStart(2, '0')}` : `${m}:${String(x).padStart(2, '0')}`
 }
 
-const send = (cmd: RideCommand) => void window.freegaz.invoke('ride.command', cmd)
+const send = (cmd: RideCommand) => void window.crankhog.invoke('ride.command', cmd)
 
 /**
  * The floating mini-HUD. Receives the main window's live broadcast through
@@ -19,7 +19,7 @@ const send = (cmd: RideCommand) => void window.freegaz.invoke('ride.command', cm
  */
 export function MiniHudApp() {
   const [b, setB] = useState<LiveBroadcast | null>(null)
-  useEffect(() => window.freegaz.on('live.broadcast', setB), [])
+  useEffect(() => window.crankhog.on('live.broadcast', setB), [])
 
   const f = b?.frame
   const r = b?.ride
@@ -31,7 +31,7 @@ export function MiniHudApp() {
   return (
     <div className="drag-region group flex h-full flex-col rounded-2xl border border-line bg-bg/85 px-4 py-3 text-ink backdrop-blur-xl">
       <div className="flex items-center justify-between eyebrow text-[10px] text-ink-faint">
-        <span className="truncate">{r?.segmentLabel ?? r?.name ?? 'FreeGaz'}</span>
+        <span className="truncate">{r?.segmentLabel ?? r?.name ?? 'CrankHog'}</span>
         <span className="tabular">{r ? fmt(r.movingS) : ''}</span>
       </div>
       <div className="mt-1 flex items-end justify-between gap-3">

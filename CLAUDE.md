@@ -1,4 +1,4 @@
-# FreeGaz: notes for Claude
+# CrankHog: notes for Claude
 
 A macOS Electron + React/TypeScript indoor-cycling trainer (ERG/SIM control, workout builder, FTP tests, FIT export, Strava, optional AI). It is a **public repo**: never commit secrets, personal ride data, or code copied from GPL/AGPL projects.
 
@@ -11,9 +11,10 @@ A macOS Electron + React/TypeScript indoor-cycling trainer (ERG/SIM control, wor
 ## Architecture rules (enforced)
 - `src/core` is pure TS: no DOM, Node, Electron, React or Dexie. `tsconfig.core.json` only knows ES2023 plus `src/core/host.d.ts`. Put anything testable here.
 - `src/shared` holds the IPC contract (`ipc/contract.ts`, zod). Add every new channel to `ipc/channels.ts` too; a test enforces this.
-- Renderer ↔ main traffic goes only through `window.freegaz.invoke/on`. Main validates every payload and checks the sender.
+- Renderer ↔ main traffic goes only through `window.crankhog.invoke/on`. Main validates every payload and checks the sender.
 - Secrets live only in main (`safeStorage`). The renderer never sees API keys or OAuth tokens.
-- The `app://freegaz` origin and `productName` must never change, or IndexedDB data is orphaned.
+- The `app://freegaz` origin must never change, or IndexedDB data is orphaned. It keeps the old name after the CrankHog rename on purpose; users never see it. The iOS bundle id and the GitHub repo stay `…freegaz` / `raytfitzgerald/FreeGaz` too, so App Store updates and the updater feed keep working.
+- `productName` moved to `CrankHog` in 0.6.0. `src/main/user-data.ts` renames the old Application Support and Documents folders on first launch; don't change it again without a migration.
 
 ## Domain rules
 - **Missing is not zero.** A sensor value past its TTL is `null` (FIT invalid), never 0. Averages and NP skip nulls.
@@ -35,4 +36,6 @@ A macOS Electron + React/TypeScript indoor-cycling trainer (ERG/SIM control, wor
 - Match surrounding style: small modules, named exports, zod at trust boundaries, and no default exports except React entry points.
 - Tests sit next to the code (`*.test.ts`); simulator scenarios go in `tests/sim`, E2E in `tests/e2e`.
 - Commit messages end with `Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>`.
+- **Never rename a persisted key.** The `app://freegaz` origin, the Dexie database name (`src/renderer/src/db/db.ts`), the `freegaz.web.*` localStorage keys and Strava's `freegaz-<rideId>` external id all keep the old brand on purpose. Renaming any of them orphans a rider's data.
+- Sir Loin the hog is the mascot: `src/core/mascot/hog.ts` for his timing and lines, `src/renderer/src/brand/hog/` for the drawing. His rules are in `docs/BRAND.md`.
 - The full plan and research notes are at `~/.claude/plans/i-would-like-for-foamy-moth.md` (local only).

@@ -181,9 +181,9 @@ export function initRuntime(info: AppInfo): Runtime {
   }
 
   // Launch auto-connect: main runs this hook with a user gesture.
-  ;(window as unknown as { __freegazAutoConnect?: () => Promise<void> }).__freegazAutoConnect = runtime.autoConnect
-  // E2E hook: only when launched by the test suite (FREEGAZ_TEST=1).
-  if (info.isTest) (window as unknown as { __freegazTest?: unknown }).__freegazTest = { runtime }
+  ;(window as unknown as { __crankhogAutoConnect?: () => Promise<void> }).__crankhogAutoConnect = runtime.autoConnect
+  // E2E hook: only when launched by the test suite (CRANKHOG_TEST=1).
+  if (info.isTest) (window as unknown as { __crankhogTest?: unknown }).__crankhogTest = { runtime }
 
   return runtime
 }

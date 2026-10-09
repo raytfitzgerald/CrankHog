@@ -1,4 +1,4 @@
-// FIT activity (decoded by fit-file-parser in 'list' mode) → FreeGaz ride
+// FIT activity (decoded by fit-file-parser in 'list' mode) → CrankHog ride
 // records: one record per second of moving time, exactly like a ride
 // recorded here, so history, PMC and the power curve treat both the same.
 //
@@ -25,7 +25,7 @@ export interface DecodedRecord {
   left_right_balance?: number | { value?: number; right?: boolean }
   core_temperature?: number
   saturated_hemoglobin_percent?: number
-  /** FreeGaz developer field. */
+  /** CrankHog developer field. */
   target_power?: number
   position_lat?: number
   position_long?: number
@@ -47,8 +47,8 @@ export interface ImportedActivity {
   indoor: boolean
   /** "garmin edge_530", "wahoo_fitness", or null. */
   device: string | null
-  /** A file FreeGaz wrote itself. */
-  fromFreeGaz: boolean
+  /** A file CrankHog wrote itself. */
+  fromCrankHog: boolean
   records: RideRecord[]
   elevationGainM: number | null
 }
@@ -118,7 +118,7 @@ export function importFitActivity(fit: DecodedFit, opts: { maxGapS?: number } = 
   const hasGps = samples.some(({ r }) => typeof r.position_lat === 'number' && typeof r.position_long === 'number')
   const indoor = subSport !== null && subSport !== 'generic' ? INDOOR_SUB_SPORTS.has(subSport) : !hasGps
   const id = fit.file_ids?.[0]
-  const fromFreeGaz = id?.manufacturer === 'development' && id.product_name === 'FreeGaz'
+  const fromCrankHog = id?.manufacturer === 'development' && id.product_name === 'CrankHog'
   const device = id ? [id.manufacturer, id.product_name ?? id.garmin_product].filter((x) => typeof x === 'string' && x.length > 0).join(' ') || null : null
   return {
     startedAt: records[0]!.ts - 1000,
@@ -126,7 +126,7 @@ export function importFitActivity(fit: DecodedFit, opts: { maxGapS?: number } = 
     subSport,
     indoor,
     device,
-    fromFreeGaz,
+    fromCrankHog,
     records,
     elevationGainM: typeof session?.total_ascent === 'number' ? session.total_ascent : null,
   }
@@ -155,7 +155,7 @@ function toRecord(t: number, sec: number, r: DecodedRecord, lap: number): RideRe
   }
 }
 
-/** FIT stores the flagged side's share; FreeGaz stores % left. */
+/** FIT stores the flagged side's share; CrankHog stores % left. */
 function leftBalance(b: DecodedRecord['left_right_balance']): number | null {
   if (b === undefined || b === null) return null
   const value = typeof b === 'number' ? b & 0x7f : b.value

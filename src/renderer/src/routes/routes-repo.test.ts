@@ -98,7 +98,7 @@ describe('routes repo', () => {
     expect(list.map((r) => r.id)).toEqual(['demo-test-loop', 'demo-flat-five', 'demo-six-percent', 'demo-rollers'])
     expect(list.every((r) => r.builtin && r.thumb.ele.length === 64)).toBe(true)
     expect(list.find((r) => r.id === 'demo-test-loop')!.loop).toBe(true)
-    expect(await loadRoute('demo-six-percent')).toMatchObject({ name: 'FreeGaz Six Percent' })
+    expect(await loadRoute('demo-six-percent')).toMatchObject({ name: 'CrankHog Six Percent' })
   })
 
   it('imports a GPX file, lists it and rebuilds the same route from storage', async () => {

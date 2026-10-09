@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<!-- Hand-written FreeGaz test fixture. Tag and attribute names use mixed case on purpose. -->
+<!-- Hand-written CrankHog test fixture. Tag and attribute names use mixed case on purpose. -->
 <Workout_File>
-  <Author>FreeGaz Tests</Author>
+  <Author>CrankHog Tests</Author>
   <Name>Fixture &amp; Friends</Name>
   <Description>Exercises every block type.
 Second line, caf&#233; included.</Description>

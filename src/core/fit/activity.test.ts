@@ -89,7 +89,7 @@ describe('FIT activity encoder', () => {
     expect(timer).toEqual(['start', 'stopAll', 'start', 'stopAll'])
   })
 
-  it('carries FreeGaz developer fields (target power, trainer grade)', () => {
+  it('carries CrankHog developer fields (target power, trainer grade)', () => {
     const { input } = ride()
     const m = decode(encodeFitActivity(input))
     expect(m.fieldDescriptionMesgs!.map((f) => f.fieldName)).toEqual(['target_power', 'trainer_grade', 'w_prime_balance'])

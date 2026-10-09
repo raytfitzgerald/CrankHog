@@ -11,7 +11,7 @@ const reactRefresh = reactRefreshModule.default ?? reactRefreshModule
 //   src/core      pure TypeScript domain logic (runs in Node, renderer, main)
 //   src/shared    pure contracts shared by main/preload/renderer
 //   src/main      Electron main process (Node)
-//   src/renderer  React UI (browser), talks to main only via window.freegaz
+//   src/renderer  React UI (browser), talks to main only via window.crankhog
 const NODE_BUILTINS = [
   'node:*', 'fs', 'fs/*', 'path', 'os', 'child_process', 'crypto', 'http', 'https', 'net',
   'url', 'util', 'stream', 'events', 'worker_threads', 'zlib', 'dgram', 'dns', 'tls',
@@ -52,7 +52,7 @@ export default defineConfig(
   },
   {
     files: ['src/renderer/**/*.{ts,tsx}'],
-    languageOptions: { globals: { ...globals.browser, __FREEGAZ_WEB__: 'readonly' } },
+    languageOptions: { globals: { ...globals.browser, __CRANKHOG_WEB__: 'readonly' } },
     plugins: { 'react-hooks': reactHooks, 'react-refresh': reactRefresh },
     rules: {
       ...reactHooks.configs.flat.recommended.rules,
@@ -60,7 +60,7 @@ export default defineConfig(
       'no-restricted-imports': ['error', {
         patterns: [{
           group: ['electron', 'electron/*', '@main/*', ...NODE_BUILTINS],
-          message: 'The renderer must not import Node or Electron. Call main through window.freegaz.',
+          message: 'The renderer must not import Node or Electron. Call main through window.crankhog.',
         }],
       }],
     },

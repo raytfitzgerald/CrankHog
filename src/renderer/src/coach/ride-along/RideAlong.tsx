@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import { ChevronDown, ChevronUp, Volume2, VolumeX } from 'lucide-react'
 import { MAX_GAP_M, RIDE_ALONG_START, coachPaceW, gapLabel, stepRideAlong } from '@core/coach'
 import { PRIORITY, packById, PROFESSIONAL } from '@core/persona'
+import { HogVerge } from '../../brand/hog/HogVerge'
 import { useFtp } from '../../db/use-athlete'
 import { getRuntime } from '../../runtime/composition'
 import { liveStore } from '../../stores/live'
@@ -163,6 +164,9 @@ function Scene({ personaId, name, coachOn, muted, ftpW }: { personaId: string; n
   const toon = toonFor(personaId)
   const bubble = useBubble(personaId, coachOn)
   const colors = avatarColors(personaId)
+  const movingS = useRide((s) => s.snapshot?.movingS ?? 0)
+  const rideId = useRide((s) => s.rideId)
+  const riding = useRide((s) => s.snapshot?.state === 'riding')
 
   return (
     <div ref={sceneRef} className="relative mx-1 mb-1 overflow-hidden rounded-xl" style={{ height: SCENE_H }}>
@@ -179,6 +183,8 @@ function Scene({ personaId, name, coachOn, muted, ftpW }: { personaId: string; n
         style={{ backgroundImage: 'linear-gradient(90deg, var(--color-line-strong) 0 32px, transparent 32px 64px)', backgroundSize: '64px 3px', backgroundRepeat: 'repeat-x', backgroundPositionY: '55%' }}
         aria-hidden
       />
+      {/* Sir Loin, out for a walk on the far verge, getting overtaken */}
+      <HogVerge key={rideId} elapsedS={movingS} moving={riding} />
       {/* the coach in the far lane, roaming ahead or behind; the rider fixed in the near one */}
       <div ref={coachRef} className="absolute bottom-10 will-change-transform" style={{ left: `${RIDER_X * 100}%` }} data-testid="ride-along-coach">
         <div className="relative -translate-x-1/2">

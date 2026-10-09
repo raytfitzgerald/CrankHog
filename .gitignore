@@ -20,7 +20,7 @@ tests/e2e/.tmp/
 secrets.json
 userData/
 
-# personal ride data (rides live in ~/Documents/FreeGaz, but just in case)
+# personal ride data (rides live in ~/Documents/CrankHog, but just in case)
 *.fit
 !tests/fixtures/**/*.fit
 captures/
@@ -31,7 +31,7 @@ captures/
 *.mrc
 *.erg
 !src/**/fixtures/**
-FreeGaz backup *.zip
+CrankHog backup *.zip
 
 # OS / editor
 .DS_Store

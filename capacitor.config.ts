@@ -5,13 +5,13 @@ import type { CapacitorConfig } from '@capacitor/cli'
 
 const config: CapacitorConfig = {
   appId: 'io.github.raytfitzgerald.freegaz',
-  appName: 'FreeGaz',
+  appName: 'CrankHog',
   webDir: 'out/ios-web',
   ios: {
     // the web app draws its own safe-area padding (viewport-fit=cover)
     contentInset: 'never',
     backgroundColor: '#111d36',
-    scheme: 'FreeGaz',
+    scheme: 'CrankHog',
   },
   plugins: {
     BluetoothLe: {

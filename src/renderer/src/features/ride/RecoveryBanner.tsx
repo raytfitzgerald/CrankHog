@@ -17,7 +17,7 @@ export function RecoveryBanner() {
           <div className="flex-1">
             <div className="font-semibold">Unfinished ride found{r.name ? `: ${r.name}` : ''}</div>
             <div className="text-ink-dim">
-              {r.startedAt ? formatDateTime(r.startedAt) : 'Unknown start'} · {formatDuration(r.records)} recorded before FreeGaz closed.
+              {r.startedAt ? formatDateTime(r.startedAt) : 'Unknown start'} · {formatDuration(r.records)} recorded before CrankHog closed.
             </div>
           </div>
           <Button size="sm" variant="ghost" onClick={() => void rt.rides.discardRecovery(r.rideId)}>

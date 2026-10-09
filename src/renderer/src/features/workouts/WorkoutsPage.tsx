@@ -17,8 +17,8 @@ type Filter = 'all' | 'favorites' | 'tests' | `tag:${string}`
 type Tab = LibraryEntry['folder']
 
 const TABS: { id: Tab; label: string; empty: string }[] = [
-  { id: 'freegaz', label: 'FreeGaz workouts', empty: 'No workouts match. Try another filter.' },
-  { id: 'custom', label: 'Custom workouts', empty: 'Nothing here yet. Build one with New workout, copy a FreeGaz workout to the builder, or drop .zwo, .mrc or .erg files on this page.' },
+  { id: 'crankhog', label: 'CrankHog workouts', empty: 'No workouts match. Try another filter.' },
+  { id: 'custom', label: 'Custom workouts', empty: 'Nothing here yet. Build one with New workout, copy a CrankHog workout to the builder, or drop .zwo, .mrc or .erg files on this page.' },
   { id: 'plan', label: 'Training plan', empty: 'Your training plan is empty. Import workout files while this tab is open (they go in in file-name order), set Folder to Training plan in the builder, or move one of your custom workouts here.' },
 ]
 type Length = 'any' | 'short' | 'medium' | 'long'
@@ -35,12 +35,12 @@ export function WorkoutsPage() {
   const library = useLiveQuery(() => loadLibrary(ftpW), [ftpW])
   const search = useSearch({ from: '/workouts' })
   const initial = search.filter
-  // FreeGaz's own workouts first; ?filter=mine (older links) opens your custom ones
-  const [tab, setTab] = useState<Tab>(initial === 'mine' ? 'custom' : 'freegaz')
+  // CrankHog's own workouts first; ?filter=mine (older links) opens your custom ones
+  const [tab, setTab] = useState<Tab>(initial === 'mine' ? 'custom' : 'crankhog')
   const [filter, setFilter] = useState<Filter>(initial === 'tests' || initial === 'favorites' ? initial : 'all')
   const pickTab = (t: Tab) => {
     setTab(t)
-    if (t !== 'freegaz' && filter === 'tests') setFilter('all')
+    if (t !== 'crankhog' && filter === 'tests') setFilter('all')
   }
   const [length, setLength] = useState<Length>('any')
   const [query, setQuery] = useState('')
@@ -55,7 +55,7 @@ export function WorkoutsPage() {
     return [...count.entries()].sort((a, b) => b[1] - a[1]).map(([t]) => t)
   }, [library, tab])
   const counts = useMemo(() => {
-    const c: Record<Tab, number> = { freegaz: 0, custom: 0, plan: 0 }
+    const c: Record<Tab, number> = { crankhog: 0, custom: 0, plan: 0 }
     for (const e of library ?? []) c[e.folder]++
     return c
   }, [library])
@@ -109,7 +109,7 @@ export function WorkoutsPage() {
   const chips: { id: Filter; label: string }[] = [
     { id: 'all', label: 'All' },
     { id: 'favorites', label: 'Favorites' },
-    ...(tab === 'freegaz' ? [{ id: 'tests' as const, label: 'FTP tests' }] : []),
+    ...(tab === 'crankhog' ? [{ id: 'tests' as const, label: 'FTP tests' }] : []),
     ...tags.map((t) => ({ id: `tag:${t}` as const, label: tagLabel(t) })),
   ]
 

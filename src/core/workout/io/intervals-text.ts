@@ -1,5 +1,5 @@
-// FreeGaz's text mode: the intervals.icu workout-builder syntax, plus a few
-// FreeGaz extensions so that text ↔ workout is lossless.
+// CrankHog's text mode: the intervals.icu workout-builder syntax, plus a few
+// CrankHog extensions so that text ↔ workout is lossless.
 //
 //   Warm-up                         free text = section label for its steps
 //   - 10m warmup 40-75% 90rpm       - <duration> <target> [cadence] [avg]
@@ -20,7 +20,7 @@
 // midpoint, range kept on the target), ramp 50-75% (or 150-250w, 50%-250w).
 // Cadence: 90rpm or 85-95rpm.
 //
-// FreeGaz extensions:
+// CrankHog extensions:
 // - `warmup` / `cooldown` in place of `ramp` set the ramp's role.
 // - `freeride` (ERG off, flat road); add `terrain` for FlatRoad = false.
 // - `max` = all-out MaxEffort (ERG off).

@@ -1,4 +1,4 @@
-// The built-in workout library. Every workout here is original to FreeGaz and
+// The built-in workout library. Every workout here is original to CrankHog and
 // written in the text syntax (io/intervals-text.ts), parsed once at module
 // load: the library doubles as a test of the syntax. The texts are fixed, so
 // a parse error is a bug caught by builtins.test.ts, and loading throws on
@@ -884,7 +884,7 @@ function build(spec: BuiltinSpec): Workout {
   const { workout, errors } = parseIntervalsText(spec.text, {
     id: `builtin:${spec.slug}`,
     name: spec.name,
-    author: 'FreeGaz',
+    author: 'CrankHog',
     description: spec.description,
     tags: spec.tags,
     source: 'builtin',

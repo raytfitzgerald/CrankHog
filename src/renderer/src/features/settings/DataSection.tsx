@@ -17,7 +17,7 @@ export function DataSection() {
     try {
       const zip = await createBackup()
       const stamp = new Date().toISOString().slice(0, 10)
-      const res = await bridge().invoke('files.saveAs', { defaultName: `FreeGaz backup ${stamp}.zip`, bytes: new Uint8Array(zip), filters: [{ name: 'FreeGaz backup', extensions: ['zip'] }] })
+      const res = await bridge().invoke('files.saveAs', { defaultName: `CrankHog backup ${stamp}.zip`, bytes: new Uint8Array(zip), filters: [{ name: 'CrankHog backup', extensions: ['zip'] }] })
       setMsg(res.path ? `Saved ${(zip.byteLength / 1024 / 1024).toFixed(1)} MB to ${res.path}` : null)
     } catch (e) {
       setMsg(`Backup failed: ${e instanceof Error ? e.message : String(e)}`)

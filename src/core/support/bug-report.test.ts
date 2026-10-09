@@ -25,7 +25,7 @@ describe('bug reports', () => {
 
   it('names the phone OS for the web app', () => {
     const web = formatDiagnostics({ version: '0.3.0-web', electron: 'n/a', chrome: 'n/a', os: 'iOS 18.1', arch: 'browser', simulated: false, devices: [], settings: {}, recent: [] })
-    expect(web).toContain('- FreeGaz 0.3.0-web (web app, Chrome n/a)')
+    expect(web).toContain('- CrankHog 0.3.0-web (web app, Chrome n/a)')
     expect(web).toContain('- iOS 18.1 (browser)')
   })
 

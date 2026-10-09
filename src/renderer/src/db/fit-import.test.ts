@@ -39,7 +39,7 @@ describe('importFitFiles', () => {
     expect(r.skipped).toEqual([{ name: 'junk.fit', reason: 'Not a readable FIT file.' }])
   })
 
-  it('keeps FreeGaz file names and names other rides by time of day', () => {
+  it('keeps CrankHog file names and names other rides by time of day', () => {
     expect(rideName('2026-09-29 0712 - Sweet Spot 3x15.fit', true, T0)).toBe('Sweet Spot 3x15')
     expect(rideName('12345_ACTIVITY.fit', false, new Date(2026, 8, 12, 7, 0).getTime())).toBe('Morning ride')
   })

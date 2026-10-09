@@ -56,7 +56,7 @@ describe('HUD tiles', () => {
 
   it('flip speed between km/h and mph from the unit label', async () => {
     localStorage.clear()
-    window.freegaz = createWebShim()
+    window.crankhog = createWebShim()
     settingsStore.setState({ ...DEFAULT_SETTINGS, units: 'metric', speedUnit: 'kmh' }, true)
     act(() => liveStore.setState({ ...liveStore.getState(), speedKmh: 32.4 }))
     render(<HudTile def={WIDGET_BY_ID.get('speed')!} athlete={athlete} />)

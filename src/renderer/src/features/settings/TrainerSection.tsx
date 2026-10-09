@@ -78,7 +78,7 @@ function FanSettings() {
   const set = (patch: Partial<typeof fan>) => void patchSettings({ fan: { ...settingsStore.getState().fan, ...patch } })
   const fanSpeed = Math.round(displaySpeedKmh(fan.speedFullKmh, units))
   return (
-    <Section title="Fan (KICKR Headwind)" description="Connect the fan on the Devices page; FreeGaz sets its speed as you ride.">
+    <Section title="Fan (KICKR Headwind)" description="Connect the fan on the Devices page; CrankHog sets its speed as you ride.">
       <Field label="Fan follows">
         <Segmented ariaLabel="Fan mode" value={fan.mode} onChange={(mode) => set({ mode })} options={FAN_MODES} />
       </Field>

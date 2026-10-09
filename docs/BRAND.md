@@ -1,6 +1,6 @@
-# FreeGaz brand guidelines
+# CrankHog brand guidelines
 
-FreeGaz looks like a velodrome.
+CrankHog looks like a velodrome.
 - **The boards:** pale boards in daylight, midnight blue under the lights.
 - **The lines:** four painted lines round the track.
 - **The numbers:** big, square numbers, like a timing board.
@@ -15,7 +15,7 @@ Everything here is in the code: the theme tokens in [`src/renderer/src/styles.cs
 
 ## Logo
 
-**The wordmark** is "FreeGaz" in Saira ExtraBold Italic at 72 % width, outlined, over the **track lines**. These are the velodrome's four markings, top to bottom:
+**The wordmark** is "CrankHog" in Saira ExtraBold Italic at 72 % width, outlined, over the **track lines**. These are the velodrome's four markings, top to bottom:
 
 | Line | Colour | On the track |
 |---|---|---|
@@ -27,26 +27,32 @@ Everything here is in the code: the theme tokens in [`src/renderer/src/styles.cs
 The stripes lean 12° to match the italics.
 
 **Files** in `docs/brand/`:
-- `freegaz-wordmark.svg`: navy, for light grounds.
-- `freegaz-wordmark-night.svg`: chalk, for dark grounds.
-- `freegaz-wordmark-white.svg`: all white, on Stayer Blue or a photo.
-- `freegaz-icon.svg`: the app icon.
-- `freegaz-mark.svg`: the track alone.
+- `crankhog-wordmark.svg`: navy, for light grounds.
+- `crankhog-wordmark-night.svg`: chalk, for dark grounds.
+- `crankhog-wordmark-white.svg`: all white, on Stayer Blue or a photo.
+- `crankhog-icon.svg`: the app icon.
+- `crankhog-mark.svg`: the track alone.
 
 In the app, use the `Wordmark` and `TrackLines` components (`src/renderer/src/brand/Wordmark.tsx`). Their letters and measurement line follow the text colour.
 
 **The icon** is the velodrome from above, on a Stayer Blue tile:
 - white boards, with the lanes in order from the inside out: côte d'azur, measurement, sprinters', stayers';
 - a darker blue infield;
-- one rider on the far bend.
+- **Sir Loin** on the top straight, going the way the racing goes.
 
-`npm run icon` (`scripts/make-icon.mjs`) draws it.
+`npm run icon` (`scripts/make-icon.mjs`) draws it, and writes the Mac icon, the
+iOS app icon and the phone web app's icons from the one drawing.
+
+**The wordmark is redrawn, never retyped.** `python3 scripts/make-wordmark.py`
+sets "CrankHog" in Saira ExtraBold Italic at 72 % width from the bundled font,
+writes the three SVGs and prints the `WORDMARK` block for `src/shared/brand.ts`.
+It needs `pip install fonttools brotli`.
 
 **Use:**
 - Keep clear space equal to the height of the wordmark's "e" on every side.
 - The smallest wordmark is 88 px wide (the sidebar uses 36 px of height); the smallest icon is 16 px.
 - Don't recolour, stretch, outline, shadow or animate the wordmark.
-- Don't set "FreeGaz" in another typeface as a logo, and don't put the track lines under other words.
+- Don't set "CrankHog" in another typeface as a logo, and don't put the track lines under other words.
 
 ## Colour
 
@@ -61,6 +67,7 @@ These are the same in both themes. The logo, the track lines, the icon and the b
 | Sprinter Red | `#e0383b` | The sprinters' line only. Never an error, never a button. |
 | Night | `#111d36` | The night theme's ground. The ink on Côte d'Azur. |
 | Board | `#ebf1f7` | The light theme's ground. |
+| Hog | `#e9a2ab` | Sir Loin's hide. With Hog Shade `#c8818d` and Tusk `#f4f1e6`, his only colours. |
 
 ### Theme tokens
 
@@ -172,17 +179,51 @@ Both are under the SIL Open Font License 1.1. They're bundled, so the app looks 
 
 The app talks like a good mechanic: specific, calm and brief. The coaches are the ones with personalities.
 
-- **Sentence case everywhere:** titles, buttons, menus, labels. Proper nouns keep their own case: FreeGaz, KICKR, Strava, W′bal.
+- **Sentence case everywhere:** titles, buttons, menus, labels. Proper nouns keep their own case: CrankHog, KICKR, Strava, W′bal.
 - **"You" for the rider.** The app never says "I" or "we"; only the coaches do.
 - **Buttons start with a verb and name the thing:** "Start ride", "Save workout", "Connect trainer", "Delete ride".
 - **Errors say what happened and what to do next,** without apologising: "The trainer didn't answer. Check it's awake and not held by Zwift or the Wahoo app, then try again."
 - **Empty states say what will appear and how to add the first one.**
 - **No exclamation marks or emoji in the interface,** and no hype words (amazing, seamless, powerful). A little dry wit is fine in headings, like "Ready to suffer?". Keep it out of instructions and errors.
 
+## Sir Loin
+
+The hog. He is the mascot, and the only character the *app* owns — the coaches
+belong to themselves.
+
+**Who he is.** Faster than you, and not smug about it, because being smug would
+mean he had noticed. He has no FTP and has never been tested.
+
+**Where he appears:**
+- **The Home velodrome,** up on the stayers' line, every week. On a week with no
+  rides of your own he has the whole track to himself and your coach shouts
+  about it (`src/core/home/rival.ts`).
+- **The road ahead on a route,** every few minutes of moving time, with a line
+  (`HogFlyby`). The timing is in `src/core/mascot/hog.ts`.
+- **The verge behind the ride-along,** on foot, getting overtaken (`HogVerge`).
+- **The app icon,** on the top straight.
+
+**Drawing him.** `src/renderer/src/brand/hog/`: `HogHead` is a head round
+(0, 0) at radius 12, so it drops into anything that takes a head — including the
+ride-along `Cyclist`, which is how he gets a bike and pedalling legs for free.
+`HogTrot` is the four-legged version.
+
+**Rules:**
+- **His colours are fixed in both themes,** like the logo: Hog `#e9a2ab`, its
+  shade `#c8818d`, Tusk `#f4f1e6`. His outline is **Night**, never `ink` — an
+  outline that flipped with the theme would vanish into the tusks at night.
+- **The tusks are the silhouette.** Keep them clear of the snout, or at small
+  sizes they read as one white smear.
+- **He is never the subject of a joke about a body, a weight or what he's made
+  of.** He is an athlete who happens to be a pig. No bacon, no ham, no dinner.
+  There's a test.
+- **He moves only when motion is welcome.** Reduce Motion stops his fly-by
+  animation (the line still arrives) and drops the verge trot entirely.
+
 ## Imagery
 
 - **No stock photos, no illustrations of people, no generated art.** The interface is type, numbers and charts.
-- **The one exception is Bibi and The Donald:** photo heads on a cartoon bike.
+- **The exceptions are Sir Loin,** who is drawn, **and Bibi and The Donald:** photo heads on a cartoon bike.
   - Only public-domain or openly licensed photos, approved file by file.
   - Cut to the head, never distorted.
   - Credited in `src/renderer/src/coach/toon/heads/ATTRIBUTION.md`.

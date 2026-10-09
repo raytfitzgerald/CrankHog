@@ -23,7 +23,7 @@ export function HomePage() {
   const now = useNow()
   useEffect(() => {
     let alive = true
-    void window.freegaz.invoke('app.info', {}).then((i) => {
+    void window.crankhog.invoke('app.info', {}).then((i) => {
       if (alive) setInfo(i)
     })
     return () => {
@@ -151,7 +151,7 @@ export function HomePage() {
       )}
 
       <footer className="mt-10 text-xs text-ink-faint" data-testid="app-info">
-        {info ? `FreeGaz ${info.version} · Electron ${info.electron} · Chrome ${info.chrome}` : 'Loading...'}
+        {info ? `CrankHog ${info.version} · Electron ${info.electron} · Chrome ${info.chrome}` : 'Loading...'}
       </footer>
     </div>
   )

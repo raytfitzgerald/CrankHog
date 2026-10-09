@@ -33,6 +33,6 @@ void startAutoConnect(runtime)
 
 // The installed web app works offline (the desktop app has no need).
 // the iPhone app serves its files from the app bundle: no service worker there
-if (__FREEGAZ_WEB__ && import.meta.env.PROD && 'serviceWorker' in navigator && !isNative()) {
+if (__CRANKHOG_WEB__ && import.meta.env.PROD && 'serviceWorker' in navigator && !isNative()) {
   void navigator.serviceWorker.register(`${import.meta.env.BASE_URL}sw.js`).catch(() => undefined)
 }

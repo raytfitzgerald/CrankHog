@@ -1,7 +1,7 @@
 {
-  "name": "freegaz",
-  "productName": "FreeGaz",
-  "version": "0.5.1",
+  "name": "crankhog",
+  "productName": "CrankHog",
+  "version": "0.6.0",
   "description": "A data-obsessed indoor cycling trainer for macOS: ERG/SIM control, workout builder, FTP tests, FIT export, Strava upload, and optional AI coaching.",
   "author": "Ray Fitzgerald (https://github.com/raytfitzgerald)",
   "license": "MIT",
@@ -29,10 +29,10 @@
     "dist": "npm run build && electron-builder --mac --publish never",
     "dist:signed": "node scripts/dist-signed.mjs",
     "licenses": "node scripts/check-licenses.mjs",
-    "selftest:packaged": "FREEGAZ_SELFTEST=1 FREEGAZ_TEST=1 FREEGAZ_USER_DATA=$(mktemp -d) release/$npm_package_version/mac-arm64/FreeGaz.app/Contents/MacOS/FreeGaz",
+    "selftest:packaged": "CRANKHOG_SELFTEST=1 CRANKHOG_TEST=1 CRANKHOG_USER_DATA=$(mktemp -d) release/$npm_package_version/mac-arm64/CrankHog.app/Contents/MacOS/CrankHog",
     "postinstall": "install-electron",
     "icon": "electron scripts/make-icon.mjs",
-    "build:ios": "FREEGAZ_WEB_BASE=./ FREEGAZ_WEB_OUT=out/ios-web vite build --config vite.web.config.ts",
+    "build:ios": "CRANKHOG_WEB_BASE=./ CRANKHOG_WEB_OUT=out/ios-web vite build --config vite.web.config.ts",
     "ios:sync": "npm run build:ios && cap sync ios && node scripts/ios-version.mjs",
     "ios:open": "cap open ios",
     "ios:release": "npm run build:ios && cap sync ios && node scripts/ios-version.mjs --bump"

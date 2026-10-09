@@ -1,6 +1,6 @@
 # The iPhone app
 
-FreeGaz on the App Store is the phone web app inside a native iOS shell
+CrankHog on the App Store is the phone web app inside a native iOS shell
 ([Capacitor](https://capacitorjs.com), MIT). It's the same code as the Mac
 app's renderer, with one big difference from the web app: **it has native
 Bluetooth** (CoreBluetooth, through `@capacitor-community/bluetooth-le`), so
@@ -10,11 +10,11 @@ an iPhone can drive a KICKR and read a heart-rate strap. No iPhone browser can.
 |---|---|---|---|
 | Trainer and sensors | Web Bluetooth | **CoreBluetooth** | Android Chrome only |
 | Rides, workouts, journeys, history | yes | yes | yes |
-| FIT files | `~/Documents/FreeGaz/Rides` | Files → On My iPhone → FreeGaz → Rides | downloads |
+| FIT files | `~/Documents/CrankHog/Rides` | Files → On My iPhone → CrankHog → Rides | downloads |
 | Strava, intervals.icu, AI | yes | not yet (keys need a safe store) | no |
 | Ride moments (pictures) | yes | no (no window capture) | no |
 | The Donald and Bibi | yes | hidden for now | yes |
-| Demo mode (simulated trainer) | `FREEGAZ_SIM=1` | Devices → Try demo mode | Devices → Try demo mode |
+| Demo mode (simulated trainer) | `CRANKHOG_SIM=1` | Devices → Try demo mode | Devices → Try demo mode |
 | Devices | Mac | iPhone only (no iPad build yet) | any |
 
 ## How it fits together
@@ -45,7 +45,7 @@ npm run ios:open
 In Xcode, plug in the iPhone (or pick it over Wi-Fi), choose it as the run destination, and press ▶. The first time:
 - iOS asks you to enable **Developer Mode**: Settings → Privacy & Security → Developer Mode.
 - iOS asks you to trust the developer.
-- FreeGaz asks for Bluetooth on the first Pair.
+- CrankHog asks for Bluetooth on the first Pair.
 
 The iOS Simulator runs the app but has no Bluetooth. Use the trainer on a real phone.
 
@@ -54,9 +54,9 @@ No trainer nearby? Go to **Devices → Try demo mode**, or tap **Try demo mode**
 ## Ship a build to the App Store
 
 1. In [App Store Connect](https://appstoreconnect.apple.com), go to **Apps → +** and create the app:
-   - **Name:** FreeGaz
+   - **Name:** CrankHog
    - **Bundle ID:** `io.github.raytfitzgerald.freegaz`
-   - **SKU:** `freegaz-ios`
+   - **SKU:** `crankhog-ios`
    - **Primary language:** English (U.S.)
 2. Build and upload:
 
@@ -78,7 +78,7 @@ npm run ios:release
 
 Paste this into **App Review Information → Notes**:
 
-> FreeGaz controls Bluetooth smart bike trainers (FTMS, e.g. Wahoo KICKR) and reads heart-rate straps. To try it without a trainer, open the Devices tab (More → Devices) and tap **Try demo mode**: a simulated trainer and heart-rate strap connect. Then tap **Ride → Workout**, pick any workout and tap **Ride it**. The workout plays, the coach rides alongside, and the journey map moves (turn on journeys in Settings → Journeys first). No account or sign-in is needed. Nothing leaves the device.
+> CrankHog controls Bluetooth smart bike trainers (FTMS, e.g. Wahoo KICKR) and reads heart-rate straps. To try it without a trainer, open the Devices tab (More → Devices) and tap **Try demo mode**: a simulated trainer and heart-rate strap connect. Then tap **Ride → Workout**, pick any workout and tap **Ride it**. The workout plays, the coach rides alongside, and the journey map moves (turn on journeys in Settings → Journeys first). No account or sign-in is needed. Nothing leaves the device.
 
 ### Listing
 
@@ -86,7 +86,7 @@ Paste this into **App Review Information → Notes**:
 - **Category:** Health & Fitness (secondary: Sports)
 - **Promotional text:** ERG workouts, FTP tests, real routes and journeys around the world, with coaches who will absolutely roast you. Free. No account, no subscription.
 - **Description:**
-  > FreeGaz is a free indoor-cycling app for smart trainers. Pair your trainer and heart-rate strap over Bluetooth and ride:
+  > CrankHog is a free indoor-cycling app for smart trainers. Pair your trainer and heart-rate strap over Bluetooth and ride:
   >
   > • ERG workouts that hold your watts, with a library of structured sessions and FTP tests that save your FTP
   > • Free rides in ERG, level or slope mode
@@ -97,15 +97,15 @@ Paste this into **App Review Information → Notes**:
   >
   > No account, no subscription, no ads. Your rides stay on your phone.
 - **Keywords:** cycling,trainer,ERG,FTP,indoor,KICKR,workout,bike,smart trainer,zwift alternative
-- **Support URL:** https://freegaz.app
-- **Privacy policy URL:** required. A short page at https://freegaz.app/privacy (see the draft below).
+- **Support URL:** https://crankhog.app
+- **Privacy policy URL:** required. A short page at https://crankhog.app/privacy (see the draft below).
 - **Age rating:** 17+, for frequent or intense profanity and crude humour (the Unhinged coach setting and the rude workouts).
 - **App Privacy:** "Data Not Collected". Everything stays on the device. Bug reports open a GitHub issue that the rider fills in and sends themselves.
 - **Export compliance:** the app uses only standard HTTPS, already declared in Info.plist (`ITSAppUsesNonExemptEncryption = NO`).
 
 ### Privacy policy draft
 
-> FreeGaz does not collect, store or share any personal data. Your rides, workouts, settings and profile are stored only on your device. FreeGaz has no accounts, no analytics and no ads. Bluetooth is used only to connect to your trainer and sensors. If you choose to report a bug, the app opens a GitHub issue in your browser, and nothing is sent unless you submit it yourself.
+> CrankHog does not collect, store or share any personal data. Your rides, workouts, settings and profile are stored only on your device. CrankHog has no accounts, no analytics and no ads. Bluetooth is used only to connect to your trainer and sensors. If you choose to report a bug, the app opens a GitHub issue in your browser, and nothing is sent unless you submit it yourself.
 
 ### Review risks to decide before submitting
 

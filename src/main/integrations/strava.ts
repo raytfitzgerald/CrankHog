@@ -2,7 +2,7 @@
 //
 // Per Strava's 2026 API rules the user creates their own "single player" API
 // app (which requires a Strava subscription) and pastes its Client ID/Secret.
-// FreeGaz only ever UPLOADS; it never reads Strava data, which keeps it clear
+// CrankHog only ever UPLOADS; it never reads Strava data, which keeps it clear
 // of the API agreement's AI/analytics restrictions.
 import { randomBytes } from 'node:crypto'
 import { createServer, type Server } from 'node:http'
@@ -215,7 +215,7 @@ function listenForCode(expectedState: string, timeoutMs: number): Promise<{ serv
       const c = url.searchParams.get('code')
       const ok = !err && state === expectedState && !!c
       res.writeHead(ok ? 200 : 400, { 'content-type': 'text/html; charset=utf-8' })
-      res.end(page(ok ? 'Strava connected. You can close this tab and get back on the bike.' : 'Strava authorization failed. Close this tab and try again from FreeGaz.'))
+      res.end(page(ok ? 'Strava connected. You can close this tab and get back on the bike.' : 'Strava authorization failed. Close this tab and try again from CrankHog.'))
       if (ok) settle?.resolve(c!)
       else settle?.reject(new Error(err ? `Strava authorization ${err}` : 'OAuth state mismatch'))
     })
@@ -229,5 +229,5 @@ function listenForCode(expectedState: string, timeoutMs: number): Promise<{ serv
 }
 
 function page(message: string): string {
-  return `<!doctype html><meta charset="utf-8"><title>FreeGaz</title><body style="font:16px -apple-system,sans-serif;background:${BRAND_COLORS.night};color:${BRAND_COLORS.chalk};display:grid;place-items:center;align-content:center;gap:20px;height:100vh;margin:0">${wordmarkSvg(BRAND_COLORS.chalk, 'style="height:40px;width:auto"')}<p>${message}</p></body>`
+  return `<!doctype html><meta charset="utf-8"><title>CrankHog</title><body style="font:16px -apple-system,sans-serif;background:${BRAND_COLORS.night};color:${BRAND_COLORS.chalk};display:grid;place-items:center;align-content:center;gap:20px;height:100vh;margin:0">${wordmarkSvg(BRAND_COLORS.chalk, 'style="height:40px;width:auto"')}<p>${message}</p></body>`
 }

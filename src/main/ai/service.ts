@@ -1,4 +1,4 @@
-// AiService: the only way anything in FreeGaz talks to an LLM.
+// AiService: the only way anything in CrankHog talks to an LLM.
 //  * picks the configured provider/model; keys come from the SecretStore
 //  * every call has a timeout (AbortSignal.any with the caller's signal)
 //  * structured outputs are re-validated with zod, with one repair turn

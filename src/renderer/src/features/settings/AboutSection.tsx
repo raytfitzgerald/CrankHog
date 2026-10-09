@@ -15,7 +15,7 @@ export function AboutSection() {
     void bridge().invoke('app.info', {}).then(setInfo)
   }, [])
   return (
-    <Section title="About FreeGaz" description="A personal, open-source indoor cycling trainer. MIT licensed.">
+    <Section title="About CrankHog" description="A personal, open-source indoor cycling trainer. MIT licensed.">
       <div className="pb-4 pt-1">
         <Wordmark className="h-14 w-auto text-ink" />
       </div>
@@ -27,7 +27,7 @@ export function AboutSection() {
         <div className="pt-2 text-sm text-ink-dim">
           App data: <code className="text-xs">{info?.userData}</code>
           <br />
-          Ride files: <code className="text-xs">{info?.documents}/FreeGaz/Rides</code>
+          Ride files: <code className="text-xs">{info?.documents}/CrankHog/Rides</code>
         </div>
       </Field>
       <Field label="Source">

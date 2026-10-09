@@ -18,7 +18,7 @@ export function CaptureConsole() {
     const url = URL.createObjectURL(new Blob([ndjson], { type: 'application/x-ndjson' }))
     const a = document.createElement('a')
     a.href = url
-    a.download = `freegaz-ble-capture-${new Date().toISOString().replace(/[:.]/g, '-')}.ndjson`
+    a.download = `crankhog-ble-capture-${new Date().toISOString().replace(/[:.]/g, '-')}.ndjson`
     a.click()
     URL.revokeObjectURL(url)
   }

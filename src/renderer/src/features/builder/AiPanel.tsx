@@ -50,7 +50,7 @@ export function AiPanel({ onDrafted }: { onDrafted: (w: Workout, model: string |
       }
       const parsed = GeneratedWorkoutSchema.safeParse(r.value)
       if (!parsed.success) {
-        setError("The AI's answer wasn't a workout FreeGaz can read. Try rephrasing the request.")
+        setError("The AI's answer wasn't a workout CrankHog can read. Try rephrasing the request.")
         return
       }
       const w = workoutFromGenerated(parsed.data, { id: `ai:${crypto.randomUUID()}` })

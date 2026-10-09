@@ -73,7 +73,7 @@ export function UpdateReadyLink() {
     >
       <RefreshCw className="size-3.5 shrink-0" aria-hidden />
       <span>
-        FreeGaz {status.version} is ready.
+        CrankHog {status.version} is ready.
         <br />
         Restart to update
       </span>

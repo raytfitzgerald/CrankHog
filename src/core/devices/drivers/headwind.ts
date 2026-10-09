@@ -1,4 +1,4 @@
-// Wahoo KICKR Headwind fan. FreeGaz drives it in manual mode so fan speed can
+// Wahoo KICKR Headwind fan. CrankHog drives it in manual mode so fan speed can
 // follow whatever the app decides (HR, speed, core temp).
 import { encodeHeadwindSetMode, encodeHeadwindSetSpeed, parseHeadwindEvent } from '../../ble/codecs'
 import { toHex, type GattSession } from '../../ble/transport'

@@ -21,7 +21,7 @@ import { UpdateService } from './updater/update-service'
 import { loadUpdater } from './updater/electron-updater'
 
 // ---- pre-ready setup -------------------------------------------------------
-app.setName('FreeGaz')
+app.setName('CrankHog')
 configureUserData()
 registerAppScheme()
 

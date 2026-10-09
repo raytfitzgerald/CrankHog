@@ -35,9 +35,18 @@ export interface TrackRider {
   label: string
   /** Seconds per lap on screen. */
   lapS: number
-  /** Someone else's head (the rival coach); the rider's own otherwise. */
+  /** Someone else's head (Sir Loin's); the rider's own otherwise. */
   head?: ReactNode
+  /** Pin to one lane radius; otherwise the pack is spread across the three. */
+  lane?: number
+  /** Drawn bigger than the pack (Sir Loin is the one you're meant to notice). */
+  scale?: number
 }
+
+/** Sir Loin holds the stayers' line, and laps a little faster than a good ride. */
+export const HOG_LANE = 172
+export const HOG_LAP_S = 8.5
+export const HOG_SCALE = 1.3
 
 const WEEKDAY = new Intl.DateTimeFormat(undefined, { weekday: 'long' })
 

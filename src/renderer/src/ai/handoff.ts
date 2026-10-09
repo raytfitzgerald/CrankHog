@@ -27,7 +27,7 @@ export function takeHandoff(): ChatHandoff | null {
  */
 export function handoffMessage(h: ChatHandoff): string {
   return [
-    `[Context handoff] The rider was just reading their ${h.title.toLowerCase()} in FreeGaz and has opened the chat to ask about it. Here it is, so you know exactly what they saw:`,
+    `[Context handoff] The rider was just reading their ${h.title.toLowerCase()} in CrankHog and has opened the chat to ask about it. Here it is, so you know exactly what they saw:`,
     '"""',
     h.text,
     '"""',

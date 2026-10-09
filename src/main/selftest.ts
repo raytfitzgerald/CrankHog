@@ -1,12 +1,12 @@
 import { app, type BrowserWindow } from 'electron'
 
 /**
- * FREEGAZ_SELFTEST=1: boot, round-trip one IPC call through the real preload,
+ * CRANKHOG_SELFTEST=1: boot, round-trip one IPC call through the real preload,
  * print the result and exit. Used to smoke-test the *packaged* app, which
  * Playwright cannot drive (the hardening fuses disable --inspect).
  */
 export function runSelfTestIfRequested(win: BrowserWindow): void {
-  if (process.env.FREEGAZ_SELFTEST !== '1') return
+  if (process.env.CRANKHOG_SELFTEST !== '1') return
 
   const fail = (why: string) => {
     process.stdout.write(`SELFTEST FAIL ${why}\n`)
@@ -18,7 +18,7 @@ export function runSelfTestIfRequested(win: BrowserWindow): void {
     win.webContents
       .executeJavaScript(
         // the updater's status shows whether this build can update itself (packaged, Developer ID signed)
-        "Promise.all([window.freegaz.invoke('app.ping', { msg: 'selftest' }), window.freegaz.invoke('update.status', {})]).then(([r, update]) => JSON.stringify({ r, update, url: location.href }))",
+        "Promise.all([window.crankhog.invoke('app.ping', { msg: 'selftest' }), window.crankhog.invoke('update.status', {})]).then(([r, update]) => JSON.stringify({ r, update, url: location.href }))",
       )
       .then((json: string) => {
         clearTimeout(timer)

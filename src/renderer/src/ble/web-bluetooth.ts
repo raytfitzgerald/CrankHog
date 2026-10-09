@@ -11,14 +11,14 @@ import {
   type Uuid,
 } from '@core/ble/transport'
 import { normalizeUuid } from '@core/ble/uuids'
-import type { FreegazBridge } from '@shared/ipc/contract'
+import type { CrankHogBridge } from '@shared/ipc/contract'
 
 const newRequestId = () => crypto.randomUUID()
 
 export class WebBluetoothTransport implements BleTransport {
   readonly kind = 'web-bluetooth' as const
 
-  constructor(private readonly bridge: FreegazBridge) {}
+  constructor(private readonly bridge: CrankHogBridge) {}
 
   async isAvailable(): Promise<boolean> {
     if (!('bluetooth' in navigator)) return false

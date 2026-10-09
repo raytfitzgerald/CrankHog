@@ -1,4 +1,4 @@
-// The journeys FreeGaz ships (built by scripts/journeys/build.mjs from
+// The journeys CrankHog ships (built by scripts/journeys/build.mjs from
 // OpenStreetMap roads and NASA SRTM elevation), plus the rider's own imported
 // routes. The index is small and always loaded; each journey's road is a
 // separate file, loaded the first time it's ridden.

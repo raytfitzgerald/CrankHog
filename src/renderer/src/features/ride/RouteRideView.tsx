@@ -17,6 +17,7 @@ import { formatGrade, gradeClass, gradeVar } from '../../routes/grade'
 import { ElevationChart } from '../routes/ElevationChart'
 import { GradeLegend } from '../routes/GradeLegend'
 import { RouteOutline } from '../routes/RouteOutline'
+import { HogFlyby } from '../../brand/hog/HogFlyby'
 import { RideAlong } from '../../coach/ride-along/RideAlong'
 import { CueBanner } from './CueBanner'
 import { GuardBanner } from './GuardBanner'
@@ -49,6 +50,7 @@ export function RouteRideView() {
   const units = useSettings((s) => s.units)
   const tick = useRide((s) => (isRouteTick(s.plan) ? s.plan : null))
   const name = useRide((s) => s.snapshot?.name ?? '')
+  const rideId = useRide((s) => s.rideId)
   // Mode switches apply to the plan at once; re-render now instead of on the next engine tick.
   const [, refresh] = useReducer((n: number) => n + 1, 0)
   const control: TrainerControl = plan?.trainerOverride?.mode ?? 'sim'
@@ -98,7 +100,9 @@ export function RouteRideView() {
         <PowerTile />
       </div>
 
-      <div className="rounded-2xl border border-line bg-panel p-4" data-testid="route-strip" data-snap>
+      {/* the road ahead, and whatever is on it: Sir Loin comes through here */}
+      <div className="relative overflow-hidden rounded-2xl border border-line bg-panel p-4" data-testid="route-strip" data-snap>
+        <HogFlyby key={rideId} elapsedS={r.elapsedS} moving={!r.finished && r.speedMps > 0} />
         <div className="mb-1 flex flex-wrap items-center justify-between gap-2">
           <div className="eyebrow text-ink-faint">
             {r.finished ? 'The last of the route' : `The next ${formatKm(Math.min(AHEAD_M, r.remainingM), 1, units)} ${distanceUnit(units)}`}

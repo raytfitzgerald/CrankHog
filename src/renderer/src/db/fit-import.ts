@@ -1,4 +1,4 @@
-// Imports FIT activities (Garmin, Wahoo, other apps, or FreeGaz's own files)
+// Imports FIT activities (Garmin, Wahoo, other apps, or CrankHog's own files)
 // into the local history, so fitness charts and bests include them.
 import { FitImportError, importFitActivity, type DecodedFit } from '@core/fit/import'
 import { finalizeRide } from '@core/ride/finalize'
@@ -60,7 +60,7 @@ export async function importFitFiles(files: { name: string; bytes: Uint8Array }[
   return report
 }
 
-/** "2026-09-29 0712 - Sweet Spot 3x15.fit" (FreeGaz) keeps its name; others get a time-of-day name. */
+/** "2026-09-29 0712 - Sweet Spot 3x15.fit" (CrankHog) keeps its name; others get a time-of-day name. */
 export function rideName(fileName: string, indoor: boolean, startedAt: number): string {
   const ours = /^\d{4}-\d{2}-\d{2} \d{4} - (.+)\.fit$/i.exec(fileName)
   if (ours?.[1]) return ours[1]

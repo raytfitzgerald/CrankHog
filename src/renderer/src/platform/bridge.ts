@@ -1,16 +1,16 @@
-import type { FreegazBridge } from '@shared/ipc/contract'
+import type { CrankHogBridge } from '@shared/ipc/contract'
 import { createWebShim } from './web-shim'
 
 /**
  * Returns the platform bridge. In Electron the preload has already installed
- * `window.freegaz`; in the browser-only build we install the web shim so the
+ * `window.crankhog`; in the browser-only build we install the web shim so the
  * renderer runs unchanged (simulated devices, IndexedDB-backed services).
  */
-export function ensureBridge(): FreegazBridge {
-  if (!window.freegaz) {
-    window.freegaz = createWebShim()
+export function ensureBridge(): CrankHogBridge {
+  if (!window.crankhog) {
+    window.crankhog = createWebShim()
   }
-  return window.freegaz
+  return window.crankhog
 }
 
-export const bridge = (): FreegazBridge => window.freegaz
+export const bridge = (): CrankHogBridge => window.crankhog

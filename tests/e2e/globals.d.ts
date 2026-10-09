@@ -1,8 +1,8 @@
-import type { FreegazBridge } from '../../src/shared/ipc/contract'
+import type { CrankHogBridge } from '../../src/shared/ipc/contract'
 
 declare global {
   interface Window {
-    freegaz: FreegazBridge
+    crankhog: CrankHogBridge
   }
 }
 

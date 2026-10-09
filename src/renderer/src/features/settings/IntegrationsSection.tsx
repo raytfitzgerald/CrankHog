@@ -71,7 +71,7 @@ export function IntegrationsSection() {
         </Field>
       </Section>
 
-      <Section title="Strava" description="FreeGaz uploads your rides as Virtual Rides. It never reads anything from Strava.">
+      <Section title="Strava" description="CrankHog uploads your rides as Virtual Rides. It never reads anything from Strava.">
         {strava?.connected ? (
           <Field label="Status">
             <div className="flex items-center gap-3 pt-2 text-sm">
@@ -93,7 +93,7 @@ export function IntegrationsSection() {
                   <button type="button" className="text-accent underline" onClick={() => open('https://www.strava.com/settings/api')}>
                     strava.com/settings/api
                   </button>{' '}
-                  and create an app (any name, e.g. “FreeGaz personal”).
+                  and create an app (any name, e.g. “CrankHog personal”).
                 </li>
                 <li>
                   Set <b className="text-ink">Authorization Callback Domain</b> to <code className="rounded bg-panel-3 px-1">127.0.0.1</code>

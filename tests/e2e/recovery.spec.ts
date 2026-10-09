@@ -5,7 +5,7 @@ import { expect, test, type Page } from '@playwright/test'
 import { launchApp, openFreeRide } from './launch'
 
 // M2 exit criteria: a crash (renderer or the whole app) loses at most 2 s of ride.
-type TestWindow = { __freegazTest: { runtime: { rides: { session: { movingSeconds: number } | null } } } }
+type TestWindow = { __crankhogTest: { runtime: { rides: { session: { movingSeconds: number } | null } } } }
 
 async function startRecording(page: Page) {
   await page.getByRole('link', { name: 'Devices', exact: true }).click()
@@ -15,7 +15,7 @@ async function startRecording(page: Page) {
   await page.getByTestId('start-ride').click()
   await expect(page.getByTestId('recording-bar')).toBeVisible()
 }
-const moving = (page: Page) => page.evaluate(() => (window as unknown as TestWindow).__freegazTest.runtime.rides.session?.movingSeconds ?? 0)
+const moving = (page: Page) => page.evaluate(() => (window as unknown as TestWindow).__crankhogTest.runtime.rides.session?.movingSeconds ?? 0)
 
 async function recover(page: Page, recordedS: number) {
   const banner = page.getByTestId('recovery-banner')
@@ -53,7 +53,7 @@ test('a renderer crash reloads the window and the ride is recovered with ≤ 2 s
       ])
     await expect
       .poll(() => js<string | null>(`document.querySelector('[data-testid="recovery-banner"]')?.textContent ?? null`).catch(() => null), { timeout: 20_000 })
-      .toMatch(/recorded before FreeGaz closed/)
+      .toMatch(/recorded before CrankHog closed/)
     const text = (await js<string>(`document.querySelector('[data-testid="recovery-banner"]').textContent`)) ?? ''
     const [, m, sec] = /(\d+):(\d{2}) recorded/.exec(text) ?? []
     expect(recorded - (Number(m) * 60 + Number(sec))).toBeLessThanOrEqual(2)
@@ -66,7 +66,7 @@ test('a renderer crash reloads the window and the ride is recovered with ≤ 2 s
 })
 
 test('a killed app offers the ride on the next launch with ≤ 2 s lost', async () => {
-  const userData = mkdtempSync(join(tmpdir(), 'freegaz-e2e-kill-'))
+  const userData = mkdtempSync(join(tmpdir(), 'crankhog-e2e-kill-'))
   try {
     const first = await launchApp({ sim: true, userData })
     await startRecording(first.page)

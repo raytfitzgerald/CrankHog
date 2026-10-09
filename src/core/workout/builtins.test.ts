@@ -78,7 +78,7 @@ describe('BUILTIN_WORKOUTS', () => {
     const text = BUILTIN_TEXT[w.id] ?? ''
     expect(parseIntervalsText(text).errors).toEqual([])
     expect(validateWorkout(w)).toEqual([])
-    expect(w).toMatchObject({ source: 'builtin', sportType: 'bike', author: 'FreeGaz' })
+    expect(w).toMatchObject({ source: 'builtin', sportType: 'bike', author: 'CrankHog' })
     expect(w.name.length).toBeGreaterThan(3)
     const sentences = (w.description ?? '').match(/[.!?](?=\s|$)/g) ?? []
     expect(sentences.length, w.description).toBeGreaterThanOrEqual(1)

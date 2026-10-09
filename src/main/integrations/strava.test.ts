@@ -93,7 +93,7 @@ beforeEach(async () => {
   state = { tokenCalls: [], uploads: [], pollsBeforeDone: 2, uploadError: null, rateLimit: false, refreshCount: 0 }
   mock = await startMock(state)
   endpoints = { authorize: `${mock.base}/oauth/authorize`, token: `${mock.base}/oauth/token`, api: `${mock.base}/api/v3` }
-  secrets = SecretStore.inDir(mkdtempSync(join(tmpdir(), 'freegaz-secrets-')), plainCipher)
+  secrets = SecretStore.inDir(mkdtempSync(join(tmpdir(), 'crankhog-secrets-')), plainCipher)
 })
 afterEach(() => new Promise<void>((r) => mock.server.close(() => r())))
 

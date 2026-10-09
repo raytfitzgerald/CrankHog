@@ -1,6 +1,6 @@
 @import "tailwindcss";
 
-/* FreeGaz brand tokens ("Velodrome"). The full guidelines, with the reasons
+/* CrankHog brand tokens ("Velodrome"). The full guidelines, with the reasons
    behind every value, are in docs/BRAND.md; change a colour there and here
    together. Night is the default theme, Track day (light) overrides below.
    Numbers use tabular figures everywhere so HUD digits never jitter. Zone
@@ -53,6 +53,11 @@
   --color-azure: #77c3ff;
   --color-night: #111d36;
   --color-board: #ebf1f7;
+  /* Sir Loin: hide, snout and ear shading, and ivory for the tusks. He is the
+     only thing in the app allowed to be pink. */
+  --color-hog: #e9a2ab;
+  --color-hog-shade: #c8818d;
+  --color-tusk: #f4f1e6;
 }
 
 /* Data colours are read from JavaScript (charts, zone fills) as var(--color-…),
@@ -222,6 +227,28 @@
 
 @utility no-drag {
   -webkit-app-region: no-drag;
+}
+
+/* Sir Loin going past on a route: off the left edge, off the right. He is
+   always faster than you. HogFlyby skips the animation under Reduce Motion. */
+@keyframes hog-pass {
+  from {
+    transform: translateX(-22%);
+  }
+  to {
+    transform: translateX(122%);
+  }
+}
+
+/* And trotting the other way along the verge, because on foot he is the one
+   being overtaken. HogVerge doesn't render at all under Reduce Motion. */
+@keyframes hog-verge {
+  from {
+    transform: translateX(108%);
+  }
+  to {
+    transform: translateX(-30%);
+  }
 }
 
 /* Thin scrollbars in the theme's line colour */

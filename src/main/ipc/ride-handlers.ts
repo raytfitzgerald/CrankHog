@@ -8,7 +8,7 @@ import { env } from '../env'
 import { emit, handle } from './register'
 
 export function defaultExportDir(): string {
-  return join(app.getPath('documents'), 'FreeGaz', 'Rides')
+  return join(app.getPath('documents'), 'CrankHog', 'Rides')
 }
 
 /** Journal, file export and power-management IPC. */
@@ -50,7 +50,7 @@ export function registerRideHandlers(deps: { journal: JournalStore; settings: Se
   handle('files.chooseExportDir', async (_req, event) => {
     const win = BrowserWindow.fromWebContents(event.sender) ?? undefined
     const res = await dialog.showOpenDialog(win!, {
-      title: 'Choose where FreeGaz saves ride files',
+      title: 'Choose where CrankHog saves ride files',
       defaultPath: exportDir(),
       properties: ['openDirectory', 'createDirectory'],
     })

@@ -14,12 +14,12 @@ const toBase64 = (bytes: Uint8Array): string => {
 
 /**
  * Saves into the app's Documents folder, which the Files app shows under
- * "On My iPhone → FreeGaz". With `share`, the share sheet opens too, so the
+ * "On My iPhone → CrankHog". With `share`, the share sheet opens too, so the
  * file can go to AirDrop, Files, Mail or Strava's own app.
  */
 export async function saveFile(folder: string, fileName: string, bytes: Uint8Array, share = false): Promise<string> {
   const { Directory, Filesystem } = await import('@capacitor/filesystem')
-  const path = `FreeGaz/${folder ? `${folder}/` : ''}${fileName}`
+  const path = `CrankHog/${folder ? `${folder}/` : ''}${fileName}`
   const { uri } = await Filesystem.writeFile({ path, data: toBase64(bytes), directory: Directory.Documents, recursive: true })
   if (share) {
     const { Share } = await import('@capacitor/share')

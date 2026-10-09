@@ -82,7 +82,7 @@ export function describe(s: RideSummary): string {
     `${Math.round(s.kj)} kJ`,
     s.avgHr !== null ? `avg HR ${s.avgHr}` : null,
   ].filter(Boolean)
-  return `${parts.join(' · ')}\nRecorded with FreeGaz.`
+  return `${parts.join(' · ')}\nRecorded with CrankHog.`
 }
 
 export interface PendingRecovery {

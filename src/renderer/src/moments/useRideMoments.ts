@@ -18,7 +18,7 @@ const rideAlongOpen = () => document.querySelector('[data-testid="ride-along"][d
 
 export function useRideMoments(): void {
   useEffect(() => {
-    if (__FREEGAZ_WEB__) return
+    if (__CRANKHOG_WEB__) return
     let picker = new MomentPicker()
     let rideId: string | null = null
     let lastS = -1

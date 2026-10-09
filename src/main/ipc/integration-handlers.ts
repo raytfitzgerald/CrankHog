@@ -60,8 +60,8 @@ export function registerIntegrationHandlers(deps: { secrets: SecretStore; userDa
   })
 
   handle('uploads.enqueue', (req) => {
-    // Only files FreeGaz itself exported may be uploaded.
-    if (!req.fitPath.startsWith(deps.exportDir())) throw new Error('Upload path is outside the FreeGaz export folder')
+    // Only files CrankHog itself exported may be uploaded.
+    if (!req.fitPath.startsWith(deps.exportDir())) throw new Error('Upload path is outside the CrankHog export folder')
     const item = outbox.enqueue(req)
     return { id: item.id, status: item.status }
   })

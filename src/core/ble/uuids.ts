@@ -1,4 +1,4 @@
-// Bluetooth GATT UUIDs used by FreeGaz, as full 128-bit lowercase strings
+// Bluetooth GATT UUIDs used by CrankHog, as full 128-bit lowercase strings
 // (the form Web Bluetooth and noble both accept).
 
 /** Expands a 16-bit SIG-assigned UUID to its 128-bit form. */

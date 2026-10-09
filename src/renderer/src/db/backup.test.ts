@@ -67,8 +67,8 @@ describe('backup / restore', () => {
     expect(Array.from(s.ts)).toEqual(Array.from(before.streams[0]!.ts))
   })
 
-  it('rejects files that are not FreeGaz backups', async () => {
+  it('rejects files that are not CrankHog backups', async () => {
     const { zipSync, strToU8 } = await import('fflate')
-    await expect(restoreBackup(zipSync({ 'manifest.json': strToU8('{"format":"other"}') }))).rejects.toThrow(/not a FreeGaz backup/)
+    await expect(restoreBackup(zipSync({ 'manifest.json': strToU8('{"format":"other"}') }))).rejects.toThrow(/not a CrankHog backup/)
   })
 })

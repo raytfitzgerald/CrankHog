@@ -33,7 +33,7 @@ describe('RemoteServer', () => {
     const ok = await fetch(url)
     expect(ok.status).toBe(200)
     expect(ok.headers.get('content-security-policy')).toContain("default-src 'none'")
-    expect(await ok.text()).toContain('FreeGaz remote')
+    expect(await ok.text()).toContain('CrankHog remote')
     const wrongToken = await fetch(`http://${url.host}/r/deadbeef/`)
     expect(wrongToken.status).toBe(404)
   })

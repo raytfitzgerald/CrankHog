@@ -95,7 +95,7 @@ export const AppSettingsSchema = z.object({
   rememberedDevices: z.array(RememberedDeviceSchema).default([]),
   /** Reconnect remembered devices automatically when the app starts. */
   autoConnect: z.boolean().default(true),
-  /** Folder for automatic FIT export; null = ~/Documents/FreeGaz/Rides. */
+  /** Folder for automatic FIT export; null = ~/Documents/CrankHog/Rides. */
   exportDir: z.string().nullable().default(null),
   /** Distance, elevation and temperature. Also the preset for speed and weight. */
   units: z.enum(['metric', 'imperial']).default('metric'),

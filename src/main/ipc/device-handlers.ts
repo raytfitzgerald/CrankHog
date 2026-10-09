@@ -23,7 +23,7 @@ export function registerDeviceHandlers(deps: { settings: SettingsStore; chooser:
   // click, so main runs the renderer's fixed auto-connect hook with
   // userGesture=true. The code string is constant; only our own window may ask.
   handle('ble.requestAutoConnect', async (_req, event) => {
-    await event.sender.executeJavaScript('window.__freegazAutoConnect && window.__freegazAutoConnect()', true)
+    await event.sender.executeJavaScript('window.__crankhogAutoConnect && window.__crankhogAutoConnect()', true)
     return { ok: true }
   })
 }

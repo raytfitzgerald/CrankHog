@@ -1,8 +1,9 @@
 name: Web app
 
 # Builds the installable web app (the renderer with the browser shim) and
-# publishes it to GitHub Pages at /FreeGaz/. Skips itself until Pages is
-# switched on for the repo (Settings → Pages → Source: GitHub Actions).
+# publishes it to GitHub Pages at /FreeGaz/ — the repo keeps its old name
+# after the CrankHog rename, so the Pages URL does too. Skips itself until
+# Pages is switched on for the repo (Settings → Pages → Source: GitHub Actions).
 
 on:
   push:
@@ -30,7 +31,7 @@ jobs:
       - run: npm ci
       - run: npm run build:web
         env:
-          FREEGAZ_WEB_BASE: /FreeGaz/
+          CRANKHOG_WEB_BASE: /FreeGaz/
       - uses: actions/upload-pages-artifact@v4
         with:
           path: out/web

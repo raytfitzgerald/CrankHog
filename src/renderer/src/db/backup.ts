@@ -4,7 +4,7 @@ import { strFromU8, strToU8, unzipSync, zipSync, type Zippable } from 'fflate'
 import type { RideStreams } from '@core/ride/streams'
 import { db } from './db'
 
-export const BACKUP_FORMAT = 'freegaz-backup'
+export const BACKUP_FORMAT = 'crankhog-backup'
 export const BACKUP_VERSION = 1
 
 type TypedKey = Exclude<keyof RideStreams, 'rideId' | 'length'>
@@ -124,8 +124,8 @@ export async function restoreBackup(zip: Uint8Array): Promise<RestoreResult> {
   // Backups made before routes existed simply have no route files.
   const typedJson = <T>(name: string, fallback: T): T => (files[name] ? (JSON.parse(strFromU8(files[name]!), typedReviver) as T) : fallback)
   const manifest = json<{ format?: string; version?: number }>('manifest.json', {})
-  if (manifest.format !== BACKUP_FORMAT) throw new Error('This is not a FreeGaz backup')
-  if ((manifest.version ?? 0) > BACKUP_VERSION) throw new Error('This backup was made by a newer FreeGaz')
+  if (manifest.format !== BACKUP_FORMAT) throw new Error('This is not a CrankHog backup')
+  if ((manifest.version ?? 0) > BACKUP_VERSION) throw new Error('This backup was made by a newer CrankHog')
 
   const d = db()
   const rides = json<unknown[]>('rides.json', [])

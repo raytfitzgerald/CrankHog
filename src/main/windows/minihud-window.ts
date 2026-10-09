@@ -42,7 +42,7 @@ export function createMiniHudWindow(): BrowserWindow {
   win.setAlwaysOnTop(true, 'screen-saver')
   win.setVisibleOnAllWorkspaces(true, { visibleOnFullScreen: true })
   win.once('ready-to-show', () => {
-    if (!env.isTest || process.env.FREEGAZ_SHOW === '1') win.showInactive()
+    if (!env.isTest || process.env.CRANKHOG_SHOW === '1') win.showInactive()
   })
   if (env.devServerUrl) void win.loadURL(`${env.devServerUrl.replace(/\/$/, '')}/minihud.html`)
   else void win.loadURL(`${APP_ORIGIN}/minihud.html`)

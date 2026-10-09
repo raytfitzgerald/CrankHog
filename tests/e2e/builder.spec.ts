@@ -61,8 +61,8 @@ test('builds a workout from the palette, edits a duration, saves it and finds it
   await expect(page.getByTestId('builder-clean')).toBeVisible()
 
   await page.getByRole('link', { name: 'Workouts' }).click()
-  // FreeGaz's own workouts show first; yours are on Custom workouts
-  await expect(page.getByTestId('workout-tab-freegaz')).toHaveAttribute('aria-selected', 'true')
+  // CrankHog's own workouts show first; yours are on Custom workouts
+  await expect(page.getByTestId('workout-tab-crankhog')).toHaveAttribute('aria-selected', 'true')
   await page.getByTestId('workout-tab-custom').click()
   await page.getByPlaceholder('Search workouts').fill('E2E Over-Unders')
   const card = page.getByTestId('workout-card').filter({ hasText: 'E2E Over-Unders' })
@@ -171,7 +171,7 @@ test('Ride it saves the workout and starts riding it', async () => {
 
   await page.getByTestId('builder-ride').click()
   await expect(page).toHaveURL(/#\/ride$/)
-  const riding = () => page.evaluate(() => (window as unknown as { __freegazTest: { runtime: { rides: { active: boolean } } } }).__freegazTest.runtime.rides.active)
+  const riding = () => page.evaluate(() => (window as unknown as { __crankhogTest: { runtime: { rides: { active: boolean } } } }).__crankhogTest.runtime.rides.active)
   await expect.poll(riding).toBe(true)
   // Saved first, so leaving the builder asked nothing and the library has it.
   await expect(page.getByRole('dialog')).toHaveCount(0)

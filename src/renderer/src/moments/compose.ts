@@ -94,7 +94,7 @@ export async function composeMoment(title: string, caption: string): Promise<Uin
   ctx.fillStyle = cssVar('--color-ink-faint', '#9aadc4')
   ctx.font = `600 ${13 * s}px ${display}`
   ctx.textAlign = 'right'
-  ctx.fillText('Ridden on FreeGaz · the trainer app with no subscription', (PAD + w) * s, (y - GAP + FOOT - 8) * s)
+  ctx.fillText('Ridden on CrankHog · the trainer app with no subscription', (PAD + w) * s, (y - GAP + FOOT - 8) * s)
 
   const blob = await new Promise<Blob | null>((resolve) => canvas.toBlob(resolve, 'image/jpeg', 0.9))
   return blob ? new Uint8Array(await blob.arrayBuffer()) : null

@@ -156,7 +156,7 @@ export class RideRunner {
 
   command(cmd: RideCommand): void {
     if (cmd.type === 'muteCoach') {
-      window.dispatchEvent(new CustomEvent('freegaz:mute-coach'))
+      window.dispatchEvent(new CustomEvent('crankhog:mute-coach'))
       return
     }
     if (cmd.type === 'rescue') rideStore.setState({ rescue: null })

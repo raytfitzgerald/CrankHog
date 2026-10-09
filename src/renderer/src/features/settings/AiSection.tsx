@@ -76,7 +76,7 @@ export function AiSection() {
 
   return (
     <>
-      <Section title="AI provider" description="Optional. Used for post-ride debriefs, plain-English workout creation, the coach chat and tailored roasts. Only rides recorded in FreeGaz are ever sent, never Strava data.">
+      <Section title="AI provider" description="Optional. Used for post-ride debriefs, plain-English workout creation, the coach chat and tailored roasts. Only rides recorded in CrankHog are ever sent, never Strava data.">
         <Field label="Provider">
           <div className="grid grid-cols-2 gap-2">
             {PROVIDERS.map((p) => (

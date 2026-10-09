@@ -46,7 +46,7 @@ export abstract class VirtualPeripheral {
   /** Device Information values. */
   protected info(): Partial<Record<Uuid, string>> {
     return {
-      [CHAR.manufacturerName]: 'FreeGaz Simulator',
+      [CHAR.manufacturerName]: 'CrankHog Simulator',
       [CHAR.modelNumber]: `SIM-${this.role.toUpperCase()}`,
       [CHAR.firmwareRevision]: '1.0.0',
     }

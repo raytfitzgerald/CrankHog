@@ -1,4 +1,4 @@
-import { useEffect, useRef, type ReactNode } from 'react'
+import { useEffect, useMemo, useRef, type ReactNode } from 'react'
 import { useReducedMotion } from '../../ui/use-reduced-motion'
 import { CX1, CX2, CY, lanePoint, oval, type TrackRider } from './track'
 
@@ -7,12 +7,28 @@ import { CX1, CX2, CY, lanePoint, oval, type TrackRider } from './track'
 // face, if they added one). Harder rides lap faster. The coach stands in the
 // infield with a megaphone. With nothing ridden yet, a dashed ghost waits on
 // the line.
+//
+// Sir Loin is up on the stayers' line whatever the rider did this week. On a
+// week with no rides he has the whole track to himself, which is the point.
 
 const LANES = [128, 150, 172]
 
-export function Velodrome({ riders, head, coach, className }: { riders: readonly TrackRider[]; head: ReactNode; coach?: ReactNode; className?: string }) {
+export function Velodrome({
+  riders,
+  hog,
+  head,
+  coach,
+  className,
+}: {
+  riders: readonly TrackRider[]
+  hog?: TrackRider
+  head: ReactNode
+  coach?: ReactNode
+  className?: string
+}) {
   const reduced = useReducedMotion()
   const ref = useRef<SVGSVGElement>(null)
+  const onTrack = useMemo(() => (hog ? [...riders, hog] : [...riders]), [riders, hog])
 
   useEffect(() => {
     const svg = ref.current
@@ -20,11 +36,11 @@ export function Velodrome({ riders, head, coach, className }: { riders: readonly
     const els = [...svg.querySelectorAll<SVGGElement>('[data-rider]')]
     const place = (now: number) =>
       els.forEach((el, i) => {
-        const rider = riders[i]
+        const rider = onTrack[i]
         if (!rider) return
         // spread the pack out, then let each ride lap at its own pace
-        const t = i / Math.max(1, riders.length) + (reduced ? 0 : now / 1000 / rider.lapS)
-        const p = lanePoint(t, LANES[i % LANES.length]!)
+        const t = i / Math.max(1, onTrack.length) + (reduced ? 0 : now / 1000 / rider.lapS)
+        const p = lanePoint(t, rider.lane ?? LANES[i % LANES.length]!)
         el.setAttribute('transform', `translate(${p.x.toFixed(1)} ${p.y.toFixed(1)})`)
       })
     place(0)
@@ -36,11 +52,21 @@ export function Velodrome({ riders, head, coach, className }: { riders: readonly
     }
     raf = requestAnimationFrame(step)
     return () => cancelAnimationFrame(raf)
-  }, [riders, reduced])
+  }, [onTrack, reduced])
 
   const start = lanePoint(0, 150)
   return (
-    <svg ref={ref} viewBox="154 282 716 460" className={className} role="img" aria-label={riders.length === 0 ? 'The velodrome, empty' : `The velodrome, with ${riders.length} rider${riders.length === 1 ? '' : 's'}`}>
+    <svg
+      ref={ref}
+      viewBox="154 282 716 460"
+      className={className}
+      role="img"
+      aria-label={
+        riders.length === 0
+          ? `The velodrome, with nobody on it but ${hog?.label ?? 'the hog'}`
+          : `The velodrome, with ${riders.length} rider${riders.length === 1 ? '' : 's'}`
+      }
+    >
       <path d={`M${CX1} 413 L${CX2} 413 A99 99 0 0 1 ${CX2} 611 L${CX1} 611 A99 99 0 0 1 ${CX1} 413 Z`} fill="var(--color-stayer)" />
       {/* a hairline round the outside of the boards, so they still read on the light theme's pale ground */}
       <path d={oval(203)} fill="none" stroke="var(--color-line-strong)" strokeWidth={3} />
@@ -60,19 +86,19 @@ export function Velodrome({ riders, head, coach, className }: { riders: readonly
           <g transform="scale(3.8)">{coach}</g>
         </g>
       )}
-      {riders.length === 0 ? (
+      {/* nothing ridden yet: a dashed ghost waits in your place on the line */}
+      {riders.length === 0 && (
         <g transform={`translate(${start.x + 90} ${start.y})`} data-testid="velodrome-ghost">
           <circle r={22} fill="none" stroke="var(--color-night)" strokeWidth={5} strokeDasharray="8 7" opacity={0.6} />
         </g>
-      ) : (
-        riders.map((r) => (
-          <g key={r.id} data-rider data-testid="velodrome-rider">
-            <title>{r.label}</title>
-            <circle r={26} fill="var(--color-board)" stroke="var(--color-night)" strokeWidth={4} />
-            <g transform="scale(1.8)">{r.head ?? head}</g>
-          </g>
-        ))
       )}
+      {onTrack.map((r) => (
+        <g key={r.id} data-rider data-testid={r.id === hog?.id ? 'velodrome-hog' : 'velodrome-rider'}>
+          <title>{r.label}</title>
+          <circle r={26 * (r.scale ?? 1)} fill="var(--color-board)" stroke="var(--color-night)" strokeWidth={4} />
+          <g transform={`scale(${1.8 * (r.scale ?? 1)})`}>{r.head ?? head}</g>
+        </g>
+      ))}
     </svg>
   )
 }

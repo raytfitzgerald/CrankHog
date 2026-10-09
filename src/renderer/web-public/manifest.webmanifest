@@ -1,6 +1,6 @@
 {
-  "name": "FreeGaz",
-  "short_name": "FreeGaz",
+  "name": "CrankHog",
+  "short_name": "CrankHog",
   "description": "A data-obsessed indoor cycling trainer: ERG and slope control, structured workouts, FTP tests and coaches with opinions.",
   "id": "./",
   "start_url": "./",

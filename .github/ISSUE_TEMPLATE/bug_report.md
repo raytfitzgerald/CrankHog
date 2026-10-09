@@ -1,6 +1,6 @@
 ---
 name: Bug report
-about: Something in FreeGaz isn't working (the app's Report a bug button fills this in for you)
+about: Something in CrankHog isn't working (the app's Report a bug button fills this in for you)
 title: ''
 labels: bug
 assignees: ''

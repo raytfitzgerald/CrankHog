@@ -2,7 +2,7 @@ import { mkdirSync, writeFileSync } from 'node:fs'
 import { join, normalize, sep } from 'node:path'
 import { BIKE_FUND_HOSTS } from '@core/support/bike-fund'
 
-/** Hosts FreeGaz may open in the system browser. */
+/** Hosts CrankHog may open in the system browser. */
 export const EXTERNAL_ALLOWLIST = [
   'www.strava.com',
   'strava.com',

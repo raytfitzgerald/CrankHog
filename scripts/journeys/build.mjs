@@ -1,4 +1,4 @@
-// Builds the journey data FreeGaz ships (src/renderer/src/journeys/data):
+// Builds the journey data CrankHog ships (src/renderer/src/journeys/data):
 // road geometry for every leg of every journey in catalogue.mjs, elevation
 // along it, and the milestones (towns, summits, borders).
 //
@@ -21,7 +21,7 @@ import { DROPS, GRAND } from './catalogue.mjs'
 const HERE = dirname(fileURLToPath(import.meta.url))
 const CACHE = join(HERE, '.cache')
 const OUT = join(HERE, '../../src/renderer/src/journeys/data')
-const UA = 'FreeGaz-journey-builder/1.0 (+https://github.com/raytfitzgerald/FreeGaz)'
+const UA = 'CrankHog-journey-builder/1.0 (+https://github.com/raytfitzgerald/FreeGaz)'
 mkdirSync(CACHE, { recursive: true })
 mkdirSync(OUT, { recursive: true })
 

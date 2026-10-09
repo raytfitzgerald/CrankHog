@@ -21,7 +21,7 @@ export interface Launched {
 /** Launches the built app (run `npm run build` first) with an isolated profile. */
 export async function launchApp(opts: LaunchOptions = {}): Promise<Launched> {
   const owned = opts.userData === undefined
-  const userData = opts.userData ?? mkdtempSync(join(tmpdir(), 'freegaz-e2e-'))
+  const userData = opts.userData ?? mkdtempSync(join(tmpdir(), 'crankhog-e2e-'))
   // Launch the project root so Electron reads package.json (name, version,
   // "main": out/main/index.js) exactly like the packaged app does.
   const args = [join(__dirname, '../..')]
@@ -34,10 +34,10 @@ export async function launchApp(opts: LaunchOptions = {}): Promise<Launched> {
     colorScheme: null,
     env: {
       ...(process.env as Record<string, string>),
-      FREEGAZ_TEST: '1',
-      FREEGAZ_USER_DATA: userData,
-      FREEGAZ_SIM: opts.sim === false ? '0' : '1',
-      FREEGAZ_WARP: String(opts.warp ?? 1),
+      CRANKHOG_TEST: '1',
+      CRANKHOG_USER_DATA: userData,
+      CRANKHOG_SIM: opts.sim === false ? '0' : '1',
+      CRANKHOG_WARP: String(opts.warp ?? 1),
       ...opts.env,
     },
   })

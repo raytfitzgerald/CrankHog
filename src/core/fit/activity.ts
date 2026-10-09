@@ -9,8 +9,8 @@
 import { FitWriter, type FitDevInfo } from '@markw65/fit-file-writer'
 import type { RideRecord } from '../ride/recorder'
 
-/** 16-byte application id for FreeGaz developer fields (constant forever). */
-export const FREEGAZ_APP_ID = [0x46, 0x72, 0x65, 0x65, 0x47, 0x61, 0x7a, 0x2d, 0x9e, 0x31, 0x4b, 0x2a, 0x8c, 0x57, 0x10, 0x01]
+/** 16-byte application id for CrankHog developer fields (constant forever). */
+export const CRANKHOG_APP_ID = [0x46, 0x72, 0x65, 0x65, 0x47, 0x61, 0x7a, 0x2d, 0x9e, 0x31, 0x4b, 0x2a, 0x8c, 0x57, 0x10, 0x01]
 
 /** Developer field numbers (field_definition_number) — never renumber. */
 export const DEV_FIELD = {
@@ -86,13 +86,13 @@ export function encodeFitActivity(input: FitActivityInput): Uint8Array {
 
   w.writeMessage(
     'file_id',
-    { type: 'activity', manufacturer: 'development', product: 1, serial_number: input.serialNumber >>> 0, time_created: start, product_name: 'FreeGaz' },
+    { type: 'activity', manufacturer: 'development', product: 1, serial_number: input.serialNumber >>> 0, time_created: start, product_name: 'CrankHog' },
     null,
     true,
   )
 
-  // Developer data: FreeGaz-specific streams.
-  w.writeMessage('developer_data_id', { developer_data_index: 0, application_id: FREEGAZ_APP_ID, application_version: input.softwareVersion }, null, true)
+  // Developer data: CrankHog-specific streams.
+  w.writeMessage('developer_data_id', { developer_data_index: 0, application_id: CRANKHOG_APP_ID, application_version: input.softwareVersion }, null, true)
   w.writeMessage('field_description', {
     developer_data_index: 0,
     field_definition_number: DEV_FIELD.targetPower,
@@ -125,7 +125,7 @@ export function encodeFitActivity(input: FitActivityInput): Uint8Array {
 
   w.writeMessage(
     'device_info',
-    { timestamp: start, device_index: 0 /* creator */, manufacturer: 'development', product: 1, product_name: 'FreeGaz', software_version: input.softwareVersion / 100 },
+    { timestamp: start, device_index: 0 /* creator */, manufacturer: 'development', product: 1, product_name: 'CrankHog', software_version: input.softwareVersion / 100 },
     null,
     true,
   )

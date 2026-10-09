@@ -138,7 +138,7 @@ export class UpdateService {
 export function describeError(err: unknown): string {
   const msg = err instanceof Error ? err.message : String(err)
   if (/ENOTFOUND|ECONNREFUSED|ETIMEDOUT|ENETUNREACH|net::ERR_/i.test(msg)) return "Couldn't reach GitHub. Check your connection and try again."
-  if (/latest-mac\.yml|404/i.test(msg)) return "The newest release doesn't include an update for this app yet. Try again later, or download it from freegaz.app."
-  if (/code signature|signature|designated requirement/i.test(msg)) return "The update's signature didn't match this app. Download the new version from freegaz.app."
+  if (/latest-mac\.yml|404/i.test(msg)) return "The newest release doesn't include an update for this app yet. Try again later, or download it from crankhog.app."
+  if (/code signature|signature|designated requirement/i.test(msg)) return "The update's signature didn't match this app. Download the new version from crankhog.app."
   return (msg.split('\n')[0] ?? msg).slice(0, 200)
 }

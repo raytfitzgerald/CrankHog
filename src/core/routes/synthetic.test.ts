@@ -108,12 +108,12 @@ describe('syntheticPoints', () => {
 })
 
 describe('demo routes', () => {
-  it('are FreeGaz originals with unique ids, and all rideable', () => {
+  it('are CrankHog originals with unique ids, and all rideable', () => {
     const routes = demoRoutes()
     expect(routes).toHaveLength(DEMO_ROUTE_SPECS.length)
     expect(new Set(routes.map((r) => r.id)).size).toBe(routes.length)
     for (const route of routes) {
-      expect(route.name).toMatch(/^FreeGaz /)
+      expect(route.name).toMatch(/^CrankHog /)
       const player = new RoutePlayer(route, { mode: 'steady', speedModel: () => 0 })
       let s = player.state
       for (let t = 0; t < 60; t++) s = player.step({ dtS: 1, powerW: 200 })
@@ -122,7 +122,7 @@ describe('demo routes', () => {
   })
 
   it('include the Test Loop, a closed timed loop', () => {
-    const loop = demoRoutes().find((r) => r.name === 'FreeGaz Test Loop')!
+    const loop = demoRoutes().find((r) => r.name === 'CrankHog Test Loop')!
     expect(loop.hasTimes).toBe(true)
     expect(loop.distanceM).toBe(6000)
     const first = loop.points[0]!

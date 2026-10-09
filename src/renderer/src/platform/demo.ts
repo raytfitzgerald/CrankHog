@@ -1,8 +1,9 @@
 // Demo mode for the web and iPhone apps: a simulated trainer and heart-rate
-// strap, for trying FreeGaz with no trainer nearby (and for App Review, which
+// strap, for trying CrankHog with no trainer nearby (and for App Review, which
 // has none). Remembered on the device; rides recorded in it are flagged
-// simulated, so they never upload or count. The Mac app uses FREEGAZ_SIM.
+// simulated, so they never upload or count. The Mac app uses CRANKHOG_SIM.
 
+// kept from the old brand: renaming it would turn demo mode off for everyone
 const KEY = 'freegaz.web.demo'
 
 function read(): string | null {

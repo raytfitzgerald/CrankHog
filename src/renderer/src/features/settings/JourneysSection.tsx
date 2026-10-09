@@ -63,7 +63,7 @@ export function JourneysSection() {
             ]}
           />
         </Field>
-        <Field label="Map on Strava" hint="Writes the road you rode into the FIT file as GPS, so Strava draws the map. It stays a virtual ride. Off: the journey stays in FreeGaz.">
+        <Field label="Map on Strava" hint="Writes the road you rode into the FIT file as GPS, so Strava draws the map. It stays a virtual ride. Off: the journey stays in CrankHog.">
           <Switch checked={prefs.gps} onChange={(v) => setPrefs({ gps: v })} label={prefs.gps ? 'On' : 'Off'} />
         </Field>
       </Section>

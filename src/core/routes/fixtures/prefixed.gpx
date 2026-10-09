@@ -6,7 +6,7 @@
          xmlns:gpxtpx="http://www.garmin.com/xmlschemas/TrackPointExtension/v1"
          xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
          xsi:schemaLocation="http://www.topografix.com/GPX/1/1 http://www.topografix.com/GPX/1/1/gpx.xsd"
-         version="1.1" creator="FreeGaz test fixture">
+         version="1.1" creator="CrankHog test fixture">
   <gpx:metadata>
     <gpx:name>Fixture metadata name</gpx:name>
     <gpx:time>2026-01-01T08:00:00Z</gpx:time>

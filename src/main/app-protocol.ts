@@ -5,6 +5,10 @@ import { pathToFileURL } from 'node:url'
 // Production builds are served from app://freegaz/ rather than file://.
 // IndexedDB, localStorage and Web Bluetooth permissions are all keyed by this
 // origin, so it must NEVER change once users have data.
+//
+// The host stays `freegaz` after the CrankHog rename on purpose: it is the one
+// brand string users never see, and renaming it would orphan every ride
+// recorded before 0.6.0. Leave it alone.
 export const APP_SCHEME = 'app'
 export const APP_HOST = 'freegaz'
 export const APP_ORIGIN = `${APP_SCHEME}://${APP_HOST}`

@@ -1,4 +1,4 @@
-// The route library: FreeGaz's built-in demo routes plus whatever the rider
+// The route library: CrankHog's built-in demo routes plus whatever the rider
 // imports (GPX / TCX), and the rides on each route that a Challenge can race.
 import type { RideRecord } from '@core/ride/recorder'
 import { isLoopRoute } from '@core/ride/route-course'

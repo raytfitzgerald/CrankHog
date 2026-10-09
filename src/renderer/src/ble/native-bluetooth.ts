@@ -29,7 +29,7 @@ export class NativeBleTransport implements BleTransport {
     try {
       await init()
     } catch (e) {
-      throw new BleError('Bluetooth is off or FreeGaz may not use it (Settings → FreeGaz → Bluetooth).', 'unavailable', e)
+      throw new BleError('Bluetooth is off or CrankHog may not use it (Settings → CrankHog → Bluetooth).', 'unavailable', e)
     }
     if (req.preferredChooserId) {
       // a device this phone has connected before: no list, just reconnect

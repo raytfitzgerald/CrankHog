@@ -8,7 +8,7 @@ import type { Updater } from './update-service'
 type Unsupported = Extract<UpdateStatus, { state: 'unsupported' }>['reason']
 
 /** Releases come from this repo; electron-builder's `publish` config writes the matching latest-mac.yml. */
-const FEED = { provider: 'github', owner: 'raytfitzgerald', repo: 'FreeGaz' } as const
+const FEED = { provider: 'github', owner: 'raytfitzgerald', repo: 'CrankHog' } as const
 
 /**
  * The real updater, or why this build can't have one. Squirrel.Mac only
@@ -30,7 +30,7 @@ export async function loadUpdater(): Promise<{ updater: Updater | null; reason: 
   return { updater: autoUpdater as unknown as Updater, reason: 'dev' }
 }
 
-/** …/FreeGaz.app from …/FreeGaz.app/Contents/MacOS/FreeGaz. */
+/** …/CrankHog.app from …/CrankHog.app/Contents/MacOS/CrankHog. */
 function appBundlePath(): string {
   return resolve(dirname(process.execPath), '..', '..')
 }

@@ -38,7 +38,7 @@ export function formatDiagnostics(d: Diagnostics): string {
   // the Mac app reports a bare macOS version; the web app names its OS (iOS 18.1, Android 15)
   const os = /^\d/.test(d.os) ? `macOS ${d.os}` : d.os
   const lines = [
-    `- FreeGaz ${d.version} (${d.electron === 'n/a' ? 'web app' : `Electron ${d.electron}`}, Chrome ${d.chrome})`,
+    `- CrankHog ${d.version} (${d.electron === 'n/a' ? 'web app' : `Electron ${d.electron}`}, Chrome ${d.chrome})`,
     `- ${os} (${d.arch})${d.simulated ? ', simulated devices' : ''}`,
     `- Devices: ${d.devices.length > 0 ? d.devices.join('; ') : 'none connected'}`,
     ...Object.entries(d.settings).map(([k, v]) => `- ${k}: ${v}`),
@@ -53,7 +53,7 @@ export function bugReportBody(r: BugReport): string {
     section('Steps to reproduce', r.steps),
     section('What I expected', r.expected),
     r.diagnostics ? `### Diagnostics\n\n${r.diagnostics}\n` : '',
-    '<sub>Sent from FreeGaz: Settings → About → Report a bug.</sub>',
+    '<sub>Sent from CrankHog: Settings → About → Report a bug.</sub>',
   ]
     .filter(Boolean)
     .join('\n')

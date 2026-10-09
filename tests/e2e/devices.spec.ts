@@ -10,18 +10,18 @@ interface TestRuntime {
   controller: { setDesired(d: unknown): void; snapshot: { applied: { kind: string; watts?: number } | null } }
   sim: { trainer: { drop(ms: number): void; commandLog: { op: string; detail?: { watts?: number } }[] } }
 }
-type TestWindow = { __freegazTest: { runtime: TestRuntime } }
+type TestWindow = { __crankhogTest: { runtime: TestRuntime } }
 
 /** Instantaneous trainer power (the HUD tile shows the 3-s average). */
 const power = (page: Page) =>
   page.evaluate(() => {
-    const rt = (window as unknown as TestWindow).__freegazTest.runtime
+    const rt = (window as unknown as TestWindow).__crankhogTest.runtime
     return rt.hub.value('power', rt.clock.now())
   })
 
 const commands = (page: Page) =>
   page.evaluate(() =>
-    (window as unknown as TestWindow).__freegazTest.runtime.sim.trainer.commandLog.map((c) => (c.op === 'targetPower' ? `targetPower:${c.detail?.watts}` : c.op)),
+    (window as unknown as TestWindow).__crankhogTest.runtime.sim.trainer.commandLog.map((c) => (c.op === 'targetPower' ? `targetPower:${c.detail?.watts}` : c.op)),
   )
 
 test.beforeAll(async () => {
@@ -59,12 +59,12 @@ test('ERG 200 W: simulated power converges to 200 ± 5 W within 5 s', async () =
 test('forced disconnect: control is re-acquired and the target re-sent within 3 s', async () => {
   const { page } = ctx
   // Self-contained: hold ERG 200 W (past any soft start) before pulling the plug.
-  await page.evaluate(() => (window as unknown as TestWindow).__freegazTest.runtime.controller.setDesired({ mode: 'erg', watts: 200 }))
+  await page.evaluate(() => (window as unknown as TestWindow).__crankhogTest.runtime.controller.setDesired({ mode: 'erg', watts: 200 }))
   await expect
-    .poll(() => page.evaluate(() => (window as unknown as TestWindow).__freegazTest.runtime.controller.snapshot.applied?.watts ?? null), { timeout: 20_000 })
+    .poll(() => page.evaluate(() => (window as unknown as TestWindow).__crankhogTest.runtime.controller.snapshot.applied?.watts ?? null), { timeout: 20_000 })
     .toBe(200)
   const t0 = await page.evaluate(() => {
-    const trainer = (window as unknown as TestWindow).__freegazTest.runtime.sim.trainer
+    const trainer = (window as unknown as TestWindow).__crankhogTest.runtime.sim.trainer
     trainer.commandLog.length = 0
     trainer.drop(200)
     return Date.now()

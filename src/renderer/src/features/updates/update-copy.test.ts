@@ -3,11 +3,11 @@ import { updateStatusText } from './update-copy'
 
 describe('updateStatusText', () => {
   it('tells an ad-hoc build where new versions come from', () => {
-    expect(updateStatusText({ state: 'unsupported', reason: 'unsigned' })).toMatch(/freegaz\.app/)
+    expect(updateStatusText({ state: 'unsupported', reason: 'unsigned' })).toMatch(/crankhog\.app/)
   })
   it('shows download progress and what happens once it is ready', () => {
-    expect(updateStatusText({ state: 'downloading', version: '0.5.0', percent: 42 })).toBe('Downloading FreeGaz 0.5.0… 42 %')
-    expect(updateStatusText({ state: 'ready', version: '0.5.0' })).toMatch(/installs when you restart FreeGaz or quit it/)
+    expect(updateStatusText({ state: 'downloading', version: '0.5.0', percent: 42 })).toBe('Downloading CrankHog 0.5.0… 42 %')
+    expect(updateStatusText({ state: 'ready', version: '0.5.0' })).toMatch(/installs when you restart CrankHog or quit it/)
   })
   it('never uses an exclamation mark', () => {
     const all = [

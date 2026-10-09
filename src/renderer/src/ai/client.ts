@@ -56,7 +56,7 @@ export function streamAi(purpose: 'debrief' | 'chat' | 'fitness-summary', messag
 
 const r1 = (v: number | null | undefined) => (v === null || v === undefined ? null : Math.round(v * 10) / 10)
 
-/** Compact, model-friendly summary of one ride (all numbers computed by FreeGaz). */
+/** Compact, model-friendly summary of one ride (all numbers computed by CrankHog). */
 export function rideFacts(r: RideSummary) {
   return {
     date: new Date(r.startedAt).toISOString().slice(0, 10),
