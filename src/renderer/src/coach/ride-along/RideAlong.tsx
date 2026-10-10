@@ -21,6 +21,8 @@ import { toonFor } from '../toon/heads'
 import { useRider, riderInitials } from '../../db/rider'
 import { CoachHead, RiderHead } from '../heads'
 import { Cyclist } from './Cyclist'
+import { KmBoard } from './KmBoard'
+import { Scenery } from './Scenery'
 
 // The ride-along: you and your coach on a little road, the coach pacing at
 // the target. Ease off and they ride away and shout; push and you drop them.
@@ -41,6 +43,8 @@ const HOG_IN_SHOT_M = 70
 /** How far across the scene he roams in that range (a fraction of the width). */
 const HOG_ROAM = 0.46
 const riderCadence = () => liveStore.getState().cadence
+/** How far the road has run, for the scenery to drift against. */
+const sceneRoadM = () => race.state.roadM
 
 const toggleMute = () => getRuntime().rides.command({ type: 'muteCoach' })
 
@@ -188,6 +192,9 @@ function Scene({ personaId, name, coachOn, muted, ftpW }: { personaId: string; n
 
   return (
     <div ref={sceneRef} className="relative mx-1 mb-1 overflow-hidden rounded-xl" style={{ height: SCENE_H }}>
+      {/* hills, trees and poles behind the fence, each at its own distance */}
+      <Scenery roadM={sceneRoadM} />
+      <KmBoard />
       {/* a fence along the far verge, then two lanes of tarmac with a dashed line between */}
       <div
         ref={fenceRef}

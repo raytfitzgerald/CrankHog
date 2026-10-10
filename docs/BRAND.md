@@ -250,9 +250,33 @@ ride-along `Cyclist`, which is how he gets a bike and pedalling legs for free.
   the elevation strip, not as a tile in the metrics grid. The ride screen is
   still the product.
 
+## The ride-along scene
+
+The one place in the app that draws a world rather than measuring one. It sits
+on every ride screen, so it has to stay quiet.
+
+**Depth is the whole trick.** Four layers, each drifting at its own speed off
+the same road distance: hills on the horizon, then trees, poles, a barn and a
+field of hogs, then the fence, then the road. Each layer is one wide tile
+repeated and slid with a transform, so a frame costs a handful of style writes
+however long the ride is (`Scenery.tsx`).
+
+**It is drawn in theme tokens, several steps back from the ink** — `panel-3`,
+`line`, `line-strong`. Scenery never uses a brand constant, a status colour or
+a data colour: the only things in the scene allowed to be saturated are the
+riders. Sir Loin is the only pink thing on screen.
+
+**One piece of it carries a real number.** A distance board goes past every
+kilometre (or mile), counting the ride's own distance in the rider's units
+(`KmBoard.tsx`). Scenery that lies about the ride would be worse than no
+scenery.
+
+**Reduce Motion stops all of it:** the layers hold still and the distance
+boards don't appear.
+
 ## Imagery
 
-- **No stock photos, no illustrations of people, no generated art.** The interface is type, numbers and charts.
+- **No stock photos, no illustrations of people, no generated art.** The interface is type, numbers and charts. The ride-along scene is drawn, not photographic, and has no people in it — the only figures are the coaches, the rider and the hog.
 - **The exceptions are Sir Loin,** who is drawn, **and Bibi and The Donald:** photo heads on a cartoon bike.
   - Only public-domain or openly licensed photos, approved file by file.
   - Cut to the head, never distorted.
