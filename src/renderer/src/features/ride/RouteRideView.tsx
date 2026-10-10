@@ -1,6 +1,7 @@
 import { useEffect, useReducer } from 'react'
 import { CheckCircle2, Ghost, Minus, Pause, Plus, TrendingDown, TrendingUp } from 'lucide-react'
 import { isRouteTick, type RoutePlan, type RoutePlayback, type RouteProgress } from '@core/ride/route-plan'
+import type { HogContext } from '@core/mascot/stunts'
 import { getRuntime } from '../../runtime/composition'
 import { useLive } from '../../stores/live'
 import { useRide } from '../../stores/ride'
@@ -18,6 +19,9 @@ import { ElevationChart } from '../routes/ElevationChart'
 import { GradeLegend } from '../routes/GradeLegend'
 import { RouteOutline } from '../routes/RouteOutline'
 import { HogFlyby } from '../../brand/hog/HogFlyby'
+import { HogRaceReadout } from '../../brand/hog/HogRaceReadout'
+import { hogRaceState } from '../../brand/hog/useHogRace'
+import { useFtp } from '../../db/use-athlete'
 import { RideAlong } from '../../coach/ride-along/RideAlong'
 import { CueBanner } from './CueBanner'
 import { GuardBanner } from './GuardBanner'
@@ -51,6 +55,10 @@ export function RouteRideView() {
   const tick = useRide((s) => (isRouteTick(s.plan) ? s.plan : null))
   const name = useRide((s) => s.snapshot?.name ?? '')
   const rideId = useRide((s) => s.rideId)
+  // what the hog reads to decide what to do when he next turns up
+  const power = useLive((f) => f.power3s ?? f.power)
+  const { ftpW } = useFtp()
+  const intensity = power !== null && ftpW > 0 ? power / ftpW : null
   // Mode switches apply to the plan at once; re-render now instead of on the next engine tick.
   const [, refresh] = useReducer((n: number) => n + 1, 0)
   const control: TrainerControl = plan?.trainerOverride?.mode ?? 'sim'
@@ -101,11 +109,14 @@ export function RouteRideView() {
       </div>
 
       {/* the road ahead, and whatever is on it: Sir Loin comes through here */}
-      <div className="relative overflow-hidden rounded-2xl border border-line bg-panel p-4" data-testid="route-strip" data-snap>
-        <HogFlyby key={rideId} elapsedS={r.elapsedS} moving={!r.finished && r.speedMps > 0} />
+      <div className="relative overflow-hidden rounded-2xl border border-line bg-panel p-4 pb-8" data-testid="route-strip" data-snap>
+        <HogFlyby key={rideId} elapsedS={r.elapsedS} moving={!r.finished && r.speedMps > 0} context={hogContext(r, intensity)} />
         <div className="mb-1 flex flex-wrap items-center justify-between gap-2">
-          <div className="eyebrow text-ink-faint">
-            {r.finished ? 'The last of the route' : `The next ${formatKm(Math.min(AHEAD_M, r.remainingM), 1, units)} ${distanceUnit(units)}`}
+          <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
+            <div className="eyebrow text-ink-faint">
+              {r.finished ? 'The last of the route' : `The next ${formatKm(Math.min(AHEAD_M, r.remainingM), 1, units)} ${distanceUnit(units)}`}
+            </div>
+            <HogRaceReadout />
           </div>
           <GradeLegend />
         </div>
@@ -147,6 +158,16 @@ export function RouteRideView() {
       <RecordingBar />
     </div>
   )
+}
+
+/** What Sir Loin reads before he decides what to do: the road, and the rider. */
+function hogContext(r: RouteProgress, intensity: number | null): HogContext {
+  return {
+    gradePct: r.gradePct,
+    progress: r.totalM > 0 ? Math.min(1, r.riddenM / r.totalM) : 0,
+    intensity,
+    gapM: hogRaceState().gapM,
+  }
 }
 
 function SpeedTile({ r }: { r: RouteProgress }) {

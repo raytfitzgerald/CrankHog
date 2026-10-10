@@ -1,62 +1,89 @@
-// Sir Loin coming past you on a route.
+// Sir Loin turning up on the road ahead.
 //
-// Every few minutes of *moving* time he crosses the road ahead, left to right,
-// faster than you, and says something about it. The timing lives in
-// @core/mascot/hog so it can be tested without a browser; this only draws it.
+// Every few minutes of *moving* time he does something, and what he does reads
+// the road and the race: he grinds up a wall, tucks down a descent, applauds a
+// hard effort, and when he is a long way up the road he stops and waits where
+// you can see him. The choosing is in @core/mascot/stunts; this only draws it.
 //
-// With Reduce Motion on he doesn't ride across — the line still arrives, as a
-// polite status message, because that's the part with the joke in it.
+// Stunts on a bike come past you, left to right. Roadside ones are things you
+// ride past, so they drift the other way.
+//
+// With Reduce Motion on nothing animates — the line still arrives, as a status
+// message, because that's the part with the joke in it.
 
 import { useEffect, useRef, useState } from 'react'
-import { PASS_MS, startHogSchedule, stepHogSchedule, type HogPass } from '@core/mascot/hog'
-import { Cyclist } from '../../coach/ride-along/Cyclist'
+import { startHogSchedule, stepHogSchedule } from '@core/mascot/hog'
+import { STUNTS, pickStunt, stuntLine, type HogContext, type HogStunt } from '@core/mascot/stunts'
 import { useReducedMotion } from '../../ui/use-reduced-motion'
-import { HogHead } from './HogHead'
+import { HogRider } from './HogRider'
 
-/** He rides a bigger gear than you. */
-const HOG_RPM = 102
-const hogCadence = () => HOG_RPM
-/** The near lane is lower and larger; the far lane sits back against the fence. */
-const LANES = { near: { bottom: 2, height: 62 }, far: { bottom: 30, height: 44 } }
+// The strip keeps a band clear under the chart (pb-8) so he never lands on the
+// axis labels. The near lane is lower and larger; the far lane sits back.
+const LANES = { near: { bottom: 16, height: 64 }, far: { bottom: 38, height: 46 } }
+/** Roadside stunts stand on the band itself. */
+const ROADSIDE_BOTTOM = 14
+
+interface Appearance {
+  id: number
+  stunt: HogStunt
+  line: string
+  lane: 'near' | 'far'
+}
 
 // Mount this with key={rideId}: every ride then starts him over, instead of
 // inheriting the last one's clock.
-export function HogFlyby({ elapsedS, moving }: { elapsedS: number; moving: boolean }) {
+export function HogFlyby({ elapsedS, moving, context }: { elapsedS: number; moving: boolean; context: HogContext }) {
   const reduced = useReducedMotion()
   const schedule = useRef(startHogSchedule())
-  const [pass, setPass] = useState<HogPass | null>(null)
+  // Read in the effect, never rendered from: the stunt is chosen on the tick
+  // the pass comes due, from the road as it is then, and must not change under
+  // him afterwards. Written in its own effect so render stays pure.
+  const latest = useRef(context)
+  useEffect(() => {
+    latest.current = context
+  })
+  const [now, setNow] = useState<Appearance | null>(null)
 
   useEffect(() => {
     if (!moving) return
     const next = stepHogSchedule(schedule.current, elapsedS)
     schedule.current = next.schedule
-    if (next.pass) setPass(next.pass)
+    if (!next.pass) return
+    const stunt = pickStunt(latest.current)
+    setNow({ id: next.pass.id, stunt, line: stuntLine(stunt), lane: next.pass.lane })
   }, [elapsedS, moving])
 
   useEffect(() => {
-    if (!pass) return
-    const id = setTimeout(() => setPass(null), PASS_MS)
+    if (!now) return
+    const id = setTimeout(() => setNow(null), STUNTS[now.stunt].ms)
     return () => clearTimeout(id)
-  }, [pass])
+  }, [now])
 
-  if (!pass) return null
-  const lane = LANES[pass.lane]
+  if (!now) return null
+  const spec = STUNTS[now.stunt]
+  const passing = spec.kind === 'passing'
+  const lane = passing ? LANES[now.lane] : LANES.far
+  const seconds = spec.ms / 1000
 
   return (
     <>
       {!reduced && (
         <div
-          key={pass.id}
-          className="pointer-events-none absolute left-0 w-full animate-[hog-pass_5.2s_linear_1]"
-          style={{ bottom: lane.bottom }}
+          key={now.id}
+          className="pointer-events-none absolute left-0 w-full will-change-transform"
+          style={{
+            bottom: passing ? lane.bottom : ROADSIDE_BOTTOM,
+            animation: `${passing ? 'hog-pass' : 'hog-verge'} ${seconds}s linear 1`,
+          }}
           aria-hidden
           data-testid="hog-flyby"
+          data-stunt={now.stunt}
         >
-          <Cyclist jersey="var(--color-hog)" cadence={hogCadence} height={lane.height} label={pass.quip} head={<HogHead />} />
+          <HogRider stunt={now.stunt} height={passing ? lane.height : 58} label={now.line} />
         </div>
       )}
       <p className="pointer-events-none absolute inset-x-0 bottom-1 text-center text-xs text-ink-faint" role="status" data-testid="hog-flyby-line">
-        {pass.quip}
+        {now.line}
       </p>
     </>
   )

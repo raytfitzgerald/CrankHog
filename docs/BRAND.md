@@ -198,10 +198,36 @@ mean he had noticed. He has no FTP and has never been tested.
 - **The Home velodrome,** up on the stayers' line, every week. On a week with no
   rides of your own he has the whole track to himself and your coach shouts
   about it (`src/core/home/rival.ts`).
-- **The road ahead on a route,** every few minutes of moving time, with a line
-  (`HogFlyby`). The timing is in `src/core/mascot/hog.ts`.
+- **The road ahead on a route,** every minute or two of moving time, doing one
+  of eleven stunts (`HogFlyby`). When it happens is `src/core/mascot/hog.ts`;
+  what he does is `src/core/mascot/stunts.ts`.
+- **Racing you, the whole ride.** `src/core/mascot/race.ts` gives him a pace
+  that wanders either side of your FTP, so the lead changes hands. He can't get
+  more than 450 m clear (past that he stops and waits, visibly) and he can't be
+  dropped for good (he chases, and he's quicker when he's cross). The gap reads
+  out over the road ahead, and he rides into the ride-along scene whenever the
+  race comes back within 70 m.
 - **The verge behind the ride-along,** on foot, getting overtaken (`HogVerge`).
 - **The app icon,** on the top straight.
+
+**The stunts** read the road and the rider, and one rule wins (`stuntWeights`):
+being a long way up the road beats a steep gradient, because him having a nap
+while he waits is the better joke.
+
+| He does | When |
+|---|---|
+| `grind` | a wall |
+| `tuck` | a descent |
+| `cheer`, `draft` | you're over FTP |
+| `nap`, `sign`, `picnic` | you're soft pedalling, or he's miles clear |
+| `sprint` | he's been dropped, or it's a descent |
+| `cruise`, `wheelie`, `tumble` | nothing in particular |
+
+Stunts come in two kinds. **Passing** ones put him on a bike and move him left to
+right, past you; they reuse the ride-along `Cyclist` under a transform, so a
+wheelie is the whole bike rotated about its rear hub and there is still only one
+bike in the codebase. **Roadside** ones are things you ride past, so they drift
+the other way, and they're drawn in `HogRider`.
 
 **Drawing him.** `src/renderer/src/brand/hog/`: `HogHead` is a head round
 (0, 0) at radius 12, so it drops into anything that takes a head — including the
@@ -217,8 +243,12 @@ ride-along `Cyclist`, which is how he gets a bike and pedalling legs for free.
 - **He is never the subject of a joke about a body, a weight or what he's made
   of.** He is an athlete who happens to be a pig. No bacon, no ham, no dinner.
   There's a test.
-- **He moves only when motion is welcome.** Reduce Motion stops his fly-by
-  animation (the line still arrives) and drops the verge trot entirely.
+- **He moves only when motion is welcome.** Reduce Motion stops the stunt
+  animations (the line still arrives, as a status message) and drops the verge
+  trot entirely.
+- **He never competes with a number.** The race reads out as a line of text over
+  the elevation strip, not as a tile in the metrics grid. The ride screen is
+  still the product.
 
 ## Imagery
 

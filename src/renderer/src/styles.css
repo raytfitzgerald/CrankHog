@@ -240,6 +240,26 @@
   }
 }
 
+/* Out of the saddle (fast) and grinding up a wall (slow): the same rock, told
+   apart by how long it takes. */
+@keyframes hog-rock {
+  0%, 100% { transform: rotate(-3.5deg); }
+  50% { transform: rotate(3.5deg); }
+}
+
+/* Ringing a cowbell at you. */
+@keyframes hog-ring {
+  0%, 100% { transform: rotate(-16deg); }
+  50% { transform: rotate(16deg); }
+}
+
+/* Asleep: the Zs drift up and fade. */
+@keyframes hog-snore {
+  0% { opacity: 0; transform: translate(0, 4px) scale(0.8); }
+  35% { opacity: 1; }
+  100% { opacity: 0; transform: translate(6px, -14px) scale(1.15); }
+}
+
 /* And trotting the other way along the verge, because on foot he is the one
    being overtaken. HogVerge doesn't render at all under Reduce Motion. */
 @keyframes hog-verge {

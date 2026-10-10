@@ -37,5 +37,5 @@ A macOS Electron + React/TypeScript indoor-cycling trainer (ERG/SIM control, wor
 - Tests sit next to the code (`*.test.ts`); simulator scenarios go in `tests/sim`, E2E in `tests/e2e`.
 - Commit messages end with `Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>`.
 - **Never rename a persisted key.** The `app://freegaz` origin, the Dexie database name (`src/renderer/src/db/db.ts`), the `freegaz.web.*` localStorage keys and Strava's `freegaz-<rideId>` external id all keep the old brand on purpose. Renaming any of them orphans a rider's data.
-- Sir Loin the hog is the mascot: `src/core/mascot/hog.ts` for his timing and lines, `src/renderer/src/brand/hog/` for the drawing. His rules are in `docs/BRAND.md`.
+- Sir Loin the hog is the mascot. `src/core/mascot/`: `hog.ts` is who he is and when he turns up, `stunts.ts` what he does about the road, `race.ts` the race you can have with him. `src/renderer/src/brand/hog/` draws him. His rules, including that he is never the butt of a joke about what he's made of, are in `docs/BRAND.md`.
 - The full plan and research notes are at `~/.claude/plans/i-would-like-for-foamy-moth.md` (local only).

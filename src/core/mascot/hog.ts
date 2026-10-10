@@ -7,6 +7,9 @@
 // He never comments on a body, a weight or a number the rider can't change,
 // and he is clean at every language setting, because he isn't a persona and
 // doesn't go through the content gate.
+//
+// This module is who he is and when he turns up. What he does when he gets
+// there is in ./stunts, and the race you can have with him is in ./race.
 
 export const HOG = {
   id: 'sir-loin',
@@ -14,22 +17,6 @@ export const HOG = {
   /** For alt text and titles: "Sir Loin, a hog on a bike". */
   what: 'a hog on a bike',
 } as const
-
-/** What he says as he goes past on a route. */
-export const FLYBY_QUIPS: readonly string[] = [
-  'Sir Loin went past. He did not appear to be trying.',
-  'That was Sir Loin. He has no FTP. He has never been tested.',
-  'Sir Loin passed on the left. Sir Loin always passes on the left.',
-  'Sir Loin does not acknowledge your W/kg.',
-  'Sir Loin went by at 54 km/h. He is a pig.',
-  'Sir Loin has gone. He left no watts behind.',
-  'A hog just dropped you. Take from that what you need.',
-  'Sir Loin waved. He has trotters, so it was more of a gesture.',
-  'Sir Loin is not on Strava. Sir Loin has nothing to prove.',
-  'Sir Loin took that gradient personally, and won.',
-  'Sir Loin came through without changing gear. He has one.',
-  'Sir Loin is gone. The road is yours again, such as it is.',
-]
 
 /** Tooltips for the rider circling the Home velodrome. */
 export const TRACK_QUIPS: readonly string[] = [
@@ -62,10 +49,10 @@ export function hogLine(pool: readonly string[], rng: () => number = Math.random
 
 // --- Passing you on a route -------------------------------------------------
 
-/** He leaves it a while before the first pass, so he isn't the first thing a ride does. */
-export const FIRST_PASS_S = { min: 150, max: 330 } as const
-/** And a good while between passes, so he stays a surprise. */
-export const NEXT_PASS_S = { min: 240, max: 600 } as const
+/** He lets you settle in before the first one, but not for long. */
+export const FIRST_PASS_S = { min: 60, max: 150 } as const
+/** Then often enough to be worth watching for, with eleven stunts to get through. */
+export const NEXT_PASS_S = { min: 120, max: 300 } as const
 /** How long one pass takes to cross the screen. */
 export const PASS_MS = 5_200
 
@@ -84,7 +71,6 @@ export const TROT_MS = 9_000
 export interface HogPass {
   /** Rising, so React can key on it. */
   id: number
-  quip: string
   /** Which side of the road he takes: it alternates, so two passes never overlay. */
   lane: 'near' | 'far'
 }
@@ -116,6 +102,6 @@ export function stepHogSchedule(s: HogSchedule, elapsedS: number, rng: () => num
   const passes = s.passes + 1
   return {
     schedule: { nextAtS: elapsedS + between(s.ranges.next, rng), passes, ranges: s.ranges },
-    pass: { id: passes, quip: hogLine(FLYBY_QUIPS, rng), lane: passes % 2 === 1 ? 'far' : 'near' },
+    pass: { id: passes, lane: passes % 2 === 1 ? 'far' : 'near' },
   }
 }

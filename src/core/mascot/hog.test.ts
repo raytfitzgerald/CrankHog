@@ -1,24 +1,12 @@
 import { describe, expect, it } from 'vitest'
-import {
-  FIRST_PASS_S,
-  FLYBY_QUIPS,
-  HOG,
-  IDLE_QUIPS,
-  NEXT_PASS_S,
-  TRACK_QUIPS,
-  TROT_QUIPS,
-  hogLine,
-  startHogSchedule,
-  stepHogSchedule,
-} from './hog'
+import { FIRST_PASS_S, HOG, IDLE_QUIPS, NEXT_PASS_S, TRACK_QUIPS, TROT_QUIPS, hogLine, startHogSchedule, stepHogSchedule } from './hog'
 
-const POOLS = { FLYBY_QUIPS, TRACK_QUIPS, TROT_QUIPS, IDLE_QUIPS }
+// What he does on a route, and the lines that go with it, live in ./stunts.
+const POOLS = { TRACK_QUIPS, TROT_QUIPS, IDLE_QUIPS }
 
 describe('Sir Loin says', () => {
   it('names himself in every line that is a sentence about him', () => {
-    for (const line of [...FLYBY_QUIPS, ...TROT_QUIPS]) {
-      expect(line.endsWith('.'), line).toBe(true)
-    }
+    for (const line of TROT_QUIPS) expect(line.endsWith('.'), line).toBe(true)
   })
 
   it('never jokes about a body, a weight or a health number', () => {
@@ -46,14 +34,12 @@ describe('Sir Loin says', () => {
   })
 
   it('picks a line from the pool for any rng in [0, 1)', () => {
-    for (const r of [0, 0.5, 0.999999]) {
-      expect(FLYBY_QUIPS).toContain(hogLine(FLYBY_QUIPS, () => r))
-    }
+    for (const r of [0, 0.5, 0.999999]) expect(TRACK_QUIPS).toContain(hogLine(TRACK_QUIPS, () => r))
   })
 
   it('is called Sir Loin', () => {
     expect(HOG.name).toBe('Sir Loin')
-    expect(FLYBY_QUIPS.some((l) => l.includes(HOG.name))).toBe(true)
+    expect(TRACK_QUIPS.some((l) => l.includes(HOG.name))).toBe(true)
   })
 })
 
@@ -75,7 +61,6 @@ describe('passing you on a route', () => {
     const s = startHogSchedule(() => 0)
     const { schedule, pass } = stepHogSchedule(s, FIRST_PASS_S.min, () => 0)
     expect(pass).not.toBeNull()
-    expect(FLYBY_QUIPS).toContain(pass!.quip)
     expect(schedule.passes).toBe(1)
     expect(schedule.nextAtS).toBe(FIRST_PASS_S.min + NEXT_PASS_S.min)
   })

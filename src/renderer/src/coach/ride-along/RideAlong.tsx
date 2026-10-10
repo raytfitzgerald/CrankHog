@@ -2,7 +2,9 @@ import { useEffect, useRef, useState } from 'react'
 import { ChevronDown, ChevronUp, Volume2, VolumeX } from 'lucide-react'
 import { MAX_GAP_M, RIDE_ALONG_START, coachPaceW, gapLabel, stepRideAlong } from '@core/coach'
 import { PRIORITY, packById, PROFESSIONAL } from '@core/persona'
+import { HogHead } from '../../brand/hog/HogHead'
 import { HogVerge } from '../../brand/hog/HogVerge'
+import { advanceHogRace } from '../../brand/hog/useHogRace'
 import { useFtp } from '../../db/use-athlete'
 import { getRuntime } from '../../runtime/composition'
 import { liveStore } from '../../stores/live'
@@ -32,6 +34,12 @@ const ROAM = 0.25
 const BUBBLE_MS = 9_000
 const COACH_RPM = 88
 const coachCadence = () => COACH_RPM
+const HOG_RPM = 94
+const hogCadence = () => HOG_RPM
+/** Sir Loin is only in shot while the race is this close, m. Past it he's up the road. */
+const HOG_IN_SHOT_M = 70
+/** How far across the scene he roams in that range (a fraction of the width). */
+const HOG_ROAM = 0.46
 const riderCadence = () => liveStore.getState().cadence
 
 const toggleMute = () => getRuntime().rides.command({ type: 'muteCoach' })
@@ -128,6 +136,7 @@ function Scene({ personaId, name, coachOn, muted, ftpW }: { personaId: string; n
   const reduced = useReducedMotion()
   const sceneRef = useRef<HTMLDivElement>(null)
   const coachRef = useRef<HTMLDivElement>(null)
+  const hogRef = useRef<HTMLDivElement>(null)
   const roadRef = useRef<HTMLDivElement>(null)
   const fenceRef = useRef<HTMLDivElement>(null)
 
@@ -139,6 +148,15 @@ function Scene({ personaId, name, coachOn, muted, ftpW }: { personaId: string; n
       const w = sceneRef.current?.clientWidth ?? 0
       const x = (race.state.gapM / MAX_GAP_M) * ROAM * w
       if (coachRef.current) coachRef.current.style.transform = `translateX(${x.toFixed(1)}px)`
+      // Sir Loin rides the same road, placed by his own race: he drifts into
+      // shot when you close on him and out of it when he's up the road, which
+      // is the whole drama of chasing a pig.
+      if (hogRef.current) {
+        const gap = advanceHogRace(performance.now(), ftpW).gapM
+        const near = Math.abs(gap) <= HOG_IN_SHOT_M
+        hogRef.current.style.opacity = near ? '1' : '0'
+        hogRef.current.style.transform = `translateX(${((gap / HOG_IN_SHOT_M) * HOG_ROAM * w).toFixed(1)}px)`
+      }
       // lane markings scroll by at the rider's speed: 1 m of road is 8 px
       if (!reduced) {
         if (roadRef.current) roadRef.current.style.backgroundPositionX = `${(-(race.state.roadM * 8) % 64).toFixed(1)}px`
@@ -185,6 +203,18 @@ function Scene({ personaId, name, coachOn, muted, ftpW }: { personaId: string; n
       />
       {/* Sir Loin, out for a walk on the far verge, getting overtaken */}
       <HogVerge key={rideId} elapsedS={movingS} moving={riding} />
+      {/* and Sir Loin on the bike, wherever the race has put him */}
+      <div
+        ref={hogRef}
+        className="absolute bottom-[3.25rem] opacity-0 transition-opacity duration-500 will-change-transform"
+        style={{ left: `${RIDER_X * 100}%` }}
+        data-testid="ride-along-hog"
+        aria-hidden
+      >
+        <div className="-translate-x-1/2">
+          <Cyclist jersey="var(--color-hog)" cadence={hogCadence} height={72} label="Sir Loin, racing you" head={<HogHead />} />
+        </div>
+      </div>
       {/* the coach in the far lane, roaming ahead or behind; the rider fixed in the near one */}
       <div ref={coachRef} className="absolute bottom-10 will-change-transform" style={{ left: `${RIDER_X * 100}%` }} data-testid="ride-along-coach">
         <div className="relative -translate-x-1/2">
