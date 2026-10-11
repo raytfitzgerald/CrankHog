@@ -15,6 +15,14 @@
 // them reading as one white smear, which is what happens whenever they cross
 // the snout. The cap is a casquette: the peak reads small, and the ear can
 // flop over it.
+//
+// The character is in four marks, each of which survives being shrunk:
+//   - a heavy lid, flat across the top of the eye: he is not impressed;
+//   - a monocle, because he is a Sir;
+//   - a chipped tusk, because he has been doing this a long time;
+//   - a jowl under the jaw, so he has some weight behind him.
+
+import { useId } from 'react'
 
 const INK = 'var(--color-night)'
 const HIDE = 'var(--color-hog)'
@@ -22,6 +30,7 @@ const SHADE = 'var(--color-hog-shade)'
 const TUSK = 'var(--color-tusk)'
 
 export function HogHead({ cap = true }: { cap?: boolean }) {
+  const capClip = useId()
   return (
     <g>
       {/* skull and snout as one silhouette: no seam to hide */}
@@ -32,25 +41,43 @@ export function HogHead({ cap = true }: { cap?: boolean }) {
         strokeWidth={1.3}
         strokeLinejoin="round"
       />
+      {/* a jowl, so the jaw has some weight behind it */}
+      <path d="M-3.6 8.4 Q0.4 9.8 4.4 7.2" fill="none" stroke={INK} strokeWidth={0.9} strokeLinecap="round" opacity={0.55} />
       {/* the nose on the end of the snout */}
       <ellipse cx={10.2} cy={3} rx={1.5} ry={2.5} fill={SHADE} stroke={INK} strokeWidth={1} />
       <ellipse cx={10.5} cy={2} rx={0.42} ry={0.7} fill={INK} />
       <ellipse cx={10.5} cy={4} rx={0.42} ry={0.7} fill={INK} />
-      {/* the tusks, up out of the jaw into clear air: far one, then near */}
+      {/* the tusks, up out of the jaw into clear air: far one, then near. The
+          near one is chipped — he has hit things with it. */}
       <path d="M4.2 6.8 L6.2 5.8 Q7.6 2.6 7.2 -1.2 Q5.4 2.6 4.2 6.8 Z" fill={TUSK} stroke={INK} strokeWidth={0.9} strokeLinejoin="round" />
-      <path d="M6 6.8 L8.6 5.4 Q10.4 1.4 9.8 -3.6 Q7.2 1.2 6 6.8 Z" fill={TUSK} stroke={INK} strokeWidth={1} strokeLinejoin="round" />
+      <path d="M5.6 6.8 L8 5.4 Q9.4 2 9.1 -3.4 L7.9 -1.7 L8.3 -0.3 Q6.8 1.4 5.6 6.8 Z" fill={TUSK} stroke={INK} strokeWidth={1} strokeLinejoin="round" />
       {cap && (
-        <path
-          d="M-11.2 -2.2 C-11.2 -9.2 -7.4 -12.4 -2.4 -12.4 C1.8 -12.4 4.8 -10 5.6 -6.4 L7.4 -6.9 L7 -4.6 L5.2 -5 L-11 -0.6 Z"
-          fill="var(--color-accent)"
-          stroke={INK}
-          strokeWidth={1.2}
-          strokeLinejoin="round"
-        />
+        <g>
+          <clipPath id={capClip}>
+            <path d="M-11.2 -2.2 C-11.2 -9.2 -7.4 -12.4 -2.4 -12.4 C1.8 -12.4 4.8 -10 5.6 -6.4 L5.2 -5 L-11 -0.6 Z" />
+          </clipPath>
+          <path
+            d="M-11.2 -2.2 C-11.2 -9.2 -7.4 -12.4 -2.4 -12.4 C1.8 -12.4 4.8 -10 5.6 -6.4 L7.4 -6.9 L7 -4.6 L5.2 -5 L-11 -0.6 Z"
+            fill="var(--color-accent)"
+            stroke={INK}
+            strokeWidth={1.2}
+            strokeLinejoin="round"
+          />
+          {/* the track's own stripes round the band, clipped to the shell so
+              they can never poke out past the stitching */}
+          <g clipPath={`url(#${capClip})`}>
+            <path d="M-11.4 -1 L5.6 -5.6 L5.6 -7.1 L-11.4 -2.5 Z" fill="var(--color-sprinter)" />
+            <path d="M-11.4 -2.5 L5.6 -7.1 L5.6 -8 L-11.4 -3.4 Z" fill="var(--color-board)" />
+          </g>
+        </g>
       )}
-      {/* eye, small and unimpressed */}
-      <circle cx={-0.4} cy={-2.6} r={1.5} fill={INK} />
-      <circle cx={0.1} cy={-3.1} r={0.5} fill="var(--color-board)" />
+      {/* the eye: a heavy lid flat across the top, and a monocle round it */}
+      <path d="M-2 -1.5 A1.55 1.55 0 0 0 1.1 -1.5 Z" fill={INK} />
+      <circle cx={0.3} cy={-0.9} r={0.42} fill="var(--color-board)" />
+      <g stroke={INK} fill="none" strokeLinecap="round">
+        <circle cx={-0.45} cy={-1.1} r={3.05} strokeWidth={0.85} />
+        <path d="M-2.5 1.6 Q-3.9 3.6 -3.3 5.9" strokeWidth={0.7} />
+      </g>
       {/* the ear, flopping back over the cap */}
       <path d="M-5.4 -9.6 L-12.8 -11.4 Q-12.8 -4.8 -7.4 -3.6 Q-4.8 -5.2 -5.4 -9.6 Z" fill={SHADE} stroke={INK} strokeWidth={1.2} strokeLinejoin="round" />
     </g>
