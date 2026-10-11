@@ -97,11 +97,15 @@ export const AppSettingsSchema = z.object({
   autoConnect: z.boolean().default(true),
   /** Folder for automatic FIT export; null = ~/Documents/CrankHog/Rides. */
   exportDir: z.string().nullable().default(null),
-  /** Distance, elevation and temperature. Also the preset for speed and weight. */
-  units: z.enum(['metric', 'imperial']).default('metric'),
+  /**
+   * Distance, elevation and temperature. Also the preset for speed and weight.
+   * New installs start imperial; anyone upgrading keeps what they had, which
+   * `migrateStoredSettings` is careful about.
+   */
+  units: z.enum(['metric', 'imperial']).default('imperial'),
   /** Speed and weight can each differ from `units` (a UK rider: miles, kg). */
-  speedUnit: z.enum(['kmh', 'mph']).default('kmh'),
-  weightUnit: z.enum(['kg', 'lb']).default('kg'),
+  speedUnit: z.enum(['kmh', 'mph']).default('mph'),
+  weightUnit: z.enum(['kg', 'lb']).default('lb'),
   /** Light, dark, or follow macOS. The mini-HUD stays dark so it reads over video. */
   appearance: z.enum(['system', 'light', 'dark']).default('system'),
   /** Upload finished (non-simulated) rides automatically. */
@@ -130,17 +134,26 @@ export type RememberedDeviceSetting = z.infer<typeof RememberedDeviceSchema>
 export const DEFAULT_SETTINGS: AppSettings = AppSettingsSchema.parse({})
 
 /**
- * Settings saved before speed and weight had their own units: fill them from
- * `units`, so an imperial rider keeps mph and lb. Run on stored JSON before
- * AppSettingsSchema parses it (the schema itself stays a plain object, since
- * AppSettingsPatchSchema is built from its shape).
+ * Fills in units for settings saved by an older version. Run on stored JSON
+ * before AppSettingsSchema parses it (the schema itself stays a plain object,
+ * since AppSettingsPatchSchema is built from its shape).
+ *
+ * Two jobs:
+ *  - settings saved before speed and weight had their own units get them from
+ *    `units`, so an imperial rider keeps mph and lb;
+ *  - settings saved before `units` existed at all are pinned to metric, which
+ *    is what they were shown at the time. Without this they would inherit the
+ *    schema's new imperial default, and a rider who never touched the setting
+ *    would come back to a different app.
  */
 export function migrateStoredSettings(raw: unknown): unknown {
   if (raw === null || typeof raw !== 'object' || Array.isArray(raw)) return raw
   const r = raw as Record<string, unknown>
-  const imperial = r.units === 'imperial'
+  const units = r.units === 'metric' || r.units === 'imperial' ? r.units : 'metric'
+  const imperial = units === 'imperial'
   return {
     ...r,
+    units,
     // anything unrecognised falls back to the preset, rather than failing the whole file
     speedUnit: r.speedUnit === 'kmh' || r.speedUnit === 'mph' ? r.speedUnit : imperial ? 'mph' : 'kmh',
     weightUnit: r.weightUnit === 'kg' || r.weightUnit === 'lb' ? r.weightUnit : imperial ? 'lb' : 'kg',

@@ -39,7 +39,7 @@ describe('SettingsStore', () => {
     const store = SettingsStore.inDir(dir())
     // @ts-expect-error invalid enum on purpose
     expect(() => store.patch({ units: 'furlongs' })).toThrow()
-    expect(store.get().units).toBe('metric')
+    expect(store.get().units).toBe('imperial')
   })
 
   it('notifies listeners', () => {

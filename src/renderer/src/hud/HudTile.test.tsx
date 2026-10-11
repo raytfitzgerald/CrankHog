@@ -57,6 +57,9 @@ describe('HUD tiles', () => {
   it('flip speed between km/h and mph from the unit label', async () => {
     localStorage.clear()
     window.crankhog = createWebShim()
+    // A metric rider: the default is imperial now, so say so through the shim
+    // as well as the store, or the patch below merges onto imperial.
+    await window.crankhog.invoke('settings.patch', { units: 'metric', speedUnit: 'kmh' })
     settingsStore.setState({ ...DEFAULT_SETTINGS, units: 'metric', speedUnit: 'kmh' }, true)
     act(() => liveStore.setState({ ...liveStore.getState(), speedKmh: 32.4 }))
     render(<HudTile def={WIDGET_BY_ID.get('speed')!} athlete={athlete} />)

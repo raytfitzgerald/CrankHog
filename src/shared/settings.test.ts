@@ -32,9 +32,26 @@ describe('CoachPrefsSchema profanity', () => {
 })
 
 describe('speed and weight units', () => {
-  it('new installs get km/h and kg', () => {
-    expect(DEFAULT_SETTINGS.speedUnit).toBe('kmh')
-    expect(DEFAULT_SETTINGS.weightUnit).toBe('kg')
+  it('new installs get miles, mph and lb', () => {
+    expect(DEFAULT_SETTINGS.units).toBe('imperial')
+    expect(DEFAULT_SETTINGS.speedUnit).toBe('mph')
+    expect(DEFAULT_SETTINGS.weightUnit).toBe('lb')
+  })
+
+  it('a settings file from before units existed stays metric', () => {
+    // The default went imperial in 0.6.0. A rider who never touched the
+    // setting must not come back to a different app, so anything already
+    // stored is pinned to what it was shown at the time.
+    const next = AppSettingsSchema.parse(migrateStoredSettings({ autoConnect: true }))
+    expect(next.units).toBe('metric')
+    expect(next.speedUnit).toBe('kmh')
+    expect(next.weightUnit).toBe('kg')
+  })
+
+  it('still gives a brand new install the imperial default, with nothing stored', () => {
+    // migrateStoredSettings only ever sees a file that exists; a fresh install
+    // goes straight to the schema (SettingsStore.load, web-shim readSettings).
+    expect(AppSettingsSchema.parse({}).units).toBe('imperial')
   })
 
   it('an older imperial settings file keeps mph and lb', () => {
