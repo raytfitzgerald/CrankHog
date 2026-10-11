@@ -55,7 +55,7 @@ It's a data-obsessed indoor cycling trainer for macOS, and [for your phone](#on-
 
 **Real roads, real gradients.** Import a GPX and the trainer climbs when the road does. Race a ghost of your last attempt if you're feeling brave.
 
-<p align="center"><img src="docs/screenshots/route.png" alt="A route ride on a 6 % climb: speed, grade and power, the ride-along, and the next two kilometres of elevation" width="900"></p>
+<p align="center"><img src="docs/screenshots/route.png" alt="A route ride on a 6 % climb: speed, grade and power, the ride-along with Sir Loin up the road, and the next mile of elevation" width="900"></p>
 
 **Go somewhere.** Turn on Journeys and every free ride or workout happens somewhere real. Get dropped at the Eiffel Tower, Shibuya Crossing or the foot of the Stelvio. Or take on a trip that lasts weeks: Land's End to John o' Groats, the Danube, the Pacific Coast, Route 66, coast to coast across America, or Tokyo to Hiroshima. Each ride carries on where the last one stopped. Your watts move a dot along the real road at the speed you'd actually go there, hills included, and the ride lands on Strava with a map. You get towns, state lines and summits along the way, and the coaches have opinions about all of them. The trainer is never touched: it's still your workout, just somewhere better than the garage.
 

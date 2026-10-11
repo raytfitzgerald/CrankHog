@@ -35,7 +35,8 @@
     "build:ios": "CRANKHOG_WEB_BASE=./ CRANKHOG_WEB_OUT=out/ios-web vite build --config vite.web.config.ts",
     "ios:sync": "npm run build:ios && cap sync ios && node scripts/ios-version.mjs",
     "ios:open": "cap open ios",
-    "ios:release": "npm run build:ios && cap sync ios && node scripts/ios-version.mjs --bump"
+    "ios:release": "npm run build:ios && cap sync ios && node scripts/ios-version.mjs --bump",
+    "screenshots": "npm run build && playwright test --config=playwright.screenshots.config.ts"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.129.0",
