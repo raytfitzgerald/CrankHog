@@ -17,6 +17,21 @@ test('window boots with the app shell', async () => {
   await expect(ctx.page.getByTestId('app-info')).toContainText('CrankHog')
 })
 
+test('a brand new install starts out imperial, through the real startup path', async () => {
+  // Every other spec pins metric, so without this nothing end-to-end covers
+  // the 0.6.0 default. The schema's own default is unit-tested; what this adds
+  // is that a real launch with an empty profile actually arrives at it.
+  const fresh = await launchApp({ units: null })
+  try {
+    const s = await fresh.page.evaluate(() => window.crankhog.invoke('settings.get', {}))
+    expect(s.units).toBe('imperial')
+    expect(s.speedUnit).toBe('mph')
+    expect(s.weightUnit).toBe('lb')
+  } finally {
+    await fresh.close()
+  }
+})
+
 test('IPC ping round-trips through the typed bridge', async () => {
   const res = await ctx.page.evaluate(() => window.crankhog.invoke('app.ping', { msg: 'pedal harder' }))
   expect(res.pong).toBe('pedal harder')
