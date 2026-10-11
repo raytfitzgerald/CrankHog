@@ -72,7 +72,9 @@ npm run ios:release
 
 ### Screenshots
 
-`docs/app-store/` holds five 1320 × 2868 PNGs, the 6.9" iPhone size Apple asks for: Home, the ride picker, Workouts, a workout on the Stelvio journey, and the big tiles. They were captured from the production web build in demo mode, at 440 × 956 points × 3. Drag them in under **iPhone 6.9" Display**. The app is iPhone-only, so no iPad screenshots are needed.
+`docs/app-store/` holds five 1320 × 2868 PNGs, the 6.9" iPhone size Apple asks for: Home, the ride picker, Workouts, a workout mid-ride, and the big tiles. `docs/app-store/6.5-inch/` holds the same five at 1284 × 2778. Drag them in under **iPhone 6.9" Display** and **6.5" Display**. The app is iPhone-only, so no iPad screenshots are needed.
+
+`npm run screenshots` retakes them, from the production web build in demo mode at 440 × 956 and 428 × 926 points × 3 (`tests/screenshots/app-store.spec.ts`). It also retakes the README tour from the Mac app. Run it whenever the interface moves on; the store will reject stale screenshots that no longer match the build.
 
 ### Notes for the reviewer
 

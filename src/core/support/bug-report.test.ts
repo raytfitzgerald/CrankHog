@@ -31,7 +31,7 @@ describe('bug reports', () => {
 
   it('points at the repo as a labelled bug', () => {
     const { url, trimmed } = bugIssueUrl('Light mode', 'body')
-    expect(url.startsWith('https://github.com/raytfitzgerald/FreeGaz/issues/new?')).toBe(true)
+    expect(url.startsWith('https://github.com/raytfitzgerald/CrankHog/issues/new?')).toBe(true)
     const q = new URL(url).searchParams
     expect(q.get('labels')).toBe('bug')
     expect(q.get('title')).toBe('Light mode')

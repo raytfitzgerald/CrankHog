@@ -61,4 +61,4 @@ electronFuses:
 publish:
   provider: github
   owner: raytfitzgerald
-  repo: FreeGaz
+  repo: CrankHog

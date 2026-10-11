@@ -5,10 +5,10 @@
   "description": "A data-obsessed indoor cycling trainer for macOS: ERG/SIM control, workout builder, FTP tests, FIT export, Strava upload, and optional AI coaching.",
   "author": "Ray Fitzgerald (https://github.com/raytfitzgerald)",
   "license": "MIT",
-  "homepage": "https://github.com/raytfitzgerald/FreeGaz",
+  "homepage": "https://github.com/raytfitzgerald/CrankHog",
   "repository": {
     "type": "git",
-    "url": "https://github.com/raytfitzgerald/FreeGaz.git"
+    "url": "https://github.com/raytfitzgerald/CrankHog.git"
   },
   "main": "./out/main/index.js",
   "engines": {

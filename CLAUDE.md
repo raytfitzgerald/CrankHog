@@ -13,7 +13,8 @@ A macOS Electron + React/TypeScript indoor-cycling trainer (ERG/SIM control, wor
 - `src/shared` holds the IPC contract (`ipc/contract.ts`, zod). Add every new channel to `ipc/channels.ts` too; a test enforces this.
 - Renderer ↔ main traffic goes only through `window.crankhog.invoke/on`. Main validates every payload and checks the sender.
 - Secrets live only in main (`safeStorage`). The renderer never sees API keys or OAuth tokens.
-- The `app://freegaz` origin must never change, or IndexedDB data is orphaned. It keeps the old name after the CrankHog rename on purpose; users never see it. The iOS bundle id and the GitHub repo stay `…freegaz` / `raytfitzgerald/FreeGaz` too, so App Store updates and the updater feed keep working.
+- The `app://freegaz` origin must never change, or IndexedDB data is orphaned. It keeps the old name after the CrankHog rename on purpose; users never see it. The iOS bundle id stays `io.github.raytfitzgerald.freegaz` too, or App Store updates break.
+- The GitHub repos were renamed to `raytfitzgerald/CrankHog` and `…/CrankHog-site` in 0.6.0, before 0.6.0 shipped. The updater feed (`electron-updater.ts`) and the publish target (`electron-builder.yml`) must always name the same repo; they disagreed between the rename commit and this one, which would have shipped a 404 feed. The web app moved with it, to `raytfitzgerald.github.io/CrankHog/`.
 - `productName` moved to `CrankHog` in 0.6.0. `src/main/user-data.ts` renames the old Application Support and Documents folders on first launch; don't change it again without a migration.
 
 ## Domain rules

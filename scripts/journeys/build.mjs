@@ -21,7 +21,7 @@ import { DROPS, GRAND } from './catalogue.mjs'
 const HERE = dirname(fileURLToPath(import.meta.url))
 const CACHE = join(HERE, '.cache')
 const OUT = join(HERE, '../../src/renderer/src/journeys/data')
-const UA = 'CrankHog-journey-builder/1.0 (+https://github.com/raytfitzgerald/FreeGaz)'
+const UA = 'CrankHog-journey-builder/1.0 (+https://github.com/raytfitzgerald/CrankHog)'
 mkdirSync(CACHE, { recursive: true })
 mkdirSync(OUT, { recursive: true })
 

@@ -2,7 +2,7 @@
 // browser: GitHub emails the maintainer, nothing is sent from the app itself,
 // and the reporter sees (and can edit) every word before submitting.
 
-export const BUG_REPO = 'raytfitzgerald/FreeGaz'
+export const BUG_REPO = 'raytfitzgerald/CrankHog'
 /** GitHub rejects much longer new-issue URLs; the body is trimmed to fit. */
 export const MAX_ISSUE_URL = 8000
 export const MAX_TITLE = 120

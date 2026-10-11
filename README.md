@@ -163,7 +163,7 @@ It's a data-obsessed indoor cycling trainer for macOS, and [for your phone](#on-
 
 Requirements: a Mac with Apple Silicon and Bluetooth.
 
-**From a release:** download `CrankHog-<version>-arm64.dmg` from [Releases](https://github.com/raytfitzgerald/FreeGaz/releases) and drag CrankHog to Applications. From 0.4.0, releases are signed with a Developer ID and notarized by Apple, so the first launch only asks the usual "downloaded from the Internet" question. Click **Open**.
+**From a release:** download `CrankHog-<version>-arm64.dmg` from [Releases](https://github.com/raytfitzgerald/CrankHog/releases) and drag CrankHog to Applications. From 0.4.0, releases are signed with a Developer ID and notarized by Apple, so the first launch only asks the usual "downloaded from the Internet" question. Click **Open**.
 
 <details>
 <summary>Releases up to 0.3.0 aren't notarized</summary>
@@ -195,7 +195,7 @@ From 0.5.0, the Mac app updates itself. It checks GitHub's releases a little aft
 
 ### On your phone
 
-CrankHog also runs as an app on your phone, no app store involved: open **[raytfitzgerald.github.io/FreeGaz](https://raytfitzgerald.github.io/FreeGaz/)** and add it to your home screen. It gets its own icon, opens full screen and works with no signal, which is handy, because the pain cave never has Wi-Fi.
+CrankHog also runs as an app on your phone, no app store involved: open **[raytfitzgerald.github.io/CrankHog](https://raytfitzgerald.github.io/CrankHog/)** and add it to your home screen. It gets its own icon, opens full screen and works with no signal, which is handy, because the pain cave never has Wi-Fi.
 
 **Android (Chrome).** This is the full experience, trainer included.
 
@@ -268,7 +268,7 @@ Everything stays on this Mac. Rides live in the app's database, plus a FIT file 
 
 ## Reporting a bug
 
-Use **Report a bug** at the bottom of the sidebar (or **Settings → About**). It opens a GitHub issue with your report and a few diagnostics filled in: app and macOS versions, device types and a few settings, never names or ride data. You can read and edit all of it before you submit. You can also [open an issue](https://github.com/raytfitzgerald/FreeGaz/issues/new/choose) directly.
+Use **Report a bug** at the bottom of the sidebar (or **Settings → About**). It opens a GitHub issue with your report and a few diagnostics filled in: app and macOS versions, device types and a few settings, never names or ride data. You can read and edit all of it before you submit. You can also [open an issue](https://github.com/raytfitzgerald/CrankHog/issues/new/choose) directly.
 
 ## Building from source
 

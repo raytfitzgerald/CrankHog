@@ -118,7 +118,7 @@ test('Report a bug opens a pre-filled GitHub issue, with diagnostics the reporte
   const opened = await app.evaluate(() => (globalThis as { __opened?: string[] }).__opened ?? [])
   expect(opened).toHaveLength(1)
   const url = new URL(opened[0]!)
-  expect(url.origin + url.pathname).toBe('https://github.com/raytfitzgerald/FreeGaz/issues/new')
+  expect(url.origin + url.pathname).toBe('https://github.com/raytfitzgerald/CrankHog/issues/new')
   expect(url.searchParams.get('title')).toBe('Theme flips after a units change')
   expect(url.searchParams.get('body')).toContain('Light mode turned dark.')
   expect(url.searchParams.get('body')).toContain('### Diagnostics')

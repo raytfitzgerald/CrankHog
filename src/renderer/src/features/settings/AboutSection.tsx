@@ -31,8 +31,8 @@ export function AboutSection() {
         </div>
       </Field>
       <Field label="Source">
-        <button type="button" className="pt-2 text-sm text-accent underline" onClick={() => void bridge().invoke('files.openUrl', { url: 'https://github.com/raytfitzgerald/FreeGaz' })}>
-          github.com/raytfitzgerald/FreeGaz
+        <button type="button" className="pt-2 text-sm text-accent underline" onClick={() => void bridge().invoke('files.openUrl', { url: 'https://github.com/raytfitzgerald/CrankHog' })}>
+          github.com/raytfitzgerald/CrankHog
         </button>
       </Field>
       <Field label="Found a bug?" hint="Opens a pre-filled GitHub issue, so it reaches the developer with the details that help.">
