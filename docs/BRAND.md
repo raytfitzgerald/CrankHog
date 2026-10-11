@@ -38,7 +38,7 @@ In the app, use the `Wordmark` and `TrackLines` components (`src/renderer/src/br
 **The icon** is the velodrome from above, on a Stayer Blue tile:
 - white boards, with the lanes in order from the inside out: côte d'azur, measurement, sprinters', stayers';
 - a darker blue infield;
-- **Sir Loin** on the top straight, going the way the racing goes.
+- **nobody on it.** Sir Loin rode the top straight until 0.6.1. An empty track reads at 16 px and he did not, and the icon is the brand rather than the mascot. He keeps the velodrome on Home, where there is room for him.
 
 `npm run icon` (`scripts/make-icon.mjs`) draws it, and writes the Mac icon, the
 iOS app icon and the phone web app's icons from the one drawing.
@@ -208,7 +208,9 @@ mean he had noticed. He has no FTP and has never been tested.
   out over the road ahead, and he rides into the ride-along scene whenever the
   race comes back within 70 m.
 - **The verge behind the ride-along,** on foot, getting overtaken (`HogVerge`).
-- **The app icon,** on the top straight.
+
+He is **not** on the app icon. He was until 0.6.1, on the top straight; at 16 px
+he turned to mush and the track reads better on its own.
 
 **The stunts** read the road and the rider, and one rule wins (`stuntWeights`):
 being a long way up the road beats a steep gradient, because him having a nap

@@ -33,8 +33,19 @@ export function configureUserData(): void {
     app.setPath('userData', join(app.getPath('appData'), 'CrankHog-dev'))
     return
   }
+  // Electron was given the profile's location with --user-data-dir, so this is
+  // not the standard one and the rename below is not ours to do.
+  if (app.commandLine.hasSwitch('user-data-dir')) return
   // A real install: carry a FreeGaz profile over before anything reads it.
-  const outcome = migrateFromFreeGaz({ userData: app.getPath('userData'), documents: app.getPath('documents') })
+  //
+  // Work the profile path out rather than asking for it. `app.getPath('userData')`
+  // CREATES the folder it names, and migrateDir reads an existing destination as
+  // "the rename already happened" — so the asking is what blocks the rename.
+  // 0.6.0 shipped exactly that: every upgrade quietly left its rides behind in
+  // Application Support/FreeGaz and opened on an empty one. `appData` is the OS
+  // folder, not ours, so naming it costs nothing.
+  const userData = join(app.getPath('appData'), app.getName())
+  const outcome = migrateFromFreeGaz({ userData, documents: app.getPath('documents') })
   for (const [what, result] of Object.entries(outcome)) {
     if (result.moved) console.log(`[user-data] moved ${what}: ${result.from} → ${result.to}`)
     else if (result.reason === 'failed') console.error(`[user-data] could not move ${what}: ${result.error}`)
