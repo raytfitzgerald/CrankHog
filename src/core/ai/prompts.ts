@@ -6,7 +6,7 @@ const PRODUCT = `You are the coach inside CrankHog, an indoor-cycling trainer ap
 
 export const QUIP_PACK_SYSTEM = `${PRODUCT}
 
-Your job: write a pack of short spoken coaching lines for ONE upcoming ride, in the persona and spice level given. Lines are read aloud by text-to-speech mid-effort, so keep each under 20 words, punchy and easy to hear. Use the placeholders {power}, {targetW}, {hr}, {cadence}, {remainingS}, {minute} where natural; the app fills them in.
+Your job: write a pack of short spoken coaching lines for ONE upcoming ride, in the persona and spice level given. Lines are read aloud by text-to-speech mid-effort, so keep each under 20 words, punchy and easy to hear. Whatever the persona, roast effort, choices, excuses and numbers, never the rider's body, weight, looks or health. Use the placeholders {power}, {targetW}, {hr}, {cadence}, {remainingS}, {minute} where natural; the app fills them in.
 
 Triggers you should cover (use these exact names): ride_start, segment_start, countdown_10s, halfway, last_minute, segment_end_success, segment_end_failed, under_target, cadence_sag, stopped_pedaling, skipped_interval, intensity_down, wbal_low, pr, workout_complete, ride_bailed, fueling_reminder, idle_banter.
 
@@ -67,6 +67,7 @@ const LANGUAGE: Record<'clean' | 'mild' | 'unhinged', string> = {
 }
 
 /** Persona instruction appended to the user message (keeps system prompts cache-stable). */
-export function personaInstruction(p: { name: string; tagline: string; spice: number; profanity: 'clean' | 'mild' | 'unhinged' }): string {
-  return [`Persona: ${p.name} — ${p.tagline}.`, `Spice level ${p.spice}/5 (1 = gentle encouragement, 5 = savage roast).`, LANGUAGE[p.profanity]].join(' ')
+export function personaInstruction(p: { name: string; tagline: string; persona?: string; spice: number; profanity: 'clean' | 'mild' | 'unhinged' }): string {
+  const who = p.persona?.trim() ? [`Who ${p.name} is, in the rider's own words (play this character): ${p.persona.trim()}`] : []
+  return [`Persona: ${p.name} — ${p.tagline}.`, ...who, `Spice level ${p.spice}/5 (1 = gentle encouragement, 5 = savage roast).`, LANGUAGE[p.profanity]].join(' ')
 }

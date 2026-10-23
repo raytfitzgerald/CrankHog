@@ -13,6 +13,28 @@ export {
 } from './ai-quips'
 export { SAFETY_FALLBACK_TEXT, gateLine, matchesAny, personaBannedPatterns, sanitizeFacts, textAllowed } from './content'
 export {
+  CUSTOM_COACH_PREFIX,
+  CustomCoachSchema,
+  MAX_COACH_NAME,
+  MAX_CUSTOM_COACHES,
+  MAX_PERSONA_CHARS,
+  MAX_PHRASES,
+  PHRASE_MOMENTS,
+  coachNameProblem,
+  customCoachLinesFromPack,
+  customCoachLinesPrompt,
+  customCoachMeta,
+  customCoachPack,
+  customTagline,
+  isCustomCoachId,
+  newCustomCoachId,
+  parseCustomCoaches,
+  phraseProblem,
+  type CustomCoach,
+  type CustomCoachPhrase,
+  type PhraseMoment,
+} from './custom-coach'
+export {
   DETECTOR_RULES,
   TriggerDetector,
   prLabel,

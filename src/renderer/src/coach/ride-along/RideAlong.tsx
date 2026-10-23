@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { ChevronDown, ChevronUp, Volume2, VolumeX } from 'lucide-react'
 import { MAX_GAP_M, RIDE_ALONG_START, coachPaceW, gapLabel, stepRideAlong } from '@core/coach'
-import { PRIORITY, packById, PROFESSIONAL } from '@core/persona'
+import { PRIORITY } from '@core/persona'
 import { HogHead } from '../../brand/hog/HogHead'
 import { HogVerge } from '../../brand/hog/HogVerge'
 import { advanceHogRace } from '../../brand/hog/useHogRace'
@@ -15,6 +15,7 @@ import { cn } from '../../ui/cn'
 import { useReducedMotion } from '../../ui/use-reduced-motion'
 import { useNow } from '../../ui/useNow'
 import { avatarColors } from '../avatar'
+import { useCoachPack } from '../custom'
 import { useCoachTalk } from '../talk'
 import { CoachToon } from '../toon/CoachToon'
 import { toonFor } from '../toon/heads'
@@ -57,8 +58,8 @@ export function RideAlong() {
   // mute works while a ride is on and not yet being saved
   const riding = useRide((s) => s.active && !s.saving && s.snapshot?.state !== 'finished')
   const { ftpW } = useFtp()
+  const meta = useCoachPack(personaId).meta
   if (mode === 'off') return null
-  const meta = (packById(personaId) ?? PROFESSIONAL).meta
   const setMode = (rideAlong: 'open' | 'minimized') => void patchSettings({ coach: { ...settingsStore.getState().coach, rideAlong } })
 
   const controls = (

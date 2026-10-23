@@ -2,12 +2,13 @@ import { useEffect, useRef, useState } from 'react'
 import { Link } from '@tanstack/react-router'
 import { ChevronDown, Send, Square, Trash2 } from 'lucide-react'
 import type { AiMessage } from '@core/ai/types'
-import { PROFESSIONAL, packById } from '@core/persona'
+import { PROFESSIONAL } from '@core/persona'
 import { coachVoiceNow, streamAi, trainingContext, type StreamHandle } from '../../ai/client'
 import { trimChat, type ChatMessage } from '../../ai/chat-history'
 import { handoffMessage, takeHandoff, type ChatHandoff } from '../../ai/handoff'
 import { PersonaAvatar } from '../../coach/PersonaAvatar'
 import { db } from '../../db/db'
+import { useCoachPack } from '../../coach/custom'
 import { useSettings } from '../../stores/settings'
 import { Button } from '../../ui/Button'
 import { Markdown } from '../../ui/Markdown'
@@ -47,7 +48,7 @@ export function CoachChatPage() {
   const stream = useRef<StreamHandle | null>(null)
   const input = useRef<HTMLInputElement>(null)
   const coach = useSettings((s) => s.coach)
-  const persona = (packById(coach.personaId) ?? PROFESSIONAL).meta
+  const persona = useCoachPack(coach.personaId).meta
 
   useEffect(() => {
     bottom.current?.scrollIntoView({ block: 'end' })

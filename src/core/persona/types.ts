@@ -182,6 +182,8 @@ export interface PersonaMeta {
   name: string
   tagline: string
   voiceHint?: VoiceHint
+  /** A custom coach's character in the rider's own words; the AI features play it. */
+  persona?: string
 }
 
 export interface PersonaPack {

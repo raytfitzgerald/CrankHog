@@ -1,6 +1,6 @@
 import { useId } from 'react'
-import { packById } from '@core/persona'
 import { avatarColors, monogram } from './avatar'
+import { coachPackOrNull, useCustomCoach } from './custom'
 import { hasFace } from './face-ids'
 import { CoachFace } from './faces'
 import { toonFor } from './toon/heads'
@@ -8,10 +8,21 @@ import { toonFor } from './toon/heads'
 // Round heads for the little SVG riders (ride-along bikes, the home
 // velodrome), all drawn round (0, 0) at radius 12.
 
-/** The coach: their photo caricature, their cartoon face, or a monogram. */
+/** The coach: their photo caricature, their cartoon face, a custom coach's photo, or a monogram. */
 export function CoachHead({ personaId }: { personaId: string }) {
   const clip = useId()
   const toon = toonFor(personaId)?.heads[0]
+  const photo = useCustomCoach(personaId)?.photo
+  if (photo) {
+    return (
+      <g>
+        <clipPath id={clip}>
+          <circle r={12} />
+        </clipPath>
+        <image href={photo} x={-12} y={-12} width={24} height={24} clipPath={`url(#${clip})`} preserveAspectRatio="xMidYMid slice" />
+      </g>
+    )
+  }
   if (toon) {
     const { background } = avatarColors(personaId)
     return (
@@ -29,7 +40,7 @@ export function CoachHead({ personaId }: { personaId: string }) {
   }
   if (hasFace(personaId)) return <CoachFace personaId={personaId} />
   const colors = avatarColors(personaId)
-  return <Initials text={monogram(packById(personaId)?.meta.name ?? '?')} {...colors} />
+  return <Initials text={monogram(coachPackOrNull(personaId)?.meta.name ?? '?')} {...colors} />
 }
 
 /** The rider: their photo if they added one, else their initials (or "You") under a helmet. */
