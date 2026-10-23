@@ -9,7 +9,7 @@
 // requested once at ride start and joins the canned lines when it arrives.
 import { RideCoach, RideProbe, workoutSegments, workoutStructure, type CoachSegment, type SegmentResolver } from '@core/coach'
 import type { TrainerController } from '@core/control/trainer-controller'
-import { PRIORITY, PROFESSIONAL, packById, type CoachLine, type PersonaPack } from '@core/persona'
+import { PRIORITY, type CoachLine, type PersonaPack } from '@core/persona'
 import type { RideSession, SessionEvent } from '@core/ride/session'
 import { WorkoutPlan } from '@core/ride/workout-plan'
 import type { SensorHub } from '@core/sensors/hub'
@@ -19,6 +19,7 @@ import { speak, stopSpeaking } from '../audio/tts'
 import { bridge } from '../platform/bridge'
 import { rideStore } from '../stores/ride'
 import { settingsStore } from '../stores/settings'
+import { coachPack, coachPackOrNull } from './custom'
 import { fetchQuipLines, type QuipSource } from './quips'
 import { SpeechQueue, type Voice } from './speech-queue'
 import { markLine, markMuted, markSpeaking, markWord } from './talk'
@@ -68,7 +69,7 @@ interface ActiveRide {
 }
 
 export function personaFor(prefs: Pick<CoachPrefs, 'personaId'>): PersonaPack {
-  return packById(prefs.personaId) ?? PROFESSIONAL
+  return coachPack(prefs.personaId)
 }
 
 function allSegments(resolve: SegmentResolver): CoachSegment[] {
@@ -264,7 +265,7 @@ export function createCoachRuntime(
     subscribe: (l) => settingsStore.subscribe(l),
   }
   const voice: Voice = {
-    speak: (u, onEnd) => speak(u.text, { prefs: settings.get().coach, hint: packById(u.personaId)?.meta.voiceHint, onEnd, onWord: markWord }),
+    speak: (u, onEnd) => speak(u.text, { prefs: settings.get().coach, hint: coachPackOrNull(u.personaId)?.meta.voiceHint, onEnd, onWord: markWord }),
     cancel: stopSpeaking,
   }
   // Lower Spotify / Music while the coach talks; restore after a short silence

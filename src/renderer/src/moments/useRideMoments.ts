@@ -2,7 +2,8 @@
 // effort so far, and a coach line picked at random from the whole ride.
 import { useEffect } from 'react'
 import { MomentPicker, HARD_WINDOW_S } from '@core/ride/moment-picker'
-import { PRIORITY, packById, PROFESSIONAL } from '@core/persona'
+import { PRIORITY } from '@core/persona'
+import { coachPack } from '../coach/custom'
 import { coachTalkStore } from '../coach/talk'
 import { liveStore } from '../stores/live'
 import { rideStore } from '../stores/ride'
@@ -58,7 +59,7 @@ export function useRideMoments(): void {
       const snap = rideStore.getState().snapshot
       if (!rideId || !snap || snap.state !== 'riding' || !rideAlongOpen() || !settingsStore.getState().coach.enabled) return
       if (!picker.onCoachLine(snap.movingS, Math.random())) return
-      const name = (packById(line.personaId) ?? PROFESSIONAL).meta.name
+      const name = coachPack(line.personaId).meta.name
       const t = setTimeout(() => {
         timers.delete(t)
         // only while that line is still the one in the bubble

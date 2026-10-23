@@ -1,4 +1,5 @@
 import { Link } from '@tanstack/react-router'
+import { chooseRide } from '../features/ride/setup'
 import { useRide } from '../stores/ride'
 import { cn } from '../ui/cn'
 import { formatDuration } from '../ui/format'
@@ -8,7 +9,8 @@ import { useReducedMotion } from '../ui/use-reduced-motion'
 // A Stayer Blue (by day) / Côte d'Azur (at night) tile with the velodrome
 // from above; while a ride records, a rider laps the track and the button
 // shows the moving time next to a pulsing dot, so it's also the way back to
-// the ride.
+// the ride. With no ride on it always opens the picker, not whichever ride
+// type was set up last.
 
 const OVAL = 'M16 4 H34 A12 12 0 0 1 34 28 H16 A12 12 0 0 1 16 4 Z'
 
@@ -34,6 +36,9 @@ export function RideButton() {
   return (
     <Link
       to="/ride"
+      onClick={() => {
+        if (!active) chooseRide(null)
+      }}
       aria-label="Ride"
       aria-describedby="ride-button-status"
       data-testid="ride-button"

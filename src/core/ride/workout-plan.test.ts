@@ -1,8 +1,8 @@
 import { describe, expect, it } from 'vitest'
-import { FTP_TEST_20MIN, rampTest } from '../workout/ftp-tests'
+import { EIGHT_MIN_TEST, FTP_TEST_20MIN, rampTest } from '../workout/ftp-tests'
 import type { PowerTarget, Workout } from '../workout/model'
 import type { PlanInput, PlanTick } from './plan'
-import { FLAT_ROAD, RESCUE_REST_S, WorkoutPlan, extendStep, insertRest } from './workout-plan'
+import { CLIMB, FLAT_ROAD, RESCUE_REST_S, WorkoutPlan, extendStep, insertRest } from './workout-plan'
 import { compileWorkout } from '../workout/compile'
 
 const ftp = (value: number): PowerTarget => ({ unit: 'ftp', value })
@@ -70,6 +70,45 @@ describe('WorkoutPlan', () => {
     expect(t.desired).toEqual({ mode: 'resistance', pct: 30 })
     expect(t.targetW).toBeNull()
     expect(t.segmentLabel).toBe('Free ride')
+  })
+
+  it('puts free rides off the flat and max efforts on a climb', () => {
+    const climb: Workout = { ...W, segments: [{ kind: 'freeride', durationS: 60, flatRoad: false }, { kind: 'maxeffort', durationS: 60 }] }
+    const plan = new WorkoutPlan(climb, { ftpW: FTP })
+    expect(at(plan, 10).desired).toEqual(CLIMB)
+    expect(at(plan, 70).desired).toEqual(CLIMB)
+  })
+
+  it('lets the rider change the road under an ERG-off step, and reports it on the tick', () => {
+    const plan = new WorkoutPlan(W, { ftpW: FTP })
+    expect(at(plan, 10)).toMatchObject({ manual: null, road: null })
+    expect(plan.command({ type: 'nudge', delta: 1 }, 10)).toBe(false) // ERG holds a target: ↑/↓ is intensity
+    expect(at(plan, 340)).toMatchObject({ manual: null, road: FLAT_ROAD })
+    expect(plan.command({ type: 'nudge', delta: 1.5 }, 340)).toBe(true)
+    expect(plan.command({ type: 'nudge', delta: 0.5 }, 340)).toBe(true)
+    const t = at(plan, 341)
+    expect(t.desired).toEqual({ mode: 'sim', gradePct: 2 })
+    expect(t.road).toEqual({ mode: 'sim', gradePct: 2 })
+    expect(at(plan, 370).desired?.mode).toBe('erg') // ERG takes over again at the next block
+    plan.command({ type: 'nudge', delta: 40 }, 340)
+    expect(at(plan, 342).desired).toEqual({ mode: 'sim', gradePct: 20 })
+  })
+
+  it('lets the rider change the road a workout finished on', () => {
+    const plan = new WorkoutPlan({ ...W, segments: [{ kind: 'steady', durationS: 30, power: ftp(0.6) }, { kind: 'freeride', durationS: 30 }] }, { ftpW: FTP })
+    expect(at(plan, 70)).toMatchObject({ finished: true, road: FLAT_ROAD })
+    expect(plan.command({ type: 'nudge', delta: 1 }, 70)).toBe(true)
+    expect(at(plan, 71).desired).toEqual({ mode: 'sim', gradePct: 1 })
+  })
+
+  it('switches to slope from an ERG-off step on the road the rider was on', () => {
+    const plan = new WorkoutPlan(FTP_TEST_20MIN, { ftpW: FTP })
+    run(plan, 0, 2401)
+    plan.command({ type: 'nudge', delta: 1 }, 2401)
+    expect(plan.command({ type: 'mode', mode: 'sim' }, 2401)).toBe(true)
+    const t = at(plan, 2402)
+    expect(t.manual).toEqual({ mode: 'sim', gradePct: 4 })
+    expect(t.desired).toEqual({ mode: 'sim', gradePct: 4 })
   })
 
   it('fires each text cue once as it is crossed, and never for skipped content', () => {
@@ -169,13 +208,23 @@ describe('WorkoutPlan', () => {
   })
 
   describe('FTP tests', () => {
+    it('keeps the rider’s road from the first 8-minute effort for the second', () => {
+      const plan = new WorkoutPlan(EIGHT_MIN_TEST, { ftpW: FTP })
+      const first = plan.timeline.steps.find((s) => s.ergOff)!
+      const second = plan.timeline.steps.findLast((s) => s.ergOff)!
+      expect(at(plan, first.startS + 5).desired).toEqual(CLIMB)
+      plan.command({ type: 'nudge', delta: -1 }, first.startS + 5)
+      expect(at(plan, first.startS + 6).desired).toEqual({ mode: 'sim', gradePct: 2 })
+      expect(at(plan, second.startS + 5).desired).toEqual({ mode: 'sim', gradePct: 2 })
+    })
+
     it('runs the 20-minute effort ERG-off with a pacing target and live projection', () => {
       const plan = new WorkoutPlan(FTP_TEST_20MIN, { ftpW: FTP })
       expect(plan.kind).toBe('ftp-test')
       const ticks = run(plan, 0, 2500, (m) => ({ power: m >= 2400 ? 270 : 150 }))
       const t = ticks.at(-1)!
       expect(t.segmentLabel).toBe('20-min test effort')
-      expect(t.desired).toEqual(FLAT_ROAD)
+      expect(t.desired).toEqual(CLIMB) // on a hill, so a strong rider doesn't spin out a flat road
       expect(t.targetW).toBe(263) // 250 / 0.95
       expect(t.effort).toEqual({ label: '20-min test effort', elapsedS: 100, remainingS: 1100, avgW: 270, targetW: 263, projectedFtpW: 257 })
       expect(ticks.find((x) => x.positionS === 2400.25)?.cue).toMatch(/Twenty minutes/)
@@ -221,6 +270,19 @@ describe('WorkoutPlan', () => {
       run(plan2, 0, 320, { power: 100, cadence: 90 })
       plan2.command({ type: 'skip' }, 320)
       expect(at(plan2, 321).segmentLabel).toBe('Cool-down')
+    })
+
+    it('gives a rider back from a pause time to spin up before the ramp can end', () => {
+      const ramp = rampTest({ startW: 100, stepW: 20, maxSteps: 10 })
+      const plan = new WorkoutPlan(ramp, { ftpW: FTP })
+      run(plan, 0, 420, { power: 140, cadence: 90 })
+      // paused for a minute: wall time runs on, moving time doesn't; then 12 rpm/s back up to 90
+      for (let k = 1; k <= 40; k++) {
+        const m = 420 + k / 4
+        plan.tick({ now: (m + 60) * 1000, movingS: m, dtS: 0.25, power: 140, cadence: Math.min(90, k * 3), hr: 140 })
+      }
+      expect(plan.rampEndedAtS).toBeNull()
+      expect(at(plan, 430.25, { cadence: 90 }).segmentLabel).not.toBe('Cool-down')
     })
   })
 

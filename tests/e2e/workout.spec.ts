@@ -131,4 +131,9 @@ test('the Ride tab starts on a ride-type picker; a ride for time sets up and pla
   await expect(launcher.getByRole('heading', { name: 'Ride for time' })).toBeVisible()
   await page.getByTestId('change-ride').click()
   await expect(launcher.getByRole('heading', { name: 'What are we riding?' })).toBeVisible()
+  // with nothing recording, the big Ride button always opens the picker
+  await page.getByTestId('ride-choice-time').click()
+  await expect(launcher.getByRole('heading', { name: 'Ride for time' })).toBeVisible()
+  await page.getByTestId('ride-button').click()
+  await expect(launcher.getByRole('heading', { name: 'What are we riding?' })).toBeVisible()
 })

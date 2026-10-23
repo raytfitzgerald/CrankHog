@@ -72,7 +72,7 @@ export interface IntervalsSegment extends SegmentBase {
 export interface FreeRideSegment extends SegmentBase {
   kind: 'freeride'
   durationS: number
-  /** Zwift FlatRoad: keep the trainer on a flat 0 % grade. Default true. */
+  /** Zwift FlatRoad: keep the trainer on a flat 0 % grade (default true). A workout has no course, so false means a climb. */
   flatRoad?: boolean
 }
 

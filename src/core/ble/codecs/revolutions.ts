@@ -4,6 +4,14 @@
 // distinct events. Both counters roll over; notifications repeat the same
 // event while the rider coasts; and a long silence can hide a whole
 // event-time rollover. The calculator handles all three.
+//
+// The rate is taken over a short window of events, not just the last one.
+// A rate is held until the next event arrives, so a single-interval rate is
+// held for the *following* interval: when event times are quantized (sensors
+// and trainers that stamp the notification instead of the revolution), a
+// short interval's high rate covers a long one and the time-weighted mean
+// reads high. 90 rpm stamped at 4 Hz read about 95; across a 2 s window it
+// reads 90.
 
 /** Event times are uint16 on every profile. */
 const EVENT_TIME_MODULUS = 0x10000
@@ -17,6 +25,8 @@ export interface RevolutionRateOptions {
   staleMs?: number
   /** Rates above this many rev/min are glitches and ignored. Default 250 (cranks); raise it for wheels. */
   maxRatePerMin?: number
+  /** The rate spans at least this much sensor time (once that much is known). Default 2. */
+  windowS?: number
 }
 
 export class RevolutionRateCalculator {
@@ -24,6 +34,7 @@ export class RevolutionRateCalculator {
   private readonly revModulus: number
   private readonly staleMs: number
   private readonly maxRate: number
+  private readonly windowTicks: number
   /**
    * Past this host-time gap the uint16 event time may have rolled over more
    * than once, so Δtime is ambiguous. It is 15/16 of one rollover period
@@ -32,6 +43,8 @@ export class RevolutionRateCalculator {
   private readonly maxGapMs: number
   /** The last new revolution event: the reference that deltas are taken from. */
   private ref: { revs: number; time: number } | null = null
+  /** Accepted events since the last restart or re-base, as running totals of revolutions and ticks. */
+  private chain: { revs: number; ticks: number }[] = []
   private refAtMs = 0
   private lastUpdateMs = 0
   private rate: number | null = null
@@ -41,6 +54,7 @@ export class RevolutionRateCalculator {
     this.revModulus = 2 ** opts.revBits
     this.staleMs = opts.staleMs ?? 2500
     this.maxRate = opts.maxRatePerMin ?? 250
+    this.windowTicks = (opts.windowS ?? 2) * this.hz
     this.maxGapMs = ((EVENT_TIME_MODULUS / this.hz) * 1000 * 15) / 16
   }
 
@@ -57,6 +71,9 @@ export class RevolutionRateCalculator {
    *   Re-basing means a counter that jumps (a sensor reset, a corrupted
    *   sample) costs one or two rejected samples instead of wedging the
    *   calculator.
+   * - The first revolution after a stop (the rate dropped to 0, or at least
+   *   `staleMs` of sensor time passed without one) reports its own interval,
+   *   and the window starts again from it.
    */
   update(revs: number, eventTime: number, nowMs: number): number | null {
     if (!Number.isFinite(revs) || !Number.isFinite(eventTime) || !Number.isFinite(nowMs)) {
@@ -78,19 +95,33 @@ export class RevolutionRateCalculator {
     this.ref = { revs, time: eventTime }
     this.refAtMs = nowMs
     const rpm = dTicks === 0 ? Infinity : (dRevs * 60 * this.hz) / dTicks
-    if (rpm > this.maxRate) return this.rate
-    this.rate = rpm
-    return rpm
+    // after a stop (reported as 0, or a sensor that just went quiet) the window starts again here
+    const stopped = this.rate === 0 || dTicks >= (this.staleMs / 1000) * this.hz
+    if (rpm > this.maxRate || stopped) {
+      this.chain = [{ revs: 0, ticks: 0 }]
+      if (rpm > this.maxRate) return this.rate
+      this.rate = rpm
+      return rpm
+    }
+    const last = this.chain.at(-1)!
+    const now = { revs: last.revs + dRevs, ticks: last.ticks + dTicks }
+    this.chain.push(now)
+    while (this.chain.length > 2 && now.ticks - this.chain[1]!.ticks >= this.windowTicks) this.chain.shift()
+    const first = this.chain[0]!
+    this.rate = ((now.revs - first.revs) * 60 * this.hz) / (now.ticks - first.ticks)
+    return this.rate
   }
 
   /** Forgets all history (e.g. after a reconnect); the next sample returns null. */
   reset(): void {
     this.ref = null
+    this.chain = []
     this.rate = null
   }
 
   private restart(revs: number, eventTime: number, nowMs: number): null {
     this.ref = { revs, time: eventTime }
+    this.chain = [{ revs: 0, ticks: 0 }]
     this.refAtMs = nowMs
     this.rate = null
     return null

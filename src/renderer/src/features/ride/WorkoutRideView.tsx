@@ -1,4 +1,5 @@
 import { useEffect, useMemo } from 'react'
+import type { ErgOffDesired } from '@core/ride/plan'
 import { ArrowDown, ArrowUp, CheckCircle2, ChevronsRight, Minus, Plus, RotateCcw, TimerReset, Trophy } from 'lucide-react'
 import { WorkoutChart } from '../../charts/WorkoutChart'
 import { getRuntime } from '../../runtime/composition'
@@ -20,13 +21,17 @@ import { RecordingBar } from './RecordingBar'
 import { RescueBanner } from './RescueBanner'
 
 type Mode = 'erg' | 'resistance' | 'sim'
+type Level = Exclude<Mode, 'erg'>
 
 const MODES = [
   { value: 'erg' as const, label: 'ERG', hint: 'The trainer holds each target for you' },
   { value: 'resistance' as const, label: 'Level', hint: 'Fixed resistance: you make the watts (↑/↓ to change)' },
   { value: 'sim' as const, label: 'Slope', hint: 'A virtual gradient: shift gears to hit the targets' },
 ]
-const NUDGE: Record<Exclude<Mode, 'erg'>, { small: number; unit: string }> = { resistance: { small: 5, unit: '%' }, sim: { small: 0.5, unit: '%' } }
+const NUDGE: Record<Level, { small: number; unit: string }> = { resistance: { small: 5, unit: '%' }, sim: { small: 0.5, unit: '%' } }
+
+/** The rider's level or slope, else the road under an ERG-off step; null while ERG holds a target. */
+const levelOf = (plan: { manual?: ErgOffDesired | null; road?: ErgOffDesired | null } | null): ErgOffDesired | null => plan?.manual ?? plan?.road ?? null
 
 const command = (cmd: Parameters<ReturnType<typeof getRuntime>['rides']['command']>[0]) => getRuntime().rides.command(cmd)
 
@@ -34,13 +39,18 @@ const command = (cmd: Parameters<ReturnType<typeof getRuntime>['rides']['command
 export function WorkoutRideView() {
   const workout = useRide((s) => s.workout)
   const name = useRide((s) => s.snapshot?.name ?? workout?.plan.name ?? '')
-  const manual = workout?.plan.manualMode ?? null
-  const mode: Mode = manual?.mode ?? 'erg'
-  useWorkoutHotkeys(mode)
+  // From the plan's tick, which the runner republishes right after a command, so the switch follows a click.
+  const mode: Mode = useRide((s) => s.plan?.manual?.mode ?? 'erg')
+  const level = useRide((s) => levelOf(s.plan)?.mode ?? null)
+  const value = useRide((s) => {
+    const l = levelOf(s.plan)
+    return l === null ? null : l.mode === 'resistance' ? l.pct : l.gradePct
+  })
+  useWorkoutHotkeys(mode, level)
 
   if (!workout) return null
   return (
-    <div className="mx-auto max-w-7xl space-y-4 px-4 md:px-8 pb-10 pt-6">
+    <div className="mx-auto max-w-7xl space-y-4 px-4 md:px-8 pb-10 pt-6 md:pt-14">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
           <h1 className="font-display text-2xl font-semibold">{name}</h1>
@@ -49,7 +59,7 @@ export function WorkoutRideView() {
         <div className="flex flex-wrap items-center gap-3">
           <NowPlaying />
           <Segmented ariaLabel="Trainer mode" value={mode} onChange={(m) => command({ type: 'mode', mode: m })} options={MODES} />
-          {manual ? <ManualLevel mode={mode as Exclude<Mode, 'erg'>} value={manual.mode === 'resistance' ? manual.pct : manual.gradePct} /> : <Intensity />}
+          {level && value !== null ? <ManualLevel mode={level} value={value} ergOff={mode === 'erg'} /> : <Intensity />}
         </div>
       </div>
 
@@ -105,14 +115,21 @@ function Intensity() {
   )
 }
 
-function ManualLevel({ mode, value }: { mode: Exclude<Mode, 'erg'>; value: number }) {
+/** Level or slope: the rider's own in place of ERG, or (`ergOff`) the road under a free ride or test effort. */
+function ManualLevel({ mode, value, ergOff }: { mode: Level; value: number; ergOff: boolean }) {
   const n = NUDGE[mode]
+  const what = mode === 'resistance' ? 'Resistance level' : 'Virtual gradient'
   return (
-    <div className="flex items-center gap-1 rounded-xl border border-line bg-panel px-1.5 py-1" title={mode === 'resistance' ? 'Resistance level (↑/↓)' : 'Virtual gradient (↑/↓)'}>
+    <div
+      className="flex items-center gap-1 rounded-xl border border-line bg-panel px-1.5 py-1"
+      title={ergOff ? `ERG is off for this block. ${what} (↑/↓, Shift for more)` : `${what} (↑/↓, Shift for more)`}
+      data-testid="trainer-level"
+    >
+      {ergOff && <span className="pl-1.5 text-xs text-ink-faint">{mode === 'sim' ? 'Slope' : 'Level'}</span>}
       <Button size="iconSm" variant="ghost" aria-label="Easier" onClick={() => command({ type: 'nudge', delta: -n.small })}>
         <Minus className="size-4" />
       </Button>
-      <span className="tabular w-16 text-center text-sm font-semibold">
+      <span className="tabular w-16 text-center text-sm font-semibold" data-testid="trainer-level-value">
         {mode === 'sim' ? value.toFixed(1) : value} {n.unit}
       </span>
       <Button size="iconSm" variant="ghost" aria-label="Harder" onClick={() => command({ type: 'nudge', delta: n.small })}>
@@ -271,7 +288,7 @@ function FinishedBanner() {
 }
 
 /** Workout keys: Tab skip, B back, E extend, ↑/↓ intensity (or level/slope), M cycles mode. */
-function useWorkoutHotkeys(mode: Mode) {
+function useWorkoutHotkeys(mode: Mode, level: Level | null) {
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       const t = e.target
@@ -282,8 +299,8 @@ function useWorkoutHotkeys(mode: Mode) {
       else if (e.key === 'e' || e.key === 'E') command({ type: 'extend', seconds: 30 })
       else if (e.key === 'ArrowUp' || e.key === 'ArrowDown') {
         const sign = e.key === 'ArrowUp' ? 1 : -1
-        if (mode === 'erg') command({ type: 'intensity', deltaPct: sign * (big ? 5 : 1) })
-        else command({ type: 'nudge', delta: sign * NUDGE[mode].small * (big ? 4 : 1) })
+        if (level) command({ type: 'nudge', delta: sign * NUDGE[level].small * (big ? 4 : 1) })
+        else command({ type: 'intensity', deltaPct: sign * (big ? 5 : 1) })
       } else if (e.key === 'm' || e.key === 'M') {
         const order: Mode[] = ['erg', 'resistance', 'sim']
         command({ type: 'mode', mode: order[(order.indexOf(mode) + 1) % order.length]! })
@@ -292,5 +309,5 @@ function useWorkoutHotkeys(mode: Mode) {
     }
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
-  }, [mode])
+  }, [mode, level])
 }

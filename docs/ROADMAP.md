@@ -47,7 +47,7 @@ The build ran in milestones. Each one had to pass `npm run check` and `npm run e
 ## Planned
 
 - Ride resume after a crash (continue the same ride instead of recovering it).
-- A custom persona builder (your own lines, voice and banned topics, exported as JSON).
+- More for custom coaches: a voice per coach, banned topics, and export as JSON. (0.6.2 has the coach itself: name, photo, description, own lines and AI-written lines.)
 - Garmin FIT workout export, so builder workouts can go onto a Garmin device.
 - The Kolie Moore FTP protocol.
 - AI ride titles for Strava (rename after upload).

@@ -3,11 +3,11 @@ import { useLiveQuery } from 'dexie-react-hooks'
 import { Link, useNavigate } from '@tanstack/react-router'
 import { MessageSquare, RefreshCw, Sparkles, Square } from 'lucide-react'
 import { fitnessOverview, type FitnessFacts } from '@core/metrics'
-import { PROFESSIONAL, packById } from '@core/persona'
 import { coachVoiceKey, coachVoiceNow, fitnessContext, fitnessFacts, streamAi, type StreamHandle } from '../../ai/client'
 import { handToCoach } from '../../ai/handoff'
 import { aiReady } from '../../coach/quips'
 import { db } from '../../db/db'
+import { useCoachPack } from '../../coach/custom'
 import { useSettings } from '../../stores/settings'
 import { Button } from '../../ui/Button'
 import { Card, CardBody, CardHeader } from '../../ui/Card'
@@ -36,7 +36,7 @@ export function FitnessOverviewCard({ rideCount }: { rideCount: number | undefin
   const facts = useLiveQuery(() => fitnessFacts(), [rideCount, ftp])
   const cached = useLiveQuery(() => db().kv.get(KV_KEY).then((r) => (r?.value as CachedOverview | undefined) ?? null), [])
   const coach = useSettings((s) => s.coach)
-  const persona = (packById(coach.personaId) ?? PROFESSIONAL).meta
+  const persona = useCoachPack(coach.personaId).meta
   const [ai, setAi] = useState(false)
   const [streamed, setStreamed] = useState<{ key: string; text: string } | null>(null)
   const [running, setRunning] = useState<StreamHandle | null>(null)

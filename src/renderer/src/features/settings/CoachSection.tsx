@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
-import { Check, Volume2 } from 'lucide-react'
-import { previewLine } from '@core/coach'
-import { PROFESSIONAL, packById, type CoachLine, type CoachTrigger } from '@core/persona'
+import { Check, Pencil, Plus, Volume2 } from 'lucide-react'
+import { MAX_CUSTOM_COACHES, customCoachMeta, isCustomCoachId, previewLine, type CustomCoach } from '@core/coach'
+import { PROFESSIONAL, type CoachLine, type CoachTrigger, type PersonaMeta } from '@core/persona'
 import type { CoachPrefs, FuelingPrefs } from '@shared/settings'
 import { listVoices, onVoicesChanged, resolveVoice, speak } from '../../audio/tts'
 import { PersonaAvatar } from '../../coach/PersonaAvatar'
@@ -14,6 +14,8 @@ import { Button } from '../../ui/Button'
 import { cn } from '../../ui/cn'
 import { Field, Section, Select, Slider, Switch } from '../../ui/form'
 import { availablePacks } from '../../coach/available'
+import { useCoachPack, useCustomCoaches, useLinesStatus } from '../../coach/custom'
+import { CustomCoachDialog } from './CustomCoachDialog'
 import { Segmented, type SegmentedOption } from '../../ui/Segmented'
 
 const SPICE: readonly { label: string; hint: string }[] = [
@@ -39,6 +41,44 @@ const RIDE_ALONG: SegmentedOption<CoachPrefs['rideAlong']>[] = [
   { value: 'minimized', label: 'Folded', hint: 'A one-line strip with the gap and the mute button.' },
   { value: 'off', label: 'Off', hint: 'Coach lines go back to the cue banner.' },
 ]
+
+function PersonaTile({ meta, selected, onPick, sub }: { meta: PersonaMeta; selected: boolean; onPick: () => void; sub?: string }) {
+  return (
+    <button
+      type="button"
+      aria-pressed={selected}
+      onClick={onPick}
+      data-testid={`persona-${meta.id}`}
+      className={cn(
+        'no-drag flex size-full min-w-0 items-start gap-3 rounded-xl border px-3 pb-3 pt-2.5 text-left transition-colors',
+        selected ? 'border-accent bg-accent/10' : 'border-line bg-panel-2 hover:border-line-strong',
+      )}
+    >
+      <PersonaAvatar persona={meta} className="mt-0.5" />
+      <div className="min-w-0 flex-1">
+        <div className="flex items-center gap-1.5 pr-6 text-sm font-semibold">
+          <span className="truncate">{meta.name}</span>
+          {selected && <Check className="size-3.5 shrink-0 text-accent" aria-label="Selected" />}
+        </div>
+        <div className="mt-0.5 text-xs leading-snug text-ink-dim">{sub ?? meta.tagline}</div>
+      </div>
+    </button>
+  )
+}
+
+/** A custom coach's tile: picks it, with a pencil to edit it. */
+function CustomTile({ coach, selected, onPick, onEdit }: { coach: CustomCoach; selected: boolean; onPick: () => void; onEdit: () => void }) {
+  const status = useLinesStatus(coach.id)
+  const meta = customCoachMeta(coach)
+  return (
+    <div className="relative min-w-0">
+      <PersonaTile meta={meta} selected={selected} onPick={onPick} sub={status === 'writing' ? 'Writing their lines…' : undefined} />
+      <Button size="iconSm" variant="ghost" className="absolute right-1 top-1" aria-label={`Edit ${coach.name}`} onClick={onEdit} data-testid={`persona-edit-${coach.id}`}>
+        <Pencil className="size-3.5" />
+      </Button>
+    </div>
+  )
+}
 
 const SPICE_OPTIONS: SegmentedOption<string>[] = SPICE.map((s, i) => ({ value: String(i + 1), label: `${i + 1} ${s.label}`, hint: s.hint }))
 
@@ -82,7 +122,10 @@ export function CoachSection() {
   // the caricature says the sample: which line, and whether the voice is still going
   const [talk, setTalk] = useState<{ key: string; speaking: boolean; words: number } | null>(null)
 
-  const persona = packById(c.personaId) ?? PROFESSIONAL
+  const persona = useCoachPack(c.personaId)
+  const customs = useCustomCoaches()
+  // null: closed; 'new', or the coach being edited
+  const [editing, setEditing] = useState<CustomCoach | 'new' | null>(null)
   const meta = persona.meta
   const personaVoice = resolveVoice(voices, null, meta.voiceHint)
   const shown = sample?.personaId === meta.id ? sample : null
@@ -113,32 +156,30 @@ export function CoachSection() {
         <Field label="Persona">
           {/* columns follow the space the field has, not the window */}
           <div className="grid grid-cols-[repeat(auto-fill,minmax(220px,1fr))] gap-2" role="group" aria-label="Persona">
-            {availablePacks().map((p) => {
-              const selected = p.meta.id === meta.id
-              return (
-                <button
-                  key={p.meta.id}
-                  type="button"
-                  aria-pressed={selected}
-                  onClick={() => set({ personaId: p.meta.id })}
-                  data-testid={`persona-${p.meta.id}`}
-                  className={cn(
-                    'no-drag flex min-w-0 items-start gap-3 rounded-xl border px-3 pb-3 pt-2.5 text-left transition-colors',
-                    selected ? 'border-accent bg-accent/10' : 'border-line bg-panel-2 hover:border-line-strong',
-                  )}
-                >
-                  <PersonaAvatar persona={p.meta} className="mt-0.5" />
-                  <div className="min-w-0 flex-1">
-                    <div className="flex items-center gap-1.5 text-sm font-semibold">
-                      {p.meta.name}
-                      {selected && <Check className="size-3.5 text-accent" aria-label="Selected" />}
-                    </div>
-                    <div className="mt-0.5 text-xs leading-snug text-ink-dim">{p.meta.tagline}</div>
-                  </div>
-                </button>
-              )
-            })}
+            {availablePacks().map((p) => (
+              <PersonaTile key={p.meta.id} meta={p.meta} selected={p.meta.id === meta.id} onPick={() => set({ personaId: p.meta.id })} />
+            ))}
+            {customs.map((cc) => (
+              <CustomTile key={cc.id} coach={cc} selected={cc.id === meta.id} onPick={() => set({ personaId: cc.id })} onEdit={() => setEditing(cc)} />
+            ))}
+            {customs.length < MAX_CUSTOM_COACHES && (
+              <button
+                type="button"
+                onClick={() => setEditing('new')}
+                data-testid="persona-add-custom"
+                className="no-drag flex min-w-0 items-start gap-3 rounded-xl border border-dashed border-line-strong px-3 pb-3 pt-2.5 text-left text-ink-dim transition-colors hover:border-accent hover:text-ink"
+              >
+                <span className="mt-0.5 grid size-10 shrink-0 place-items-center rounded-full bg-panel-2">
+                  <Plus className="size-5" aria-hidden />
+                </span>
+                <span className="min-w-0 flex-1">
+                  <span className="block text-sm font-semibold text-ink">Custom coach</span>
+                  <span className="mt-0.5 block text-xs leading-snug">Your own: a name, a photo and a personality.</span>
+                </span>
+              </button>
+            )}
           </div>
+          <CustomCoachDialog coach={editing === 'new' ? null : editing} ai={ai} open={editing !== null} onOpenChange={(o) => !o && setEditing(null)} />
         </Field>
         <Field label="Sample" hint="A line from a typical moment of a ride, at your spice level.">
           <div className="flex items-center gap-3">
@@ -171,7 +212,11 @@ export function CoachSection() {
               <figcaption className="mt-1 text-xs text-ink-faint">{MOMENT[shown.line.trigger] ?? shown.line.trigger}</figcaption>
             </figure>
           )}
-          {shown && !shown.line && <div className="mt-3 text-xs text-ink-faint">Nothing fits this spice level. Try another one.</div>}
+          {shown && !shown.line && (
+            <div className="mt-3 text-xs text-ink-faint">
+              {isCustomCoachId(meta.id) ? 'No lines that fit your settings yet. Give them some of their own, or let your AI write them.' : 'Nothing fits this spice level. Try another one.'}
+            </div>
+          )}
         </Field>
         <Field label="Spice" hint={persona === PROFESSIONAL ? 'Professional ignores spice: always straight cues.' : spice.hint}>
           <Segmented ariaLabel="Spice level" className="flex-wrap" value={String(c.spice)} options={SPICE_OPTIONS} onChange={(v) => set({ spice: Number(v) })} />

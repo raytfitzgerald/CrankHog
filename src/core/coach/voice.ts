@@ -60,7 +60,7 @@ export function coachVoice(pack: PersonaPack, opts: { spice: number; profanity: 
   const professional = pack === PROFESSIONAL
   const lines = [
     '[Coach settings]',
-    personaInstruction({ name: meta.name, tagline: meta.tagline, spice: professional ? 1 : clampSpice(opts.spice), profanity: professional ? 'clean' : level }),
+    personaInstruction({ name: meta.name, tagline: meta.tagline, persona: meta.persona, spice: professional ? 1 : clampSpice(opts.spice), profanity: professional ? 'clean' : level }),
   ]
   if (professional) lines.push('Plain, professional coaching: no jokes, no roasting.')
   const off = OFF_LIMITS[meta.id]

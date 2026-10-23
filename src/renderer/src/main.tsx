@@ -7,6 +7,7 @@ import { startTheme } from './app/theme'
 import { initRuntime, startAutoConnect } from './runtime/composition'
 import { startFanControl } from './runtime/fan'
 import { loadSettings } from './stores/settings'
+import { loadCustomCoaches } from './coach/custom'
 import { startUpdateStatus } from './stores/updates'
 import './brand/fonts'
 import { isNative } from './platform/native'
@@ -15,6 +16,7 @@ import './styles.css'
 const bridge = ensureBridge()
 const info = await bridge.invoke('app.info', {})
 await loadSettings()
+await loadCustomCoaches()
 startTheme()
 startUpdateStatus()
 const runtime = initRuntime(info)

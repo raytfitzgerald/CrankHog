@@ -1,6 +1,7 @@
 import { useRef, useState } from 'react'
 import { Download, RefreshCw, Upload } from 'lucide-react'
 import { createBackup, restoreBackup } from '../../db/backup'
+import { customCoachStore, mergeCustomCoachesAfterRestore } from '../../coach/custom'
 import { importFitFiles } from '../../db/fit-import'
 import { bridge } from '../../platform/bridge'
 import { Button } from '../../ui/Button'
@@ -30,7 +31,9 @@ export function DataSection() {
     setBusy(true)
     setMsg(null)
     try {
+      const before = customCoachStore.getState().coaches
       const r = await restoreBackup(new Uint8Array(await file.arrayBuffer()))
+      await mergeCustomCoachesAfterRestore(before)
       setMsg(`Restored ${r.rides} rides, ${r.workouts} workouts, ${r.routes} routes and ${r.ftpEntries} FTP entries.`)
     } catch (e) {
       setMsg(`Restore failed: ${e instanceof Error ? e.message : String(e)}`)

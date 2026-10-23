@@ -2,23 +2,32 @@
 import { coachVoice } from '@core/coach'
 import type { AiMessage } from '@core/ai/types'
 import type { FitnessFacts } from '@core/metrics'
-import { PROFESSIONAL, packById } from '@core/persona'
 import type { RideSummary } from '@core/ride/types'
 import { isoDay, pmcSeries, powerCurve, realRides, weeklyLoad } from '../db/fitness'
 import { currentFtp, ftpHistory } from '../db/athlete-repo'
 import { bridge } from '../platform/bridge'
+import { coachPack, customCoach } from '../coach/custom'
 import { settingsStore } from '../stores/settings'
 
 /** The [Coach settings] block for the rider's coach as set right now (persona, spice, language). */
 export function coachVoiceNow(): string {
   const c = settingsStore.getState().coach
-  return coachVoice(packById(c.personaId) ?? PROFESSIONAL, { spice: c.spice, profanity: c.profanity })
+  return coachVoice(coachPack(c.personaId), { spice: c.spice, profanity: c.profanity })
 }
 
 /** Settings that change what the coach would write, for telling when a cached text is stale. */
 export function coachVoiceKey(): string {
   const c = settingsStore.getState().coach
-  return `${c.personaId}/${c.spice}/${c.profanity}`
+  // a custom coach with a new name or description is a different coach (a new photo isn't)
+  const custom = customCoach(c.personaId)
+  return `${c.personaId}${custom ? `@${hash(`${custom.name}\n${custom.persona}`)}` : ''}/${c.spice}/${c.profanity}`
+}
+
+/** A short, stable fingerprint (FNV-1a), for cache keys. */
+function hash(text: string): string {
+  let h = 0x811c9dc5
+  for (let i = 0; i < text.length; i++) h = Math.imul(h ^ text.charCodeAt(i), 0x01000193)
+  return (h >>> 0).toString(36)
 }
 
 export interface StreamHandle {

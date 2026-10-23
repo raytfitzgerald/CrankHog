@@ -167,6 +167,55 @@ describe('RevolutionRateCalculator', () => {
     expect(calc.update(2, 683 + 3072, 3700)).toBe(20)
   })
 
+  it('reads the true cadence on average when event times are stamped at the notification', () => {
+    // A source that stamps each revolution at the next 250 ms notification: intervals alternate
+    // 500 and 750 ms at 90 rpm. Held forward one interval at a time, that read about 95 rpm.
+    for (const [rpm, notifyMs] of [
+      [90, 250],
+      [90, 500],
+      [100, 500],
+    ] as const) {
+      const calc = crank()
+      const periodMs = 60_000 / rpm
+      let revs = 0
+      let time = 0
+      let rate: number | null = null
+      let weighted = 0
+      let span = 0
+      for (let t = notifyMs; t <= 120_000; t += notifyMs) {
+        const k = Math.floor(t / periodMs)
+        if (k > revs) {
+          revs = k
+          time = Math.round((t / 1000) * 1024) % 0x10000
+        }
+        if (rate !== null && t > 10_000) {
+          weighted += rate * notifyMs
+          span += notifyMs
+        }
+        rate = calc.update(revs % 0x10000, time, t)
+      }
+      expect(weighted / span).toBeCloseTo(rpm, -0.3) // within ±1 rpm
+    }
+  })
+
+  it('reports the first revolution after a stop on its own, then the window starts again', () => {
+    const calc = crank()
+    feed(calc, stream({ rpm: 90, hz: 1024, revBits: 16, startRevs: 0, startTicks: 0, seconds: 10, notifyMs: 250 })) // rev 15 at tick 10240
+    expect(calc.update(15, 10_240, 13_000)).toBe(0) // 3 s with no revolution
+    expect(calc.update(16, 10_240 + 4 * 1024, 14_000)).toBe(15) // one revolution in 4 s
+    expect(calc.update(17, 10_240 + 4 * 1024 + 683, 14_667)).toBeCloseTo(90, 0) // not dragged down by the stop
+  })
+
+  it('starts the window again after a stop the sensor never reported', () => {
+    const calc = crank()
+    feed(calc, stream({ rpm: 90, hz: 1024, revBits: 16, startRevs: 0, startTicks: 0, seconds: 10, notifyMs: 250 })) // rev 15 at tick 10240
+    // silent for 10 s, then pedalling again at 90 rpm
+    const t0 = 10_240 + 10 * 1024
+    expect(calc.update(16, t0, 20_250)).toBeCloseTo(6, 0)
+    expect(calc.update(17, t0 + 683, 20_917)).toBeCloseTo(90, 0)
+    expect(calc.update(18, t0 + 1365, 21_583)).toBeCloseTo(90, 0)
+  })
+
   it('tracks a 300 rpm wheel at 2048 Hz across 32-bit counter and 32 s event-time rollovers', () => {
     const calc = new RevolutionRateCalculator({ timeResolutionHz: 2048, revBits: 32, maxRatePerMin: 2000 })
     const samples = stream({ rpm: 300, hz: 2048, revBits: 32, startRevs: 2 ** 32 - 20, startTicks: 65000, seconds: 70, notifyMs: 250 })

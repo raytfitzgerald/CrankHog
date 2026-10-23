@@ -54,7 +54,7 @@ export function IntegrationsSection() {
     setMsg('Finish authorizing in your browser…')
     const r = await bridge().invoke('strava.connect', {})
     setBusy(false)
-    setMsg(r.ok ? `Connected as ${r.athleteName ?? 'you'}.` : (r.error ?? 'Connection failed'))
+    setMsg(r.ok ? `Connected as ${r.athleteName ?? 'you'}. Rides now upload when you finish; switch Auto-upload off below if you’d rather not.` : (r.error ?? 'Connection failed'))
     await refresh()
   }
 

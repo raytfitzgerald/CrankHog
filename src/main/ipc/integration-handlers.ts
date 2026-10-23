@@ -8,7 +8,13 @@ import type { SecretStore } from '../secrets/secret-store'
 import { emit, handle } from './register'
 
 /** Strava / intervals.icu configuration and the upload outbox. */
-export function registerIntegrationHandlers(deps: { secrets: SecretStore; userData: string; exportDir: () => string }): UploadOutbox {
+export function registerIntegrationHandlers(deps: {
+  secrets: SecretStore
+  userData: string
+  exportDir: () => string
+  /** A new Strava connection: rides upload automatically from then on (the rider can turn it off). */
+  onStravaConnected?: () => void
+}): UploadOutbox {
   const strava = new StravaClient(deps.secrets)
   const intervals = new IntervalsClient(deps.secrets)
 
@@ -39,6 +45,7 @@ export function registerIntegrationHandlers(deps: { secrets: SecretStore; userDa
       const t = await strava.connect(async (url) => {
         await shell.openExternal(url)
       })
+      deps.onStravaConnected?.()
       return { ok: true, athleteName: t.athleteName }
     } catch (e) {
       return { ok: false, error: e instanceof Error ? e.message : String(e) }

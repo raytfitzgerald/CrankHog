@@ -65,7 +65,12 @@ void app.whenReady().then(() => {
     ? { isAvailable: () => true, encrypt: (s) => Buffer.from(s, 'utf8'), decrypt: (b) => b.toString('utf8') }
     : { isAvailable: () => safeStorage.isEncryptionAvailable(), encrypt: (s) => safeStorage.encryptString(s), decrypt: (b) => safeStorage.decryptString(b) }
   const secrets = SecretStore.inDir(app.getPath('userData'), cipher)
-  registerIntegrationHandlers({ secrets, userData: app.getPath('userData'), exportDir: () => settings.get().exportDir ?? defaultExportDir() })
+  registerIntegrationHandlers({
+    secrets,
+    userData: app.getPath('userData'),
+    exportDir: () => settings.get().exportDir ?? defaultExportDir(),
+    onStravaConnected: () => settings.patch({ autoUpload: { ...settings.get().autoUpload, strava: true } }),
+  })
   registerAiHandlers({ secrets })
   registerHudHandlers(() => mainWindow)
   const updates = loadUpdater()

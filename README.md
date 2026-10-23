@@ -34,7 +34,7 @@ It's a data-obsessed indoor cycling trainer for macOS, and [for your phone](#on-
 
 <p align="center"><img src="docs/screenshots/ride-along.png" alt="The ride-along: the Drill Sergeant on a little bike next to you, saying 'Halfway and on target! Outstanding! Don't let it go to your head!'" width="900"></p>
 
-**Ten coaches, five spice levels, three kinds of language.** From a calm Zen master to a drill sergeant, plus two famous podium voices doing their best impressions. Profanity goes from Clean to Mild to Unhinged. Unhinged means it.
+**Ten coaches, five spice levels, three kinds of language.** From a calm Zen master to a drill sergeant, plus two famous podium voices doing their best impressions. Or make your own: a name, a photo and a personality, and your AI writes their lines. Profanity goes from Clean to Mild to Unhinged. Unhinged means it.
 
 <p align="center"><img src="docs/screenshots/coach.png" alt="Coach settings: the personas, a sample line, spice from gentle to feral, and profanity from clean to unhinged" width="900"></p>
 
@@ -89,7 +89,7 @@ It's a data-obsessed indoor cycling trainer for macOS, and [for your phone](#on-
   - Text cues appear as the workout reaches them, and every interval becomes a lap.
 - **Interval rescue.** When a hard interval is failing, it offers 5 % easier or a 30-second breather instead of letting you bail.
 - **FTP tests.**
-  - **20-minute** (Allen & Coggan). During the effort ERG turns off: the trainer switches to a flat road and a pacing band and projected FTP guide you.
+  - **20-minute** (Allen & Coggan). During the effort ERG turns off: the trainer puts you on a 3 % climb (↑/↓ changes it) and a pacing band and projected FTP guide you.
   - **Guided 20-minute**, with the blowout in ERG.
   - **8-minute.**
   - **Ramp.** It ends itself when you can't turn the pedals any more.
@@ -134,6 +134,7 @@ It's a data-obsessed indoor cycling trainer for macOS, and [for your phone](#on-
   - Drill Sergeant, Roast Comic, Disappointed Dad, The Overlord, Hype Coach, Data Nerd, Zen and Professional;
   - **Bibi**, podium style ("I have drawn a red line at 280 watts");
   - **The Donald**, rally style ("It's going to be a big, beautiful interval", "I'm putting a tariff on coasting").
+- **Your own coach.** Give them a name, a photo, a description of who they are and, if you like, lines of your own for the moments you pick. With an AI provider on, the AI writes their ride lines from the description and plays them in the coach chat. The same guardrails apply.
 - **The ride-along.** Your coach bikes next to you on a little road on the ride screen, pacing at your target. Ease off and they ride away; push and you drop them. Their lines pop up in a speech bubble. Fold it to a strip, or turn it off.
 - **Caricatures for Bibi and The Donald.** A photo bobblehead on a little bike rides along and talks.
   - Bibi switches between three public photos, The Donald between four. The Donald's long red tie streams in the wind.

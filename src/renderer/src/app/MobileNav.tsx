@@ -6,6 +6,7 @@ import { DeviceStatusBar } from '../features/devices/DeviceStatusBar'
 import { openBugReport } from '../features/support/open'
 import { hasBikeFund } from '@core/support/bike-fund'
 import { BikeFundDialog } from '../features/support/BikeFund'
+import { chooseRide } from '../features/ride/setup'
 import { useRide } from '../stores/ride'
 import { Dialog } from '../ui/Dialog'
 import { cn } from '../ui/cn'
@@ -36,7 +37,14 @@ const tabActive = { className: 'text-ink [&>svg]:text-accent' }
 function MobileRideTab() {
   const active = useRide((s) => s.active)
   return (
-    <Link to="/ride" aria-label="Ride" className="-mt-5 flex flex-1 flex-col items-center gap-1 text-[11px] font-semibold text-ink">
+    <Link
+      to="/ride"
+      onClick={() => {
+        if (!active) chooseRide(null)
+      }}
+      aria-label="Ride"
+      className="-mt-5 flex flex-1 flex-col items-center gap-1 text-[11px] font-semibold text-ink"
+    >
       <span className="relative flex size-14 items-center justify-center rounded-full bg-accent font-display text-lg font-bold italic text-on-accent shadow-lg ring-4 ring-panel">
         Ride
         {active && <span className="absolute right-1 top-1 size-2.5 rounded-full bg-on-accent motion-safe:animate-pulse" aria-hidden />}

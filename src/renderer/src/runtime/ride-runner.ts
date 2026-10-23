@@ -95,6 +95,8 @@ export class RideRunner {
     const rideId = newRideId()
     const name = opts.plan?.name ?? opts.name ?? defaultName()
     const journey = await prepareRideJourney({ plan: opts.plan, athlete })
+    // every ride starts at the intensity it was written at: last ride's "5 % easier" isn't this one's
+    this.deps.controller.updateSettings({ intensityPct: 100 })
     const session = new RideSession(
       { clock: this.deps.clock, hub: this.deps.hub, controller: this.deps.controller, journal, setPaused: (p) => this.deps.engine.setPaused(p) },
       {
@@ -161,7 +163,7 @@ export class RideRunner {
     }
     if (cmd.type === 'rescue') rideStore.setState({ rescue: null })
     this.session?.command(cmd)
-    if (this.session) rideStore.setState({ snapshot: this.session.snapshot(), plan: this.session.options.plan ? this.session.planTick : null })
+    if (this.session) rideStore.setState({ snapshot: this.session.snapshot(), plan: this.session.options.plan || this.journey ? this.session.planTick : null })
   }
 
   /** Keeps the chart's actual-power trace aligned with the (possibly edited) workout timeline. */

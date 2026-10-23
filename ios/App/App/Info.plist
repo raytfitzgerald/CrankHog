@@ -31,7 +31,7 @@
 	<key>NSBluetoothAlwaysUsageDescription</key>
 	<string>CrankHog connects to your smart trainer, heart-rate strap and other cycling sensors over Bluetooth to set the resistance and record your ride.</string>
 	<key>NSCameraUsageDescription</key>
-	<string>CrankHog uses the camera only if you choose to take a profile photo for your rider.</string>
+	<string>CrankHog uses the camera only if you choose to take a photo for your rider or for a coach you make.</string>
 	<key>UIApplicationSceneManifest</key>
 	<dict>
 		<key>UIApplicationSupportsMultipleScenes</key>

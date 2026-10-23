@@ -5,12 +5,12 @@ import { previewLine } from '@core/coach'
 import { heroWords } from '@core/home/hero'
 import { rivalTaunt } from '@core/home/rival'
 import { HOG, TRACK_QUIPS, hogLine } from '@core/mascot/hog'
-import { PROFESSIONAL, packById } from '@core/persona'
 import type { RideSummary } from '@core/ride/types'
 import type { Workout } from '@core/workout/model'
 import { HogHead } from '../../brand/hog/HogHead'
 import { CoachHead, RiderHead } from '../../coach/heads'
 import { riderInitials, useRider } from '../../db/rider'
+import { useCoachPack } from '../../coach/custom'
 import { useSettings } from '../../stores/settings'
 import { Button } from '../../ui/Button'
 import { HOG_LANE, HOG_LAP_S, HOG_SCALE, weekRiders } from './track'
@@ -35,7 +35,7 @@ export function HomeHero({
   reason: string | null
 }) {
   const coach = useSettings((s) => s.coach)
-  const persona = packById(coach.personaId) ?? PROFESSIONAL
+  const persona = useCoachPack(coach.personaId)
   const riders = useMemo(() => weekRiders(rides, now), [rides, now])
   const rider = useRider()
   const words = heroWords({ now: new Date(now), ridesThisWeek: riders.length, ridesEver: rides.filter((r) => !r.simulated).length, tsb })
