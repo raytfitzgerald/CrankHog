@@ -212,6 +212,9 @@ export class RideSession {
       case 'lap':
         return this.lap()
       case 'intensity':
+        // ERG intensity means nothing while the rider is on a level or a road (the phone's ±1 % still sends it),
+        // and changing it then would only surprise them at the next ERG block
+        if (this.lastTick.manual || this.lastTick.road) return
         this.deps.controller.adjustIntensity(cmd.deltaPct)
         this.logEvent('note', { intensityPct: this.deps.controller.currentSettings.intensityPct })
         return
@@ -222,8 +225,13 @@ export class RideSession {
         }
         if (this.plan.command?.(cmd, this.movingPrecise(this.deps.clock.now()))) this.logEvent('note', { rescue: cmd.choice })
         return
-      default:
-        if (this.plan.command?.(cmd, this.movingPrecise(this.deps.clock.now()))) this.logEvent('note', { command: cmd.type })
+      default: {
+        const now = this.deps.clock.now()
+        if (!this.plan.command?.(cmd, this.movingPrecise(now))) return
+        this.logEvent('note', { command: cmd.type })
+        // A new mode or level reaches the trainer (and the screen) now, not on the next tick.
+        if ((this.state === 'riding' || this.state === 'paused') && (cmd.type === 'mode' || cmd.type === 'nudge')) this.applyPlan(now, 0)
+      }
     }
   }
 
@@ -412,7 +420,8 @@ export class RideSession {
       lap.hrSum += r.hr
       lap.hrN++
     }
-    if (r.cadence !== null) {
+    // zeros (coasting) are left out, as in the ride average and the saved laps
+    if (r.cadence !== null && r.cadence > 0) {
       lap.cadSum += r.cadence
       lap.cadN++
     }

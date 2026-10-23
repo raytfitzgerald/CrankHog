@@ -14,15 +14,14 @@ import { matchesEffortLabel } from '../workout/labels'
 import type { FtpTestSpec, PowerTarget, Workout } from '../workout/model'
 import { formatClock } from '../workout/numbers'
 import type { RideCommand } from '../../shared/live'
-import type { EffortProgress, PlanInput, PlanNext, PlanTick, RescueOffer, RidePlan } from './plan'
+import type { EffortProgress, ErgOffDesired, PlanInput, PlanNext, PlanTick, RescueOffer, RidePlan } from './plan'
 import type { RideKind } from './types'
 
-/** What the trainer does while ERG is off (free ride, max effort, FTP-test efforts). */
-export type ErgOffDesired = { mode: 'sim'; gradePct: number } | { mode: 'resistance'; pct: number }
+export type { ErgOffDesired }
 
 export interface WorkoutPlanOptions {
   ftpW: number
-  /** Default: a flat road (SIM 0 %), so the rider paces with the gears. */
+  /** Flat-road free rides. Default: a flat road (SIM 0 %), so the rider paces with the gears. */
   ergOff?: ErgOffDesired
   /** ERG targets go out this many seconds early to hide trainer lag. Default 1. */
   leadS?: number
@@ -31,6 +30,14 @@ export interface WorkoutPlanOptions {
 }
 
 export const FLAT_ROAD: ErgOffDesired = { mode: 'sim', gradePct: 0 }
+/**
+ * FTP-test efforts, max efforts and free rides off the flat: a steady drag,
+ * so a strong rider sits mid-cassette instead of spinning out a flat road.
+ */
+export const CLIMB_GRADE_PCT = 3
+export const CLIMB: ErgOffDesired = { mode: 'sim', gradePct: CLIMB_GRADE_PCT }
+const GRADE_MIN = -10
+const GRADE_MAX = 20
 
 // Interval rescue: a hard step (≥ 88 % FTP) that is 15 s in, with ≥ 20 s to go,
 // where the rider has been under 85 % of target (or below 50 rpm) for 10 s.
@@ -78,6 +85,8 @@ export class WorkoutPlan implements RidePlan {
   private override: ErgOffDesired | null = null
   private resistancePct = 25
   private gradePct = 0
+  /** The rider's ↑/↓ on ERG-off steps, by the road the step started on, kept for the rest of the ride. */
+  private readonly roads = new Map<string, ErgOffDesired>()
   private readonly cues: string[] = []
 
   private troubleSince: number | null = null
@@ -89,6 +98,9 @@ export class WorkoutPlan implements RidePlan {
   private rampBestW: number | null = null
   private rampTroubleSince: number | null = null
   private rampEndedAt: number | null = null
+  /** The fail rule only counts once the rider has been above it since the effort began, a pause or a jump. */
+  private rampArmed = false
+  private lastInput: { now: number; movingS: number } | null = null
 
   constructor(
     workout: Workout,
@@ -118,10 +130,6 @@ export class WorkoutPlan implements RidePlan {
   get rampEndedAtS(): number | null {
     return this.rampEndedAt
   }
-  /** The rider switched to level/slope for this workout (null = ERG, as written). */
-  get manualMode(): ErgOffDesired | null {
-    return this.override
-  }
 
   positionAt(movingS: number): number {
     let mark = this.marks[0]!
@@ -133,6 +141,10 @@ export class WorkoutPlan implements RidePlan {
   }
 
   tick(input: PlanInput): PlanTick {
+    // wall time moved on without moving time: the ride was paused, and the rider is spinning up again
+    const last = this.lastInput
+    if (last && (input.now - last.now) / 1000 > input.movingS - last.movingS + 1) this.rampArmed = false
+    this.lastInput = { now: input.now, movingS: input.movingS }
     let pos = this.pos(input.movingS)
     this.collectTexts(pos)
     let cur = pos < this.tl.durationS ? targetAt(this.tl, pos, this.opts.ftpW) : null
@@ -155,9 +167,9 @@ export class WorkoutPlan implements RidePlan {
       case 'extend':
         return this.extend(movingS, cmd.seconds)
       case 'mode':
-        return this.setMode(cmd.mode)
+        return this.setMode(cmd.mode, movingS)
       case 'nudge':
-        return this.nudge(cmd.delta)
+        return this.nudge(cmd.delta, movingS)
       case 'rescue':
         if (cmd.choice === 'rest') return this.rest(movingS)
         this.pendingRescue = null
@@ -194,6 +206,8 @@ export class WorkoutPlan implements RidePlan {
     const next = cur.next
     return {
       desired: this.desired(cur, pos),
+      manual: this.override,
+      road: cur.ergOff ? this.road(step) : null,
       targetW,
       segmentIndex: step.index,
       segmentLabel: this.label(step),
@@ -218,9 +232,12 @@ export class WorkoutPlan implements RidePlan {
     const last = this.tl.steps.at(-1)
     const easyW = 0.5 * this.opts.ftpW
     const lastW = last?.to ? resolvePower(last.to, this.opts.ftpW) : easyW
-    const desired: Desired = this.override ?? (last?.ergOff ? (this.opts.ergOff ?? FLAT_ROAD) : { mode: 'erg', watts: Math.min(lastW, easyW) })
+    const road = last?.ergOff ? this.road(last) : null
+    const desired: Desired = this.override ?? road ?? { mode: 'erg', watts: Math.min(lastW, easyW) }
     return {
       desired,
+      manual: this.override,
+      road,
       targetW: null,
       segmentIndex: this.tl.steps.length,
       segmentLabel: 'Workout complete',
@@ -239,7 +256,7 @@ export class WorkoutPlan implements RidePlan {
 
   private desired(cur: TargetAt, pos: number): Desired {
     if (this.override) return this.override
-    if (cur.ergOff) return this.opts.ergOff ?? FLAT_ROAD
+    if (cur.ergOff) return this.road(cur.step)
     const ahead = targetAt(this.tl, Math.min(pos + (this.opts.leadS ?? 1), this.tl.durationS - EPS), this.opts.ftpW)
     const watts = ahead && !ahead.ergOff && ahead.watts !== null ? ahead.watts : (cur.watts ?? 0)
     return { mode: 'erg', watts }
@@ -284,23 +301,47 @@ export class WorkoutPlan implements RidePlan {
     return true
   }
 
-  private setMode(mode: 'erg' | 'resistance' | 'sim' | 'hr'): boolean {
+  private setMode(mode: 'erg' | 'resistance' | 'sim' | 'hr', movingS: number): boolean {
     if (mode === 'hr') return false
+    // Leaving ERG during an ERG-off step keeps the road the rider is already on.
+    const step = this.stepOrLast(movingS)
+    const road = step?.ergOff && !this.override ? this.road(step) : null
+    if (road?.mode === 'sim') this.gradePct = road.gradePct
+    if (road?.mode === 'resistance') this.resistancePct = road.pct
     this.override = mode === 'erg' ? null : mode === 'resistance' ? { mode, pct: this.resistancePct } : { mode, gradePct: this.gradePct }
     return true
   }
 
-  private nudge(delta: number): boolean {
+  /** ↑/↓: the rider's level or slope, or, riding ERG as written, the road under an ERG-off step. */
+  private nudge(delta: number, movingS: number): boolean {
     const o = this.override
-    if (!o) return false
-    if (o.mode === 'resistance') {
-      this.resistancePct = clamp(Math.round(o.pct + delta), 0, 100)
-      this.override = { mode: 'resistance', pct: this.resistancePct }
-    } else {
-      this.gradePct = clamp(Math.round((o.gradePct + delta) * 10) / 10, -10, 20)
-      this.override = { mode: 'sim', gradePct: this.gradePct }
+    if (o) {
+      this.override = adjust(o, delta)
+      if (this.override.mode === 'resistance') this.resistancePct = this.override.pct
+      else this.gradePct = this.override.gradePct
+      return true
     }
+    const step = this.stepOrLast(movingS)
+    if (!step?.ergOff) return false
+    this.roads.set(roadKey(this.baseRoad(step)), adjust(this.road(step), delta))
     return true
+  }
+
+  /** The step at the rider's position; past the end, the last one (whose road the finished workout keeps). */
+  private stepOrLast(movingS: number): TimelineStep | null {
+    const pos = this.pos(movingS)
+    return stepAt(this.tl, pos) ?? (pos >= this.tl.durationS ? (this.tl.steps.at(-1) ?? null) : null)
+  }
+
+  /** The road an ERG-off step starts on: flat for flat-road free rides, a climb for efforts. */
+  private baseRoad(step: TimelineStep): ErgOffDesired {
+    const flat = step.kind === 'freeride' && step.flatRoad !== false && !this.workout.ftpTest
+    return flat || this.opts.ergOff?.mode === 'resistance' ? (this.opts.ergOff ?? FLAT_ROAD) : CLIMB
+  }
+
+  private road(step: TimelineStep): ErgOffDesired {
+    const base = this.baseRoad(step)
+    return this.roads.get(roadKey(base)) ?? base
   }
 
   // ---- position and cues --------------------------------------------------------
@@ -316,6 +357,7 @@ export class WorkoutPlan implements RidePlan {
     this.cues.length = 0
     this.troubleSince = null
     this.rampTroubleSince = null
+    this.rampArmed = false
     this.marks.push({ movingS, posS: to })
   }
 
@@ -392,6 +434,7 @@ export class WorkoutPlan implements RidePlan {
     const spec = this.workout.ftpTest
     if (spec?.protocol !== 'ramp' || !matchesEffortLabel(cur.step.label, spec.effortLabel) || cur.watts === null) {
       this.rampTroubleSince = null
+      this.rampArmed = false
       return false
     }
     const target = (cur.watts * (input.intensityPct ?? 100)) / 100
@@ -399,8 +442,10 @@ export class WorkoutPlan implements RidePlan {
     const failing = byCadence ? input.cadence! < RAMP_FAIL_CADENCE : input.power !== null && input.power < RAMP_FAIL_UNDER * target
     if (!failing) {
       this.rampTroubleSince = null
+      this.rampArmed = true
       return false
     }
+    if (!this.rampArmed) return false
     this.rampTroubleSince ??= input.movingS
     if (input.movingS - this.rampTroubleSince < (byCadence ? RAMP_FAIL_CADENCE_S : RAMP_FAIL_POWER_S)) return false
     this.rampEndedAt = cur.step.startS + cur.stepElapsedS
@@ -541,6 +586,16 @@ function interpolate(a: PowerTarget, b: PowerTarget, frac: number, ftpW: number)
   if (a.unit === b.unit) return { unit: a.unit, value: a.value + (b.value - a.value) * f }
   const aw = resolvePower(a, ftpW)
   return { unit: 'watts', value: aw + (resolvePower(b, ftpW) - aw) * f }
+}
+
+function adjust(road: ErgOffDesired, delta: number): ErgOffDesired {
+  return road.mode === 'resistance'
+    ? { mode: 'resistance', pct: clamp(Math.round(road.pct + delta), 0, 100) }
+    : { mode: 'sim', gradePct: clamp(Math.round((road.gradePct + delta) * 10) / 10, GRADE_MIN, GRADE_MAX) }
+}
+
+function roadKey(road: ErgOffDesired): string {
+  return road.mode === 'resistance' ? `level:${road.pct}` : `sim:${road.gradePct}`
 }
 
 function rescueKey(step: TimelineStep): string {

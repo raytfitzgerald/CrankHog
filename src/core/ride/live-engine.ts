@@ -4,7 +4,7 @@
 import type { LiveFrame } from '../../shared/live'
 import { PowerMatch, WINDOW_MS } from '../control/power-match'
 import { dfaAlpha1, rmssd } from '../metrics/hrv'
-import type { TrainerController } from '../control/trainer-controller'
+import { scaledErgTarget, type TrainerController } from '../control/trainer-controller'
 import type { SensorHub } from '../sensors/hub'
 import type { Clock, Cancel } from '../time/clock'
 
@@ -134,7 +134,8 @@ export class LiveEngine {
       ...this.heartRateVariability(now),
       trainer: {
         mode: desired.mode,
-        targetW: eff.kind === 'erg' ? eff.watts : null,
+        // the rider's target: PowerMatch and the soft-start ramp only change what the trainer is told
+        targetW: eff.kind === 'erg' ? (desired.mode === 'erg' ? scaledErgTarget(desired.watts, controller.currentSettings) : eff.watts) : null,
         gradePct: eff.kind === 'sim' ? eff.gradePct : null,
         rawGradePct: desired.mode === 'sim' ? desired.gradePct : null,
         resistancePct: eff.kind === 'resistance' ? eff.pct : null,

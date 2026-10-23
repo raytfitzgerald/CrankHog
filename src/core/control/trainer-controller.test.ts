@@ -186,6 +186,26 @@ describe('HR-ERG', () => {
     const down = (r.sent.at(-1)?.cmd as { watts: number }).watts
     expect(down).toBeLessThan(up)
   })
+
+  it('holds the target while the rider is stopped instead of winding it up', () => {
+    let r = run(withDesired({ mode: 'hr', targetBpm: 140 }), 10, () => ({ hr: 135, power: 150 }))
+    const before = r.state.hrErg.watts!
+    r = run(r.state, 60, () => ({ hr: 100, power: 0, cadence: 0 }), settings, r.end)
+    expect(r.state.hrErg.watts).toBe(before)
+  })
+})
+
+describe('releasing the trainer', () => {
+  it('lets go once when control ends, so the last ERG target is not left on', () => {
+    let r = run(withDesired({ mode: 'erg', watts: 300 }), 3, () => ({ power: 300 }))
+    r = run(setDesired(r.state, { mode: 'idle' }), 10, () => ({ power: 300 }), settings, r.end)
+    expect(r.sent.map((x) => x.cmd)).toEqual([{ kind: 'resistance', pct: settings.pausedResistancePct }])
+  })
+
+  it('sends nothing on idle when it never had control', () => {
+    expect(run(withDesired({ mode: 'idle' }), 5, () => ({})).sent).toEqual([])
+    expect(run(markUnknown(withDesired({ mode: 'idle' })), 5, () => ({})).sent).toEqual([])
+  })
 })
 
 describe('reconnect / rebind', () => {
@@ -255,9 +275,10 @@ describe('TrainerController (stateful wrapper)', () => {
     expect(events).toContain('control-lost')
   })
 
-  it('adjusts intensity within 50-150 %', () => {
+  it('adjusts intensity within 50-200 %', () => {
     const c = new TrainerController({ ...settings })
     expect(c.adjustIntensity(+5)).toBe(105)
     expect(c.adjustIntensity(-200)).toBe(50)
+    expect(c.adjustIntensity(+500)).toBe(200)
   })
 })

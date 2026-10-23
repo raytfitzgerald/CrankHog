@@ -6,7 +6,7 @@
 //   * intensity scaling and offsets (ERG)
 //   * soft start after start/resume/spiral recovery (ERG)
 //   * low-cadence "spiral of death" release (ERG)
-//   * ERG release while paused
+//   * ERG release while paused, and once more when control ends (idle)
 //   * slope scaling U/D/limit (SIM; feel only, speed uses true grade)
 //   * HR-ERG PI loop
 //   * deadbands and a minimum command interval (trainers choke on floods)
@@ -216,7 +216,11 @@ function computeEffective(s: ControllerState, input: ControllerInputs, ctx: Deci
 
   if (d.mode === 'idle') {
     s.guard = 'none'
-    return { kind: 'idle' }
+    // A trainer keeps the last command it was sent, so ending a workout on a
+    // 300 W interval would leave 300 W on. Let go once, to the paused load;
+    // after that nothing goes out, so another app can take over.
+    const a = s.applied
+    return a && a.kind !== 'idle' ? { kind: 'resistance', pct: settings.pausedResistancePct } : { kind: 'idle' }
   }
 
   if (d.mode === 'resistance') {
@@ -312,6 +316,13 @@ function hrErgStep(s: ControllerState, targetBpm: number, input: ControllerInput
     s.hrErg = { watts: start, integral: 0, lastUpdate: input.now }
     return start
   }
+  // Stopped, or released by the spiral guard: the heart rate falls whatever the
+  // target is, so hold it rather than wind it up to maxW for the restart.
+  const pedalling = !s.spiral.active && (input.power ?? 0) > 0 && (input.cadence === null || input.cadence >= settings.spiralGuard.lowCadenceRpm)
+  if (!pedalling) {
+    s.hrErg = { ...s.hrErg, lastUpdate: input.now }
+    return current
+  }
   if (input.hr !== null && s.hrErg.lastUpdate !== null && input.now - s.hrErg.lastUpdate >= k.updateS * 1000) {
     const err = targetBpm - input.hr
     const integral = clamp(s.hrErg.integral + err * k.updateS, -600, 600)
@@ -401,9 +412,9 @@ export class TrainerController {
     this.settings = { ...this.settings, ...patch }
   }
 
-  /** Nudge ERG intensity by ±pct (e.g. +1 / −5). Clamped 50–150 %. */
+  /** Nudge ERG intensity by ±pct (e.g. +1 / −5). Clamped 50–200 %. */
   adjustIntensity(deltaPct: number): number {
-    const next = clamp(this.settings.intensityPct + deltaPct, 50, 150)
+    const next = clamp(this.settings.intensityPct + deltaPct, 50, 200)
     this.settings = { ...this.settings, intensityPct: next }
     return next
   }

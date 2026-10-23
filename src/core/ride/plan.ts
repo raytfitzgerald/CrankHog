@@ -6,6 +6,9 @@ import type { RideCommand } from '../../shared/live'
 import type { JourneyTick, MilestoneEvent } from '../journeys/types'
 import type { RideKind } from './types'
 
+/** What the trainer does while ERG is off (free ride, max effort, FTP-test efforts), or in place of ERG. */
+export type ErgOffDesired = { mode: 'sim'; gradePct: number } | { mode: 'resistance'; pct: number }
+
 export interface PlanInput {
   now: number
   /** Moving time in seconds (fractional). */
@@ -84,6 +87,10 @@ export interface PlanTick {
   rescue?: RescueOffer | null
   /** FTP tests only, during the effort. */
   effort?: EffortProgress | null
+  /** Workouts: the rider's level or slope in place of ERG (null = ERG as written). */
+  manual?: ErgOffDesired | null
+  /** Workouts: the road under the current ERG-off step, with the rider's ↑/↓ applied (null while ERG holds a target). */
+  road?: ErgOffDesired | null
   /** Journeys: where on the virtual road the rider is. */
   journey?: JourneyTick | null
   /** Journeys: set on the one tick that passes a milestone. */

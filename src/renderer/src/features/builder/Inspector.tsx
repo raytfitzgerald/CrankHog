@@ -1,6 +1,7 @@
 import type { ReactNode } from 'react'
 import { AlertTriangle, CircleAlert, MousePointerClick } from 'lucide-react'
 import type { WorkoutIssue } from '@core/workout/validate'
+import { CLIMB_GRADE_PCT } from '@core/ride/workout-plan'
 import { withDuration, withPower, type DurationField, type PowerField } from '@core/workout/edit'
 import type { CadenceTarget, IntervalPart, IntervalsSegment, PowerTarget, RampSegment, Segment } from '@core/workout/model'
 import { Field, Input, Select, Switch } from '../../ui/form'
@@ -92,7 +93,8 @@ function SegmentInspector({ seg, index, count, ftpW, issues, onChange }: { seg: 
       {(seg.kind === 'freeride' || seg.kind === 'maxeffort') && (
         <>
           <p className="pb-1 text-xs text-ink-dim">
-            {seg.kind === 'freeride' ? 'ERG is off: the rider sets the effort. The stats count it as 60 % FTP.' : 'ERG is off for an all-out effort. The stats count it as 150 % FTP.'}
+            {seg.kind === 'freeride' ? 'ERG is off: the rider sets the effort. The stats count it as 60 % FTP.' : `ERG is off for an all-out effort, on a ${CLIMB_GRADE_PCT} % climb. The stats count it as 150 % FTP.`}{' '}
+            The rider can change the gradient with ↑/↓ while riding.
           </p>
           <DurationRow value={seg.durationS} onCommit={duration('duration')} />
         </>
@@ -116,7 +118,7 @@ function SegmentInspector({ seg, index, count, ftpW, issues, onChange }: { seg: 
       </Row>
       {seg.kind === 'freeride' && (
         <Row label="Flat road">
-          <Switch checked={seg.flatRoad ?? true} onChange={(v) => onChange({ ...seg, flatRoad: v })} label="Hold a flat 0 % grade" />
+          <Switch checked={seg.flatRoad ?? true} onChange={(v) => onChange({ ...seg, flatRoad: v })} label={(seg.flatRoad ?? true) ? 'A flat 0 % grade' : `A ${CLIMB_GRADE_PCT} % climb`} />
         </Row>
       )}
 
@@ -195,9 +197,14 @@ function IntervalsFields({
   )
 }
 
+// The inspector is a 320 px column: its rows keep the narrow label column at every breakpoint, where
+// Field's own md: columns would otherwise win and squeeze the control into a sliver.
 function Row({ label, hint, children }: { label: string; hint?: ReactNode; children: ReactNode }) {
   return (
-    <Field label={<span className="text-xs">{label}</span>} className="grid-cols-[76px_minmax(0,1fr)] items-center gap-3 py-1.5 [&>div:first-child]:pt-0">
+    <Field
+      label={<span className="text-xs">{label}</span>}
+      className="grid-cols-[76px_minmax(0,1fr)] items-center gap-3 py-1.5 md:grid-cols-[76px_minmax(0,1fr)] md:gap-3 [&>div:first-child]:pt-0"
+    >
       {children}
       {hint && <div className="mt-1 text-[11px] text-ink-faint">{hint}</div>}
     </Field>

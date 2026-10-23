@@ -5,7 +5,7 @@ import type { Desired } from '@core/control/trainer-controller'
 import type { TrainerMode } from '@shared/live'
 import { getRuntime } from '../../runtime/composition'
 import { useLive } from '../../stores/live'
-import { useRide } from '../../stores/ride'
+import { rideStore, useRide } from '../../stores/ride'
 import { Button } from '../../ui/Button'
 import { MetricTile } from '../../ui/MetricTile'
 import { PageHeader } from '../../ui/PageHeader'
@@ -79,6 +79,13 @@ export function FreeRidePage() {
   useEffect(() => {
     getRuntime().controller.setDesired(toDesired(mode, targets))
   }, [mode, targets, recording])
+  // Leaving the page with nothing recording lets the trainer go, rather than holding ERG (or chasing a heart rate) with no one watching.
+  useEffect(
+    () => () => {
+      if (!rideStore.getState().active) getRuntime().controller.setDesired({ mode: 'idle' })
+    },
+    [],
+  )
 
   const nudge = (delta: number) =>
     setState((s) => {
