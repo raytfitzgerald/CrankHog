@@ -94,7 +94,7 @@ Paste this into **App Review Information → Notes**:
   > • Free rides in ERG, level or slope mode
   > • Journeys: ride from the Eiffel Tower, up the Stelvio, or across America, a few kilometres at a time, with a live map
   > • Real routes from your own GPX files
-  > • Ten coaches, from calm to merciless, who ride beside you and say exactly what they think
+  > • Sixteen coaches, from calm to merciless, who ride beside you and say exactly what they think
   > • Every second recorded as a FIT file you own
   >
   > No account, no subscription, no ads. Your rides stay on your phone.

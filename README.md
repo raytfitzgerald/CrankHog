@@ -34,7 +34,7 @@ It's a data-obsessed indoor cycling trainer for macOS, and [for your phone](#on-
 
 <p align="center"><img src="docs/screenshots/ride-along.png" alt="The ride-along: the Drill Sergeant on a little bike next to you, saying 'Halfway and on target! Outstanding! Don't let it go to your head!'" width="900"></p>
 
-**Ten coaches, five spice levels, three kinds of language.** From a calm Zen master to a drill sergeant, plus two famous podium voices doing their best impressions. Or make your own: a name, a photo and a personality, and your AI writes their lines. Profanity goes from Clean to Mild to Unhinged. Unhinged means it.
+**Twenty-seven coaches, five spice levels, three kinds of language.** From a calm Zen master to a drill sergeant, a screaming thing that lives under your trainer, an angry goose and a LinkedIn guy, plus a run of famous voices doing their best impressions. They're mean on purpose. Or make your own: a name, a photo and a personality, and your AI writes their lines. Profanity goes from Clean to Mild to Unhinged. Unhinged means it.
 
 <p align="center"><img src="docs/screenshots/coach.png" alt="Coach settings: the personas, a sample line, spice from gentle to feral, and profanity from clean to unhinged" width="900"></p>
 
@@ -130,11 +130,12 @@ It's a data-obsessed indoor cycling trainer for macOS, and [for your phone](#on-
 - **Optional AI.** "45 minutes of over-unders, finish with sprints" becomes a workout you can edit.
 
 **Coaching**
-- **Ten personas**, each with a face (a cartoon, or for two of them, a photo caricature):
+- **Twenty-seven coaches**, each with a face (a cartoon, or a talking photo head):
   - Drill Sergeant, Roast Comic, Disappointed Dad, The Overlord, Hype Coach, Data Nerd, Zen and Professional;
-  - **Bibi**, podium style ("I have drawn a red line at 280 watts");
-  - **The Donald**, rally style ("It's going to be a big, beautiful interval", "I'm putting a tariff on coasting").
-- **Your own coach.** Give them a name, a photo, a description of who they are and, if you like, lines of your own for the moments you pick. With an AI provider on, the AI writes their ride lines from the description and plays them in the coach chat. The same guardrails apply.
+  - Fat Guy, Shrek, Slender Man, The Thing Under the Trainer (it screams), Mr. Bananas the chimp, Angry Goose, LinkedIn Guy, The Infomercial Host, The Nature Narrator and Gen Z Intern;
+  - parodies of famous voices: **Bibi**, **The Donald**, **Hillary**, **Barack**, **Charlie Kirk**, **Elizabeth Holmes**, **Iron Mike**, **Eric Andre** and **DJ Khaled**.
+  - The iPhone app leaves out the parodies of real people, Shrek and Slender Man.
+- **Your own coach.** Give them a name, a photo, a description of who they are and, if you like, lines of your own for the moments you pick. With an AI provider on, the AI writes their ride lines from the description and plays them in the coach chat. The same one rule applies.
 - **The ride-along.** Your coach bikes next to you on a little road on the ride screen, pacing at your target. Ease off and they ride away; push and you drop them. Their lines pop up in a speech bubble. Fold it to a strip, or turn it off.
 - **Caricatures for Bibi and The Donald.** A photo bobblehead on a little bike rides along and talks.
   - Bibi switches between three public photos, The Donald between four. The Donald's long red tie streams in the wind.
