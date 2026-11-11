@@ -1,11 +1,24 @@
-// Which coaches this build offers. The App Store build leaves out the two
-// parodies of real politicians (The Donald, Bibi) for now: App Review can
-// reject caricatures of real people. The Mac app and the web app keep them.
+// Which coaches this build offers. The App Store build leaves out every
+// parody of a real person, and the two characters other people own (Shrek,
+// Slender Man): App Review can reject caricatures of real people and
+// borrowed characters. The Mac app and the web app keep them all.
 import { PACKS, type PersonaPack } from '@core/persona'
 import { DEFAULT_SETTINGS, type AppSettings } from '@shared/settings'
 import { isNative } from '../platform/native'
 
-export const HIDDEN_ON_PHONE: ReadonlySet<string> = new Set(['trump', 'bibi'])
+export const HIDDEN_ON_PHONE: ReadonlySet<string> = new Set([
+  'trump',
+  'bibi',
+  'hillary',
+  'barack',
+  'charlie-kirk',
+  'elizabeth-holmes',
+  'iron-mike',
+  'eric-andre',
+  'dj-khaled',
+  'shrek',
+  'slender-man',
+])
 
 export const personaHidden = (id: string): boolean => isNative() && HIDDEN_ON_PHONE.has(id)
 

@@ -1,4 +1,4 @@
-// Offline coaching personas: the engine, the nine canned packs, the guardrails
+// Offline coaching personas: the engine, the built-in packs, the guardrail
 // (also meant for AI output) and validation for user-authored packs.
 export {
   CoachEngine,

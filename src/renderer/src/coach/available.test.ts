@@ -17,13 +17,13 @@ describe('coaches per build', () => {
     expect(withAvailableCoach(trumpRider).coach.personaId).toBe('trump')
   })
 
-  it('the iPhone app leaves out the two parodies of real politicians', () => {
+  it('the iPhone app leaves out the parodies of real people and the borrowed characters', () => {
     native.on = true
     const ids = availablePacks().map((p) => p.meta.id)
-    expect(ids).not.toContain('trump')
-    expect(ids).not.toContain('bibi')
+    for (const id of ['trump', 'bibi', 'hillary', 'barack', 'charlie-kirk', 'elizabeth-holmes', 'iron-mike', 'eric-andre', 'dj-khaled', 'shrek', 'slender-man']) expect(ids).not.toContain(id)
     expect(ids).toContain('drill-sergeant')
-    expect(ids).toHaveLength(8)
+    expect(ids).toContain('fat-guy')
+    expect(ids).toHaveLength(16)
   })
 
   it('a hidden coach (from an old setting or a restored Mac backup) becomes the default coach on the iPhone', () => {

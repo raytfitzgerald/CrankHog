@@ -12,8 +12,12 @@ export function monogram(name: string): string {
   return letters.join('').toUpperCase() || '?'
 }
 
+/** Coaches whose colour is part of the joke, or would otherwise match another coach's. */
+const HUES: Readonly<Record<string, number>> = { shrek: 96, 'gen-z-intern': 189 }
+
 /** A stable hue (0-359) for an id. */
 export function avatarHue(id: string): number {
+  if (HUES[id] !== undefined) return HUES[id]
   let h = 2166136261
   for (let i = 0; i < id.length; i++) h = Math.imul(h ^ id.charCodeAt(i), 16777619)
   return (h >>> 0) % 360

@@ -29,7 +29,7 @@ function reachable(line: CoachLineTemplate, trigger: CoachTrigger): boolean {
 }
 
 describe('built-in packs', () => {
-  it('ships the ten personas with unique ids', () => {
+  it('ships the personas with unique ids', () => {
     expect(PACKS.map((p) => p.meta.id)).toEqual([
       'drill-sergeant',
       'roast-comic',
@@ -39,8 +39,25 @@ describe('built-in packs', () => {
       'data-nerd',
       'zen',
       'professional',
+      'fat-guy',
+      'shrek',
+      'slender-man',
+      'the-thing',
+      'mr-bananas',
+      'angry-goose',
+      'linkedin-guy',
+      'infomercial-host',
+      'nature-narrator',
+      'gen-z-intern',
       'bibi',
       'trump',
+      'hillary',
+      'barack',
+      'charlie-kirk',
+      'elizabeth-holmes',
+      'iron-mike',
+      'eric-andre',
+      'dj-khaled',
     ])
     for (const p of PACKS) expect(packById(p.meta.id)).toBe(p)
     expect(packById('nope')).toBeUndefined()
@@ -138,6 +155,20 @@ describe('reachability through the engine', () => {
           if (!profanity) expect(detectProfanity(line?.text ?? '')).toBeNull()
         }
       }
+    }
+  })
+})
+
+describe('journey milestones', () => {
+  // The generic "you reached {place}" lines carry two criteria; a pack's border
+  // and summit lines must carry more, or the engine never picks them.
+  it.each(PACKS.map((p) => [p.meta.id, p] as const))('%s says its own border and summit lines there', (_id, pack) => {
+    for (const kind of ['border', 'summit'] as const) {
+      const own = pack.lines.filter((l) => l.criteria?.some((c) => c.key === 'milestoneKind' && c.op === '==' && c.value === kind))
+      if (own.length === 0) continue
+      const ctx = variants('journey_milestone').find((c) => c.data.milestoneKind === kind)!
+      const line = new CoachEngine({ persona: pack, spice: 5, profanity: true, rng: mulberry32(3) }).consider(ctx)
+      expect(own.map((l) => l.id), `${kind}: ${line?.text}`).toContain(line?.lineId)
     }
   })
 })

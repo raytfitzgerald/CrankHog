@@ -82,6 +82,96 @@ const FACES: Record<(typeof FACE_IDS)[number], Draw> = {
       <path d="M-9.4 3.2 L-8 3.2 M8 3.2 L9.4 3.2" {...ink(c)} opacity={0.6} />
     </>
   ),
+  // round cheeks, two chins, a sweat drop and a grin that says he's still not getting up
+  'fat-guy': (c) => (
+    <>
+      <circle cx={-4} cy={-2} r={1.1} fill={c} />
+      <circle cx={4} cy={-2} r={1.1} fill={c} />
+      <path d="M-9.2 0.8 Q-7.6 3.2 -6 0.8 M6 0.8 Q7.6 3.2 9.2 0.8" {...ink(c)} opacity={0.7} />
+      <path d="M-4.2 2.8 Q0 7.6 4.2 2.8 Z" fill={c} />
+      <path d="M-6.4 8.6 Q0 12 6.4 8.6 M-4 10.6 Q0 12.6 4 10.6" {...ink(c)} />
+      <path d="M8.8 -8.4 Q10.6 -5.8 8.8 -4.6 Q7 -5.8 8.8 -8.4 Z" fill={c} opacity={0.8} />
+    </>
+  ),
+  // the swamp: trumpet ears, one heavy brow and a snaggle tooth
+  shrek: (c, bg) => (
+    <>
+      <path d="M-7.4 -8.8 L-10.6 -11.8 M7.4 -8.8 L10.6 -11.8" {...ink(c)} strokeWidth={2.6} />
+      <circle cx={-11.4} cy={-12.6} r={1.9} fill={c} />
+      <circle cx={11.4} cy={-12.6} r={1.9} fill={c} />
+      <circle cx={-11.6} cy={-12.8} r={0.8} fill={bg} />
+      <circle cx={11.6} cy={-12.8} r={0.8} fill={bg} />
+      <path d="M-7.6 -3.2 Q-4.6 -5.2 -1.4 -2.8 M1.4 -2.8 Q4.6 -5.2 7.6 -3.2" {...ink(c)} strokeWidth={2} />
+      <circle cx={-4.2} cy={-0.6} r={1.1} fill={c} />
+      <circle cx={4.2} cy={-0.6} r={1.1} fill={c} />
+      <path d="M-5 6.4 Q0 3.6 5 6.4 L5 7.4 Q0 5 -5 7.4 Z" fill={c} />
+      <path d="M-2.2 5.2 L-1.5 6.9 L-0.8 5.1 Z" fill={bg} />
+    </>
+  ),
+  // no face at all, and a tie
+  'slender-man': (c) => (
+    <>
+      <path d="M-4.4 10.4 L0 12.8 L4.4 10.4" {...ink(c)} />
+      <path d="M0 12.8 L-1 15 L0 16 L1 15 Z" fill={c} />
+    </>
+  ),
+  // mismatched eyes, a tuft of spikes and a mouth that never stops screaming
+  'the-thing': (c, bg) => (
+    <>
+      <path d="M-7 -9.6 L-5.6 -14.2 L-3.4 -10.4 L-1 -15 L1.2 -10.4 L3.6 -14.4 L5.6 -10 Z" fill={c} />
+      <circle cx={-4.4} cy={-2.6} r={2.7} {...ink(c)} />
+      <circle cx={-4.4} cy={-2.2} r={1.1} fill={c} />
+      <circle cx={4.6} cy={-3.2} r={1.7} {...ink(c)} />
+      <circle cx={4.9} cy={-3} r={0.7} fill={c} />
+      <path d="M-6.2 2 Q0 13 6.2 2 Z" fill={c} />
+      <path d="M-5.2 2.4 L-4.2 4.4 L-3.2 2.6 L-2.1 4.7 L-1 2.8 L0 4.9 L1 2.8 L2.1 4.7 L3.2 2.6 L4.2 4.4 L5.2 2.4 Z" fill={bg} />
+    </>
+  ),
+  // the side parting, the networking smile and an open collar
+  'linkedin-guy': (c) => (
+    <>
+      <path d="M-10.6 -3.8 Q-9.6 -12.6 1 -12 Q9.8 -11.2 10.6 -3.8 Q5 -9.8 -1.4 -8.2 Q-7 -7.6 -10.6 -3.8 Z" fill={c} />
+      <path d="M-6.6 -3.4 Q-4.4 -4.8 -2.2 -3.4 M2.2 -3.4 Q4.4 -4.8 6.6 -3.4" {...ink(c)} />
+      <circle cx={-4.4} cy={-0.6} r={1.1} fill={c} />
+      <circle cx={4.4} cy={-0.6} r={1.1} fill={c} />
+      <path d="M-4.6 3.4 Q0 8.2 4.6 3.4 Z" fill={c} />
+      <path d="M-5.8 10 L-2 12.6 L0 10.8 L2 12.6 L5.8 10" {...ink(c)} />
+    </>
+  ),
+  // headset mic, eyebrows to the ceiling, the biggest grin money can buy
+  'infomercial-host': (c) => (
+    <>
+      <path d="M-11.2 -1.6 Q-12.4 -13.6 0 -13.8 Q12.4 -13.6 11.2 -1.6" {...ink(c)} />
+      <rect x={-13} y={-3.6} width={2.6} height={4.6} rx={1} fill={c} />
+      <path d="M-11.4 1 Q-10 6.4 -5.2 6.6" {...ink(c)} />
+      <circle cx={-4.6} cy={6.6} r={1.2} fill={c} />
+      <path d="M-6.8 -5 Q-4.4 -7 -2 -5 M2 -5 Q4.4 -7 6.8 -5" {...ink(c)} />
+      <circle cx={-4.2} cy={-1.4} r={1.4} fill={c} />
+      <circle cx={4.2} cy={-1.4} r={1.4} fill={c} />
+      <path d="M-3.6 2.4 Q1.2 10.4 6 2.4 Z" fill={c} />
+    </>
+  ),
+  // safari hat, half-closed eyes, speaking very, very quietly
+  'nature-narrator': (c, bg) => (
+    <>
+      <ellipse cx={0} cy={-8} rx={13.4} ry={2.4} fill={c} />
+      <path d="M-7 -8.6 Q-6.6 -14.8 0 -15 Q6.6 -14.8 7 -8.6 Z" fill={c} />
+      <path d="M-7 -9.8 L7 -9.8" {...ink(bg)} strokeWidth={1.1} />
+      <path d="M-6.4 -0.2 Q-4.4 -1.8 -2.4 -0.2 M2.4 -0.2 Q4.4 -1.8 6.4 -0.2" {...ink(c)} strokeWidth={1.6} />
+      <circle cx={0} cy={5.6} r={1.2} {...ink(c)} />
+    </>
+  ),
+  // bucket hat, eyes at half-mast, deeply unimpressed
+  'gen-z-intern': (c) => (
+    <>
+      <path d="M-10.8 -6 Q-9.6 -14.4 0 -14.4 Q9.6 -14.4 10.8 -6 Z" fill={c} />
+      <path d="M-13.6 -5.8 L13.6 -5.8" {...ink(c)} strokeWidth={2} />
+      <path d="M-6.6 -0.8 L-2.2 -0.8 M2.2 -0.8 L6.6 -0.8" {...ink(c)} strokeWidth={1.8} />
+      <circle cx={-4.4} cy={0.4} r={0.9} fill={c} />
+      <circle cx={4.4} cy={0.4} r={0.9} fill={c} />
+      <path d="M-2.6 5.8 Q0.6 6.8 3.8 4.6" {...ink(c)} />
+    </>
+  ),
   // tidy hair, level gaze, a straight line of a mouth
   professional: (c) => (
     <>
