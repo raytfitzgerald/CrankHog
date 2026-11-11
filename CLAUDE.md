@@ -23,9 +23,8 @@ A macOS Electron + React/TypeScript indoor-cycling trainer (ERG/SIM control, wor
 - Each ride snapshots FTP, weight and zones. Simulated or time-warped rides are flagged, and excluded from Strava, PMC and FTP auto-save.
 - FTMS first; the Wahoo proprietary protocol is only a fallback. Never drive two control protocols at once. Keep one GATT operation in flight per device.
 - AI never runs inside the ride tick. It gets only locally recorded data, never data pulled from Strava.
-- Personas: body, weight and health are never joke material. The parodies target public rhetoric only, and each has its own banned-topic list with a test.
-  - "Bibi": no religion, ethnicity, land claims, war, hostages or trial allegations.
-  - "The Donald": no religion, race, immigration or borders, war or violence, elections or parties, courts or cases, women, age, health, looks, or other real people.
+- Personas: CrankHog is an adult app and the coaches may be as mean as they like, about anything (Ray's decision, November 2026). The one guardrail is self-harm (`src/core/persona/guardrails.ts`): no line, canned, user-made or AI-written, tells the rider to hurt or kill themselves, at any language setting. The distress switch still drops the act when the rider's heart rate looks wrong.
+  - Coaches that parody real people are hidden in the iPhone build (`src/renderer/src/coach/available.ts`), for App Review.
   - New photo heads: Ray approves the exact files first. Credits go in `src/renderer/src/coach/toon/heads/ATTRIBUTION.md`.
 
 ## Brand

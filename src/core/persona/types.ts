@@ -125,8 +125,8 @@ export type RideKind = 'free' | 'workout' | 'route' | 'ftp-test'
 
 /**
  * The rider's language setting. Clean: no swearing. Mild: damn, hell, bloody
- * and friends, with every topic rule still on. Unhinged: no language limits,
- * and the coach reaches for its sweariest lines first.
+ * and friends. Unhinged: no language limits, and the coach reaches for its
+ * sweariest lines first. Self-harm is out at every setting.
  */
 export const PROFANITY_LEVELS = ['clean', 'mild', 'unhinged'] as const
 export type Profanity = (typeof PROFANITY_LEVELS)[number]

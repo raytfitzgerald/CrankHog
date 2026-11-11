@@ -145,7 +145,7 @@ It's a data-obsessed indoor cycling trainer for macOS, and [for your phone](#on-
 - **Mute** from the ride screen, or press `C`. Safety prompts still come through.
 - **Voice.** Lines are spoken with a macOS voice, and the music is lowered while the coach talks.
 - **Coach chat.** With an AI provider on, ask your coach about your training and they answer in character, at your spice and profanity levels.
-- **Guardrails.** Your body, weight and health are never joke material. If your heart rate looks wrong, or you stop suddenly in a hard effort, every persona turns supportive.
+- **One rule.** No coach ever tells you to hurt yourself. Everything else is fair game, so pick the spice and the language with care. If your heart rate looks wrong, or you stop suddenly in a hard effort, every coach turns supportive.
 
 **Your history**
 - **A list or a calendar.** Every ride newest first, or a month at a time: each day's rides, days shaded by training load, and weekly hours and TSS.

@@ -21,7 +21,7 @@ beforeEach(() => {
 afterEach(cleanup)
 
 describe('CoachSection', () => {
-  it('makes a custom coach from the + tile, picks it, and refuses a line about bodies', async () => {
+  it('makes a custom coach from the + tile, picks it, and refuses a line telling the rider to hurt themselves', async () => {
     customCoachStore.setState({ coaches: [], lines: {} })
     await db().delete()
     await db().open()
@@ -34,8 +34,8 @@ describe('CoachSection', () => {
     fireEvent.change(screen.getByTestId('custom-coach-persona'), { target: { value: 'A retired domestique. Dry and blunt.' } })
     fireEvent.click(screen.getByTestId('custom-coach-add-line'))
     const line = within(screen.getByTestId('custom-coach-line')).getByLabelText('Line')
-    fireEvent.change(line, { target: { value: 'Move it, you fat lump' } })
-    expect(screen.getByTestId('custom-coach-line').textContent).toMatch(/bodies and weight/)
+    fireEvent.change(line, { target: { value: 'Move it or go die in a ditch' } })
+    expect(screen.getByTestId('custom-coach-line').textContent).toMatch(/hurt or kill themselves/)
     expect((save as HTMLButtonElement).disabled).toBe(true)
     fireEvent.change(line, { target: { value: 'Right then. Legs on.' } })
     expect((save as HTMLButtonElement).disabled).toBe(false)

@@ -27,13 +27,13 @@ const SPICE: readonly { label: string; hint: string }[] = [
 ]
 const PROFANITY: SegmentedOption<CoachPrefs['profanity']>[] = [
   { value: 'clean', label: 'Clean', hint: 'No swearing at all.' },
-  { value: 'mild', label: 'Mild', hint: 'Damn, hell and bloody. Every topic rule stays on.' },
+  { value: 'mild', label: 'Mild', hint: 'Damn, hell and bloody.' },
   { value: 'unhinged', label: 'Unhinged', hint: 'Maximum profanity, no language limits. The coach reaches for its sweariest lines first.' },
 ]
 const PROFANITY_HINT: Record<CoachPrefs['profanity'], string> = {
   clean: 'Every line stays clean.',
-  mild: 'Light swearing only (damn, hell, bloody). Every topic rule stays on.',
-  unhinged: 'Maximum profanity. The canned lines drop every word and topic filter; the AI still never jokes about your body, weight or health.',
+  mild: 'Light swearing only (damn, hell, bloody).',
+  unhinged: 'Maximum profanity, no word filter at all.',
 }
 
 const RIDE_ALONG: SegmentedOption<CoachPrefs['rideAlong']>[] = [
@@ -149,7 +149,7 @@ export function CoachSection() {
 
   return (
     <>
-      <Section title="Coach" description="Who talks to you during rides, and how hard they roast you. The canned lines work offline and never joke about body, weight or health. Signs of distress switch any canned persona to calm, plain support.">
+      <Section title="Coach" description="Who talks to you during rides, and how hard they roast you. The canned lines work offline. Nothing is off limits except telling you to hurt yourself, and signs of distress switch any coach to calm, plain support.">
         <Field label="Coach on">
           <Switch checked={c.enabled} onChange={(v) => set({ enabled: v })} label={c.enabled ? 'Talking' : 'Silent'} />
         </Field>

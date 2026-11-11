@@ -165,7 +165,7 @@ function Editor({ coach, ai, close }: { coach: CustomCoach | null; ai: boolean; 
             : isNative()
               ? 'In the Mac app with an AI provider set up, the AI writes their ride lines from this and chats as them.'
               : 'Set up an AI provider (Settings → AI) and the AI writes their ride lines from this and chats as them.'}{' '}
-          They still never joke about your body, weight or health.
+          The one thing no coach does is tell you to hurt yourself.
         </span>
       </label>
 
