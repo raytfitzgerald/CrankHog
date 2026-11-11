@@ -354,7 +354,7 @@ b.add(
 b.add('journey_milestone', [
   [1, 'The top of {place}. Very high. One of the highest. Tremendous view.'],
   [3, 'Top of {place}. A very steep climb, maybe the steepest. We crushed it. Believe me.'],
-], [eq('milestoneKind', 'summit')])
+], [...NOT_END, eq('milestoneKind', 'summit')])
 b.add('journey_milestone', [
   [1, "Halfway. {kmDone} km. We're doing numbers nobody thought possible."],
   [3, 'Halfway through {journeyName}. The second half is going to be even better. The best half.'],

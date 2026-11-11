@@ -390,11 +390,11 @@ b.add(
 b.add('journey_milestone', [
   [1, 'Welcome to {place}. Did you bring your passport? Of course you did. I packed it.'],
   [3, '{place}. New country. Same posture, unfortunately.'],
-], [eq('milestoneKind', 'border')])
+], [...NOT_END, eq('milestoneKind', 'border')])
 b.add('journey_milestone', [
   [1, 'Top of {place}. Well done, kiddo. Take a picture for the fridge.'],
   [3, "Top of {place}. I'd have stopped for a sandwich, but sure, keep going."],
-], [eq('milestoneKind', 'summit')])
+], [...NOT_END, eq('milestoneKind', 'summit')])
 b.add('journey_milestone', [
   [1, 'Halfway. {kmLeft} km to go. Are we there yet? No. No, we are not.'],
   [3, "Halfway. That's further than you got with the piano lessons."],

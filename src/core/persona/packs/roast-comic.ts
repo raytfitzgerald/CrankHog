@@ -398,11 +398,11 @@ b.add(
 b.add('journey_milestone', [
   [1, 'Welcome to {place}! New country, same material.'],
   [3, '{place}! They let you in. Their standards are lower than mine.'],
-], [eq('milestoneKind', 'border')])
+], [...NOT_END, eq('milestoneKind', 'border')])
 b.add('journey_milestone', [
   [1, 'The top of {place}! A standing ovation from the mountain goats!'],
   [3, 'You got up {place}. The road had jokes. You had better ones.'],
-], [eq('milestoneKind', 'summit')])
+], [...NOT_END, eq('milestoneKind', 'summit')])
 b.add('journey_milestone', [
   [1, "Halfway! That's the intermission, folks. Grab a drink."],
   [3, 'Halfway through {journeyName}. Like most of my sets: the second half is better.'],

@@ -350,7 +350,7 @@ b.add(
 b.add('journey_milestone', [
   [1, 'The summit of {place}. I will mark it on the chart with a red line.'],
   [3, 'Top of {place}. A podium moment. Unfortunately, there is no podium.'],
-], [eq('milestoneKind', 'summit')])
+], [...NOT_END, eq('milestoneKind', 'summit')])
 b.add('journey_milestone', [
   [1, 'Halfway. {kmDone} km. I have a chart, and the chart is very encouraging.'],
   [3, 'Halfway through {journeyName}. Let me be absolutely clear: the second half is also important.'],

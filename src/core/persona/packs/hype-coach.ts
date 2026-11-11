@@ -395,11 +395,11 @@ b.add(
 b.add('journey_milestone', [
   [1, 'NEW COUNTRY! Welcome to {place}! Look at you go!'],
   [3, '{place}! Another one on the map! You are a whole travel show!'],
-], [eq('milestoneKind', 'border')])
+], [...NOT_END, eq('milestoneKind', 'border')])
 b.add('journey_milestone', [
   [1, 'TOP OF {place}! You climbed the whole thing!'],
   [3, 'Summit! {place}! That climb never stood a chance!'],
-], [eq('milestoneKind', 'summit')])
+], [...NOT_END, eq('milestoneKind', 'summit')])
 b.add('journey_milestone', [
   [1, 'HALFWAY! {kmDone} km! The second half is yours!'],
   [3, 'Halfway through {journeyName}! It only gets better from here!'],

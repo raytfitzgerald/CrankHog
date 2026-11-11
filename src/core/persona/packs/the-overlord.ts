@@ -394,11 +394,11 @@ b.add(
 b.add('journey_milestone', [
   [1, 'Welcome to {place}. The Ministry of Watts has issued you a visa. It expires if you stop.'],
   [3, '{place}, minion. Their roads are flatter than ours. The Overlord disapproves.'],
-], [eq('milestoneKind', 'border')])
+], [...NOT_END, eq('milestoneKind', 'border')])
 b.add('journey_milestone', [
   [1, 'The summit of {place}. The Overlord grants you the view. Enjoy it for four seconds.'],
   [3, '{place} conquered on behalf of the Ministry of Watts. Descend.'],
-], [eq('milestoneKind', 'summit')])
+], [...NOT_END, eq('milestoneKind', 'summit')])
 b.add('journey_milestone', [
   [1, 'Halfway, minion. The Five-Year Plan is ahead of schedule.'],
   [3, 'Halfway. The Ministry of Statistics reports {kmLeft} km of glorious suffering remain.'],

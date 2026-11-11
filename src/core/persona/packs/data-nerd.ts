@@ -397,11 +397,11 @@ b.add(
 b.add('journey_milestone', [
   [1, 'Border crossed: {place}. New region, same physics.'],
   [3, '{place}. Fun fact: the rolling resistance does not care which country it is in.'],
-], [eq('milestoneKind', 'border')])
+], [...NOT_END, eq('milestoneKind', 'border')])
 b.add('journey_milestone', [
   [1, 'Summit: {place}. Highest point of the segment. Gradient now negative. Lovely.'],
   [3, 'Top of {place}. Your W/kg on that climb deserves its own spreadsheet.'],
-], [eq('milestoneKind', 'summit')])
+], [...NOT_END, eq('milestoneKind', 'summit')])
 b.add('journey_milestone', [
   [1, 'Halfway. Exactly 50 percent of {journeyName}. Give or take a rounding error.'],
   [3, 'Halfway: {kmDone} km. The progress bar is now more full than empty. Statistically significant.'],

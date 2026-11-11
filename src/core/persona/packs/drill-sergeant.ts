@@ -402,11 +402,11 @@ b.add(
 b.add('journey_milestone', [
   [1, 'Welcome to {place}, recruit! New ground, same orders: pedal!'],
   [3, '{place}! Different map, same drill. Move it!'],
-], [eq('milestoneKind', 'border')])
+], [...NOT_END, eq('milestoneKind', 'border')])
 b.add('journey_milestone', [
   [1, 'Top of {place}! Outstanding, recruit! Now get down the other side!'],
   [3, 'You conquered {place}. Do not let it go to your head. Descend!'],
-], [eq('milestoneKind', 'summit')])
+], [...NOT_END, eq('milestoneKind', 'summit')])
 b.add('journey_milestone', [
   [1, 'Halfway, recruit! {kmDone} km done, {kmLeft} to go. Keep marching!'],
   [3, 'Halfway! The easy half is over. I am lying. Both halves are hard.'],

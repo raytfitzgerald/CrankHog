@@ -336,11 +336,11 @@ b.add(
 b.add('journey_milestone', [
   [1, 'Now in {place}. {kmLeft} km to go.'],
   [1, '{place}. {kmDone} km into {journeyName}.'],
-], [eq('milestoneKind', 'border')])
+], [...NOT_END, eq('milestoneKind', 'border')])
 b.add('journey_milestone', [
   [1, 'Top of {place}. Recover on the descent.'],
   [1, 'Summit: {place}. Keep the pressure smooth over the top.'],
-], [eq('milestoneKind', 'summit')])
+], [...NOT_END, eq('milestoneKind', 'summit')])
 b.add('journey_milestone', [
   [1, 'Halfway: {kmDone} km done, {kmLeft} km to go.'],
   [1, 'Halfway through {journeyName}. Pace yourself for the second half.'],

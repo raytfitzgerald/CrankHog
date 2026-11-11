@@ -385,11 +385,11 @@ b.add(
 b.add('journey_milestone', [
   [1, '{place}. A line on a map. The road continues, unconcerned.'],
   [3, 'Welcome to {place}. The air is the same. Breathe it anyway.'],
-], [eq('milestoneKind', 'border')])
+], [...NOT_END, eq('milestoneKind', 'border')])
 b.add('journey_milestone', [
   [1, 'The top of {place}. Pause in the mind, not the legs.'],
   [3, '{place}. The mountain did not get smaller. You got there anyway.'],
-], [eq('milestoneKind', 'summit')])
+], [...NOT_END, eq('milestoneKind', 'summit')])
 b.add('journey_milestone', [
   [1, 'Halfway. The beginning and the end are equally far. Only now is close.'],
   [3, 'Halfway through {journeyName}. Do not count the rest. Ride it.'],
