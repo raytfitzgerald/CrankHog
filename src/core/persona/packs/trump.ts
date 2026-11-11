@@ -7,39 +7,8 @@
 // weave (windmills, sharks, golf), tariffs on coasting, the Sharpie, "concepts
 // of a plan", "a big, beautiful interval" and "Thank you for your attention to
 // this matter!". Every line is about the ride.
-//
-// Hard limits, enforced by TRUMP_BANNED_PATTERNS in trump.test.ts: no
-// religion, race, ethnicity, nationality, immigration or borders, no war,
-// weapons or violence, no elections, parties or the office itself, no courts,
-// cases or investigations, no sexual-misconduct material, no age, health or
-// looks, and no real people (family, rivals, anyone) other than the persona.
 import type { PersonaPack } from '../types'
 import { HARD, LAST_REP, PackBuilder, eq, gt, gte, kind, lt, lte, ne, rideKind, when } from './dsl'
-
-/**
- * Topics The Donald must never touch, on top of the global guardrails.
- * Deliberately broad: a line only has to be about pedaling.
- */
-export const TRUMP_BANNED_PATTERNS: readonly RegExp[] = [
-  // religion
-  /\b(?:gods?|jesus|christ\w*|church\w*|bibles?|biblical|pray\w*|bless\w*|holy|sacred|heaven\w*|devil\w*|satan\w*|sins?|sinners?|faith\w*|evangelic\w*|pastors?|priests?|popes?|miracle\w*|salvation|chosen)\b/i,
-  // race, ethnicity, nationality, immigration and borders
-  /\b(?:america\w*|usa|united states|mexic\w*|canad\w*|chin(?:a|ese)|russia\w*|ukrain\w*|europe\w*|greenland\w*|panama\w*|venezuel\w*|iran\w*|israel\w*|gaza\w*|korea\w*|japan\w*|india\w*|africa\w*|asia\w*|foreign\w*|immigra\w*|migrants?|aliens?|illegals?|borders?|walls?|deport\w*|asylum|refugees?|citizen\w*|visas?|race|racial|racis\w*|ethnic\w*|countr(?:y|ies)|nations?|national\w*|patriot\w*|homeland\w*|flags?|anthem|gulf\w*|canal|51st)\b/i,
-  // war, weapons, violence and security
-  /\b(?:wars?|warfare|military|army|armies|navy|troops?|soldiers?|generals?|pentagon|air force|missiles?|bombs?|bombing|nukes?|nuclear|weapons?|guns?|shoot\w*|shot|bullets?|fire|fires|firing|gunfire|attack\w*|strikes?|airstrikes?|invad\w*|invasion|enem(?:y|ies)|kill\w*|dead|deaths?|die|died|dying|blood\w*|fight\w*|combat\w*|battle\w*|destroy\w*|obliterat\w*|annihilat\w*|terror\w*|assassin\w*|security|secret service|defen[cs]\w*|peace|ceasefire|hostages?|dictator\w*|strongm[ae]n|butler|ears?|choke\w*)\b/i,
-  // elections, parties, protest and the office itself
-  /\b(?:elect\w*|vot(?:e|es|ed|er|ers|ing)|ballots?|rigg\w*|stolen|steal\w*|recounts?|campaign\w*|rally|rallies|maga|presiden\w*|potus|white house|oval office|west wing|capitol|congress\w*|senat\w*|democrat\w*|republican\w*|gop|liberal\w*|conservativ\w*|left-wing|right-wing|socialis\w*|communis\w*|fascis\w*|politic\w*|government\w*|administration|cabinet|executive orders?|polic(?:y|ies)|laws?|legislat\w*|swamp|deep state|establishment|woke|dei|january 6|jan\.? 6|insurrection\w*|riot\w*|mobs?|coup|protest\w*|four more years)\b/i,
-  // courts, cases and investigations
-  /\b(?:trials?|courts?|courtroom|judges?|jury|juries|judicial\w*|justice|doj|fbi|indict\w*|charges|charged|felon\w*|convict\w*|verdicts?|guilty|innocen\w*|acquit\w*|lawsuits?|sue|sued|suing|lawyers?|attorneys?|prosecut\w*|special counsel|subpoena\w*|testif\w*|testimony|witness\w*|witch hunts?|hoax\w*|mugshots?|jail\w*|prison\w*|crimes?|criminal\w*|illegal|fraud\w*|brib\w*|corrupt\w*|crooked|scandal\w*|hush money|classified|raids?|raided|mar-a-lago|pardon\w*|immunity|impeach\w*|investigat\w*|police|arrest\w*|lock (?:her|him|them) up|bankrupt\w*|casinos?|tax returns?|taxes|crypto\w*|meme coins?)\b/i,
-  // sexual-misconduct material, and women as a topic at all
-  /\b(?:grab\w*|tapes?|access hollywood|affairs?|mistress\w*|porn\w*|stormy|epstein\w*|playboy|models?|pageants?|miss universe|sex\w*|women|woman|girls?|wives|wife|husbands?|beauty queens?|locker room)\b/i,
-  // age, health, cognition and looks ("the golden age" is the requested riff, not an age joke)
-  /\b(?:(?<!golden )age|aged|ageing|aging|old|older|oldest|elderly|seniors?|senil\w*|dementia|alzheimer\w*|cognit\w*|mental\w*|health\w*|doctors?|hospital\w*|walter reed|physicals?|bruis\w*|hands?|fingers?|hair\w*|comb-?over|toupee|wig|tan|tann\w*|orange|spray\w*|makeup|bronzer|weight|fat|obes\w*|heavy|diets?|burgers?|fast food|mcdonald\w*|kfc|big macs?|cankles?|swollen|veins?|stamina|crazy|insane|nuts|dumb|stupid|idiots?|morons?)\b/i,
-  // the press as an institution ("fake news" about the rider's excuses is the requested riff)
-  /\b(?:media|the press|reporters?|journalists?|networks?|cnn|msnbc|fox news|new york times|failing|enemy of the people)\b/i,
-  // real people other than the persona itself: family, rivals, allies, anyone
-  /\b(?:trump\w*|donald|melania|ivanka|barron|tiffany|eric|jared|kushner|lara|don jr|vance|musk|elon|biden|joe|kamala|harris|obama|hillary|clinton\w*|pelosi|nancy|desantis|haley|christie|pence|mcconnell|schumer|aoc|bernie|sanders|putin|xi|kim|zelensk\w*|netanyahu|bibi|modi|macron|trudeau|carney|starmer|rogan|hannity|tucker|carlson|kennedy|rfk|hegseth|rubio|bondi|jeb|marco|ted|cruz|rosie|oprah|lincoln|washington|reagan|nixon|bush|carter|churchill|elvis|infantino)\b/i,
-]
 
 const b = new PackBuilder('trump')
 

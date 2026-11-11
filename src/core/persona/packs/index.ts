@@ -11,7 +11,7 @@ import { THE_OVERLORD } from './the-overlord'
 import { TRUMP } from './trump'
 import { ZEN } from './zen'
 
-export { BIBI, BIBI_BANNED_PATTERNS } from './bibi'
+export { BIBI } from './bibi'
 export { DATA_NERD } from './data-nerd'
 export { DISAPPOINTED_DAD } from './disappointed-dad'
 export { DRILL_SERGEANT } from './drill-sergeant'
@@ -19,7 +19,7 @@ export { HYPE_COACH } from './hype-coach'
 export { PROFESSIONAL } from './professional'
 export { ROAST_COMIC } from './roast-comic'
 export { THE_OVERLORD } from './the-overlord'
-export { TRUMP, TRUMP_BANNED_PATTERNS } from './trump'
+export { TRUMP } from './trump'
 export { ZEN } from './zen'
 
 export const PACKS: readonly PersonaPack[] = [

@@ -1,8 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { detectProfanity, violatesGuardrails } from '../persona/guardrails'
-import { BIBI, DRILL_SERGEANT, PACKS, PROFESSIONAL } from '../persona/packs'
+import { DRILL_SERGEANT, PACKS, PROFESSIONAL } from '../persona/packs'
 import { mulberry32 } from '../persona/rng'
-import { matchesAny, personaBannedPatterns } from './content'
 import { previewLine } from './preview'
 
 describe('previewLine', () => {
@@ -27,14 +26,6 @@ describe('previewLine', () => {
       texts.add(line!.text)
     }
     expect(texts.size).toBeGreaterThan(3)
-  })
-
-  it('keeps Bibi inside its bans', () => {
-    const bans = personaBannedPatterns('bibi')
-    for (let seed = 0; seed < 40; seed++) {
-      const line = previewLine(BIBI, { spice: 5, profanity: true, rng: mulberry32(seed) })!
-      expect(matchesAny(line.text, bans), line.text).toBe(false)
-    }
   })
 })
 

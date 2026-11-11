@@ -6,13 +6,13 @@
 // the coach sounds like itself everywhere.
 //
 // Stored coaches come back through parseCustomCoaches (a backup can carry
-// anything), and every line passes the same guardrails as the built-in
-// packs: a line that touches a banned topic is refused when it's typed and
-// skipped if it ever turns up stored.
+// anything), and every line passes the one guardrail all coaches share: a
+// line that tells the rider to hurt themselves is refused when it's typed
+// and skipped if it ever turns up stored.
 import { z } from 'zod'
 import { personaInstruction } from '../ai/prompts'
 import { clampSpice } from '../persona/engine'
-import { detectProfanity, guardrailMatch, type GuardrailCategory } from '../persona/guardrails'
+import { detectProfanity, guardrailMatch } from '../persona/guardrails'
 import { bracesBalanced, placeholdersOf } from '../persona/template'
 import { isDataKey, toProfanity, type CoachLineTemplate, type CoachTrigger, type PersonaMeta, type PersonaPack, type ProfanitySetting } from '../persona/types'
 import { MAX_LINE_CHARS } from '../persona/validate'
@@ -106,17 +106,7 @@ export function parseCustomCoaches(value: unknown): CustomCoach[] {
   return out
 }
 
-const TOPIC: Record<GuardrailCategory, string> = {
-  'self-harm': 'self-harm',
-  violence: 'violence',
-  ethnicity: 'ethnicity',
-  religion: 'religion',
-  sexuality: 'sexuality',
-  gender: 'gender',
-  health: 'health',
-  body: 'bodies and weight',
-  politics: 'politics',
-}
+const SELF_HARM = "No coach tells anyone to hurt or kill themselves, so this can't be used."
 
 /** Why a line can't be used, in words for the rider, or null when it's fine. */
 export function phraseProblem(text: string): string | null {
@@ -128,7 +118,7 @@ export function phraseProblem(text: string): string | null {
   if (unknown !== undefined) return `{${unknown}} isn't something the app knows. Try {power}, {targetW}, {cadence}, {hr} or {remainingS}.`
   if (UNSPEAKABLE.test(t)) return 'No links or emoji: lines are read aloud.'
   const hit = guardrailMatch(t)
-  if (hit) return `CrankHog coaches leave ${TOPIC[hit.category]} alone, so this line can't be used.`
+  if (hit) return SELF_HARM
   return null
 }
 
@@ -137,8 +127,7 @@ export function coachNameProblem(name: string): string | null {
   const t = name.trim()
   if (t.length === 0) return 'Give your coach a name.'
   if (t.length > MAX_COACH_NAME) return `Keep the name under ${MAX_COACH_NAME} characters.`
-  const hit = guardrailMatch(t)
-  return hit ? `CrankHog coaches leave ${TOPIC[hit.category]} alone. Try another name.` : null
+  return guardrailMatch(t) ? SELF_HARM : null
 }
 
 /** The first sentence of the description, short enough for a tile; or a plain stand-in. */

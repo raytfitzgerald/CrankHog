@@ -11,7 +11,7 @@ export {
   type QuipRejection,
   type QuipRide,
 } from './ai-quips'
-export { SAFETY_FALLBACK_TEXT, gateLine, matchesAny, personaBannedPatterns, sanitizeFacts, textAllowed } from './content'
+export { SAFETY_FALLBACK_TEXT, gateLine, matchesAny, sanitizeFacts, textAllowed } from './content'
 export {
   CUSTOM_COACH_PREFIX,
   CustomCoachSchema,

@@ -1,99 +1,29 @@
 import { describe, expect, it } from 'vitest'
-import { GUARDRAILS, detectProfanity, guardrailMatch, normalizeForMatching, violatesGuardrails, type GuardrailCategory } from './guardrails'
+import { GUARDRAILS, detectProfanity, guardrailMatch, normalizeForMatching, violatesGuardrails } from './guardrails'
 
-// Lines a coach (canned, user-authored or AI) must never say, by the category they touch.
-const BAD: Record<GuardrailCategory, readonly string[]> = {
-  body: [
-    'Pedal harder, fatso.',
-    'Those love handles will not burn themselves.',
-    'You need to lose some weight.',
-    'Time to burn off that pizza.',
-    'Nice dad bod.',
-    'You look like a sack of potatoes on a bike.',
-    'Your BMI called. It wants a word.',
-    'Ugly effort, and an ugly pedal stroke.',
-    'Suck in that beer gut.',
-    'Skinny legs, zero watts.',
-    'You are too chubby to climb.',
-    'Your diet is the real problem.',
-    'F4t legs, sl0w legs.',
-  ],
-  health: [
-    "Don't have a heart attack.",
-    'Pedaling like you have asthma.',
-    'Are you disabled or just lazy?',
-    'What are you, retarded?',
-    'Stop being so lame.',
-    'Try not to puke on the top tube.',
-    "Your knee injury isn't an excuse.",
-    'Ride like you are sick.',
-    'Are you psycho?',
-    "Careful, don't hurt yourself.",
-    'You will pass out at this rate.',
-    "That's a dumb excuse.",
-  ],
-  sexuality: [
-    'That interval was so gay.',
-    'Sexy watts, baby.',
-    'Pedal like a porn star.',
-    'Grow some balls and push.',
-    'Stop acting like a queer.',
-    'You ride like a f@g.',
-  ],
-  gender: ['You pedal like a girl.', 'Man up and push!', 'Grow a pair.', "Don't be such a sissy.", 'Quit being a little bitch.'],
-  religion: [
-    'Pray to God you finish.',
-    'Jesus, that was slow.',
-    'Holy cow, look at those watts.',
-    'Skipping intervals is a sin.',
-    'Karma will get you on the next climb.',
-    'Even a monk would pedal faster.',
-    'This cadence is a Christmas miracle.',
-    'Ommm. Breathe.',
-  ],
-  ethnicity: [
-    'You pedal like a Mexican on a Monday.',
-    'Ride like a Frenchman: slowly.',
-    'Go back to your country.',
-    'That power output is so ghetto.',
-    'Asians always spin faster.',
-    'Only immigrants skip intervals.',
-    'That is a racist cadence.',
-    'Typical American effort.',
-  ],
-  politics: [
-    'Vote for more intervals.',
-    'Even Putin could hold 300 watts.',
-    'Liberals cannot climb.',
-    'This is communism on a bike.',
-    'Your FTP looks like an election result.',
-    'That is woke nonsense.',
-    'The president rides faster than you.',
-    'Very MAGA of you.',
-    'Pedal like you are fleeing Gaza.',
-  ],
-  violence: [
-    'This is war, recruit.',
-    'Massacre the climb.',
-    'I will shoot you if you stop.',
-    'Kill them all on the sprint.',
-    'Pedal like a terrorist is chasing you.',
-    'Murder that interval.',
-    'Hands up like it is a hostage video.',
-    'Bombing raids have better pacing.',
-    'Grab a gun and point it at your legs.',
-  ],
-  'self-harm': [
-    'Just kill yourself.',
-    'kys',
-    'Go die in a ditch.',
-    'Starve yourself before the race.',
-    'Jump off a bridge if you skip again.',
-    'You would be better off dead.',
-    'Drop dead, slowpoke.',
-    'That cadence is a cry for help.',
-  ],
-}
+// Lines no coach (canned, user-authored or AI) may say: the one guardrail left.
+const SELF_HARM: readonly string[] = [
+  'Just kill yourself.',
+  'kys',
+  'Go die in a ditch.',
+  'Starve yourself before the race.',
+  'Jump off a bridge if you skip again.',
+  'You would be better off dead.',
+  'Drop dead, slowpoke.',
+  'That cadence is a cry for help.',
+]
+
+// Mean, crude or political, and allowed: CrankHog is an adult app, and only self-harm is filtered.
+const MEAN_BUT_ALLOWED: readonly string[] = [
+  'Pedal harder, fatso.',
+  'Your BMI called. It wants a word.',
+  "Don't have a heart attack.",
+  'Jesus, that was slow.',
+  'The president rides faster than you.',
+  'Vote for more intervals.',
+  'Massacre the climb.',
+  'Even Putin could hold 300 watts.',
+]
 
 // Things coaches do say, some of which trip naive filters.
 const CLEAN = [
@@ -140,14 +70,14 @@ const CLEAN = [
 ]
 
 describe('violatesGuardrails', () => {
-  for (const [category, lines] of Object.entries(BAD) as [GuardrailCategory, readonly string[]][]) {
-    it(`catches ${category}`, () => {
-      const missed = lines.filter((l) => violatesGuardrails(l) === null)
-      expect(missed).toEqual([])
-      const miscategorized = lines.filter((l) => violatesGuardrails(l) !== category)
-      expect(miscategorized.map((l) => `${l} -> ${String(violatesGuardrails(l))}`)).toEqual([])
-    })
-  }
+  it('catches self-harm, leetspeak and all', () => {
+    expect(SELF_HARM.filter((l) => violatesGuardrails(l) !== 'self-harm')).toEqual([])
+    expect(violatesGuardrails('just k1ll yourself')).toBe('self-harm')
+  })
+
+  it('lets everything else through, however mean', () => {
+    expect(MEAN_BUT_ALLOWED.filter((l) => violatesGuardrails(l) !== null)).toEqual([])
+  })
 
   it('lets ordinary coaching through', () => {
     const flagged = CLEAN.map((l) => [l, guardrailMatch(l)] as const).filter(([, m]) => m !== null)
@@ -155,13 +85,13 @@ describe('violatesGuardrails', () => {
   })
 
   it('reports what matched, for error messages', () => {
-    expect(guardrailMatch('Pray harder')).toEqual({ category: 'religion', match: 'pray' })
+    expect(guardrailMatch('Just kill yourself')).toEqual({ category: 'self-harm', match: 'kill yourself' })
     expect(guardrailMatch('Fine.')).toBeNull()
   })
 
-  it('exports one compiled rule per category', () => {
-    expect(GUARDRAILS.map((g) => g.category).sort()).toEqual(Object.keys(BAD).sort())
-    for (const g of GUARDRAILS) expect(g.pattern).toBeInstanceOf(RegExp)
+  it('has the one rule', () => {
+    expect(GUARDRAILS.map((g) => g.category)).toEqual(['self-harm'])
+    expect(GUARDRAILS[0]!.pattern).toBeInstanceOf(RegExp)
   })
 })
 

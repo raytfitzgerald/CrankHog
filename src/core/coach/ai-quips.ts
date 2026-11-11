@@ -1,11 +1,9 @@
 // AI quip packs: the request for one (the user message; the system prompt
 // lives in main with the rest of the prompts) and the filter every returned
-// line must pass before it may join the canned lines for one ride. Topic
-// bans do not apply here. What remains is shape (trigger, length,
-// placeholders), the rider's profanity setting, and a few TTS checks.
-// A custom coach is the exception: the rider wrote its persona, so its
-// lines also pass the guardrails, whatever the description asked for.
-// Distress lines are never AI-written.
+// line must pass before it may join the canned lines for one ride: shape
+// (trigger, length, placeholders), the self-harm guardrail, the rider's
+// profanity setting, and a few TTS checks. Distress lines are never
+// AI-written.
 import { personaInstruction } from '../ai/prompts'
 import { QuipPackSchema } from '../ai/schemas'
 import { clampSpice } from '../persona/engine'
@@ -93,27 +91,27 @@ export function workoutStructure(segments: readonly CoachSegment[], maxGroups = 
     .join('; ')
 }
 
-export type QuipRejection = 'trigger' | 'length' | 'placeholder' | 'profanity' | 'unspeakable' | 'duplicate' | 'limit' | 'topic'
+export type QuipRejection = 'trigger' | 'length' | 'placeholder' | 'profanity' | 'unspeakable' | 'duplicate' | 'limit' | 'self-harm'
 
 export interface QuipFilterResult {
   lines: CoachLineTemplate[]
   rejected: { text: string; reason: QuipRejection }[]
 }
 
-function rejection(trigger: string, text: string, language: 'clean' | 'mild' | 'unhinged', guarded: boolean): QuipRejection | null {
+function rejection(trigger: string, text: string, language: 'clean' | 'mild' | 'unhinged'): QuipRejection | null {
   if (!QUIP_TRIGGER_SET.has(trigger)) return 'trigger'
   if (text.length < 3 || text.length > MAX_LINE_CHARS) return 'length'
   if (!bracesBalanced(text) || placeholdersOf(text).some((k) => !isDataKey(k))) return 'placeholder'
   if (UNSPEAKABLE.test(text)) return 'unspeakable'
   if (!languageAllowed(text, language)) return 'profanity'
-  if (guarded && guardrailMatch(text)) return 'topic'
+  if (guardrailMatch(text)) return 'self-harm'
   return null
 }
 
 /**
  * The lines of an AI quip pack that may be used, as canned-style templates at
- * the ride's spice level. Topic bans do not apply; the profanity setting does,
- * and it covers strong language as well as mild.
+ * the ride's spice level. Nothing about self-harm, and the profanity setting
+ * applies to strong language as well as mild.
  */
 export function quipLinesFromPack(value: unknown, opts: { persona: PersonaMeta; spice: number; profanity: ProfanitySetting }): QuipFilterResult {
   const parsed = QuipPackSchema.safeParse(value)
@@ -128,7 +126,7 @@ export function quipLinesFromPack(value: unknown, opts: { persona: PersonaMeta; 
     const trigger = raw.trigger.trim().toLowerCase()
     const text = raw.text.replace(/\s+/g, ' ').trim()
     const dedupe = text.toLowerCase()
-    const reason = lines.length >= MAX_AI_LINES ? 'limit' : seen.has(dedupe) ? 'duplicate' : rejection(trigger, text, language, opts.persona.persona !== undefined)
+    const reason = lines.length >= MAX_AI_LINES ? 'limit' : seen.has(dedupe) ? 'duplicate' : rejection(trigger, text, language)
     if (reason) {
       rejected.push({ text, reason })
       continue

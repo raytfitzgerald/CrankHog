@@ -5,7 +5,7 @@
 import { CoachEngine, clampSpice, type CoachEngineOptions } from '../persona/engine'
 import { toProfanity, type CoachContext, type CoachLine, type CoachLineTemplate, type PersonaPack, type Profanity, type ProfanitySetting } from '../persona/types'
 import type { SessionEvent } from '../ride/session'
-import { gateLine, personaBannedPatterns, sanitizeFacts } from './content'
+import { gateLine, sanitizeFacts } from './content'
 import { TriggerDetector, type DetectorOptions, type DetectorTick, type FuelingPlan } from './detector'
 
 export interface RideCoachOptions extends DetectorOptions {
@@ -116,12 +116,10 @@ export class RideCoach {
 
   private say(moments: readonly CoachContext[]): CoachLine[] {
     const out: CoachLine[] = []
-    const personaId = this.base.meta.id
-    const banned = this.profanity === 'unhinged' ? [] : personaBannedPatterns(personaId)
     for (const m of moments) {
-      const line = this.engine.consider(banned.length > 0 ? { ...m, data: sanitizeFacts(m.data, banned) } : m)
+      const line = this.engine.consider({ ...m, data: sanitizeFacts(m.data) })
       if (!line) continue
-      const gated = gateLine(line, { personaId, profanity: this.profanity })
+      const gated = gateLine(line, { profanity: this.profanity })
       if (!gated) continue
       this.detector.spoken(line.trigger)
       out.push(gated)

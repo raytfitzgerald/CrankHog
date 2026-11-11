@@ -60,12 +60,12 @@ describe('validatePack: sad paths', () => {
     expect(errors.length).toBeGreaterThan(0)
   })
 
-  it('rejects bad or reserved ids, and banned names', () => {
+  it('rejects bad or reserved ids, and self-harm in the name or tagline', () => {
     const cases: [unknown, RegExp][] = [
       [{ ...meta, id: 'Bad Id!' }, /meta\.id/],
       [{ ...meta, id: 'zen' }, /built-in/],
-      [{ ...meta, name: 'Coach Jesus' }, /meta\.name: touches a banned topic \(religion/],
-      [{ ...meta, tagline: 'Roasts your fat legs' }, /meta\.tagline: touches a banned topic \(body/],
+      [{ ...meta, name: 'Kill Yourself Kevin' }, /meta\.name: touches a banned topic \(self-harm/],
+      [{ ...meta, tagline: 'Tells you to go die' }, /meta\.tagline: touches a banned topic \(self-harm/],
       [{ ...meta, voiceHint: { rate: 50, pitch: 1, preferVoices: [] } }, /voiceHint\.rate/],
     ]
     for (const [badMeta, message] of cases) {
@@ -85,8 +85,8 @@ describe('validatePack: sad paths', () => {
       { id: 'empty', text: '   ', triggers: ['idle_banter'], spice: 1 },
       { id: 'long', text: 'x'.repeat(201), triggers: ['idle_banter'], spice: 1 },
       { id: 'weight', text: 'Hi.', triggers: ['idle_banter'], spice: 1, weight: 0 },
-      { id: 'topic', text: 'Pedal like a girl.', triggers: ['idle_banter'], spice: 3 },
-      { id: 'body', text: 'Burn off that belly.', triggers: ['idle_banter'], spice: 3 },
+      { id: 'topic', text: 'Go die, slowpoke.', triggers: ['idle_banter'], spice: 3 },
+      { id: 'body', text: 'Just kill yourself.', triggers: ['idle_banter'], spice: 3 },
       { id: 'strong', text: 'Pedal, you bastard.', triggers: ['idle_banter'], spice: 5 },
       { id: 'unflagged', text: 'Damn, pedal.', triggers: ['idle_banter'], spice: 3 },
       { id: 'placeholder', text: 'Hold {pwoer}.', triggers: ['idle_banter'], spice: 1 },
@@ -103,8 +103,8 @@ describe('validatePack: sad paths', () => {
     expect(errors).toHaveLength(bad.length + 1)
     expect(text).toMatch(/lines\[3\]\.triggers\.0/)
     expect(text).toMatch(/lines\[4\]\.spice/)
-    expect(text).toMatch(/\("topic"\): text: touches a banned topic \(gender/)
-    expect(text).toMatch(/\("body"\): text: touches a banned topic \(body/)
+    expect(text).toMatch(/\("topic"\): text: touches a banned topic \(self-harm/)
+    expect(text).toMatch(/\("body"\): text: touches a banned topic \(self-harm/)
     expect(text).toMatch(/\("strong"\): text: contains profanity; set "profanity": true/)
     expect(text).toMatch(/\("unflagged"\): text: contains profanity; set "profanity": true/)
     expect(text).toMatch(/\("placeholder"\): text: unknown placeholder \{pwoer\}/)
@@ -115,7 +115,7 @@ describe('validatePack: sad paths', () => {
   })
 
   it('returns no pack when every line is invalid', () => {
-    const { pack, errors } = validatePack(withLines({ id: 'x', text: 'Pray harder.', triggers: ['idle_banter'], spice: 1 }))
+    const { pack, errors } = validatePack(withLines({ id: 'x', text: 'Just kill yourself.', triggers: ['idle_banter'], spice: 1 }))
     expect(pack).toBeNull()
     expect(errors).toContain('lines: no valid lines')
   })

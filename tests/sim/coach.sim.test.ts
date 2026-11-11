@@ -5,7 +5,6 @@ import { describe, expect, it } from 'vitest'
 import { RideCoach, RideProbe, workoutSegments } from '@core/coach'
 import {
   BIBI,
-  BIBI_BANNED_PATTERNS,
   DEFAULT_TRIGGER_COOLDOWNS_MS,
   ENGINE_TIMING,
   PRIORITY,
@@ -13,7 +12,6 @@ import {
   THE_OVERLORD,
   detectProfanity,
   mulberry32,
-  normalizeForMatching,
   violatesGuardrails,
   type CoachLine,
   type PersonaPack,
@@ -168,7 +166,7 @@ describe('the coach on a simulated VO2 Max 5×4', () => {
     }
   }, 60_000)
 
-  it('never says anything off-limits, whatever the persona and spice', async () => {
+  it('never says anything about self-harm, or swears past the setting, whatever the persona', async () => {
     for (const [persona, profanity] of [
       [ROAST_COMIC, true],
       [BIBI, true],
@@ -181,9 +179,6 @@ describe('the coach on a simulated VO2 Max 5×4', () => {
         expect(violatesGuardrails(l.speech), l.speech).toBeNull()
         const level = detectProfanity(l.text)
         expect(level !== null && !profanity, l.text).toBe(false)
-        if (persona === BIBI && l.personaId === 'bibi') {
-          expect(BIBI_BANNED_PATTERNS.filter((p) => p.test(l.text) || p.test(normalizeForMatching(l.text))).map(String), l.text).toEqual([])
-        }
       }
     }
   }, 120_000)

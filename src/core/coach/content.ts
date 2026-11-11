@@ -1,53 +1,38 @@
-// The last gate before anything is shown or spoken. The engine already checks
-// rendered canned lines against the global guardrails; this module adds what
-// it does not know about: persona-specific bans (Bibi's list)
-// applied to the facts that get rendered into lines, and a final check of
-// every canned line. AI-written lines (lineId "ai.*") skip the topic bans.
+// The last gate before anything is shown or spoken. The one rule that holds
+// for every line, canned, user-made or AI-written, at every language setting:
+// nothing that tells the rider to hurt or kill themselves. The rider's
+// Profanity setting decides the swearing. Nothing else is filtered: the
+// coaches are allowed to be mean.
 //
-// Facts matter because workout files are user data: a Bibi line like
-// "Today's program is {workoutName}" must never render "Battle of the Bulge".
-// Dropping the fact makes that one line ineligible, so the engine simply picks
-// another one and no cue is lost.
+// Facts are checked too, because workout files are user data: a line like
+// "Today's program is {workoutName}" must never render a name that crosses
+// that line. Dropping the fact makes that one line ineligible, so the engine
+// simply picks another one and no cue is lost.
 import { languageAllowed, normalizeForMatching, violatesGuardrails } from '../persona/guardrails'
-import { BIBI_BANNED_PATTERNS } from '../persona/packs/bibi'
-import { TRUMP_BANNED_PATTERNS } from '../persona/packs/trump'
 import { PRIORITY, toProfanity, type CoachData, type CoachLine, type ProfanitySetting } from '../persona/types'
 
-const BANNED_BY_PERSONA: Readonly<Record<string, readonly RegExp[]>> = {
-  bibi: BIBI_BANNED_PATTERNS,
-  trump: TRUMP_BANNED_PATTERNS,
-}
-
-/** Extra patterns a persona's lines must never match, on top of the global guardrails. */
-export function personaBannedPatterns(personaId: string): readonly RegExp[] {
-  return BANNED_BY_PERSONA[personaId] ?? []
-}
-
-/** Matches raw and normalized text, so "B@ttle" and accents do not slip through. */
+/** Matches raw and normalized text, so leetspeak and accents do not slip through. */
 export function matchesAny(text: string, patterns: readonly RegExp[]): boolean {
   if (patterns.length === 0) return false
   const norm = normalizeForMatching(text)
   return patterns.some((p) => p.test(text) || p.test(norm))
 }
 
-/** Is this text allowed for a persona. Unhinged means no restrictions; Mild keeps every topic rule. */
-export function textAllowed(text: string, patterns: readonly RegExp[], profanity: ProfanitySetting): boolean {
-  const level = toProfanity(profanity)
-  if (level === 'unhinged') return true
+/** May this text be said: never self-harm, and swearing only as far as the setting allows. */
+export function textAllowed(text: string, profanity: ProfanitySetting): boolean {
   if (violatesGuardrails(text) !== null) return false
-  if (!languageAllowed(text, level)) return false
-  return !matchesAny(text, patterns)
+  const level = toProfanity(profanity)
+  return level === 'unhinged' || languageAllowed(text, level)
 }
 
 /**
- * The data with every string fact that touches a banned topic removed
- * (missing, not blanked: lines that need it become ineligible).
+ * The data with every string fact that touches self-harm removed (missing,
+ * not blanked: lines that need it become ineligible).
  */
-export function sanitizeFacts(data: CoachData, patterns: readonly RegExp[]): CoachData {
+export function sanitizeFacts(data: CoachData): CoachData {
   let out: CoachData | null = null
   for (const [k, v] of Object.entries(data)) {
-    if (typeof v !== 'string') continue
-    if (violatesGuardrails(v) === null && !matchesAny(v, patterns)) continue
+    if (typeof v !== 'string' || violatesGuardrails(v) === null) continue
     out ??= { ...data }
     delete out[k]
   }
@@ -57,25 +42,9 @@ export function sanitizeFacts(data: CoachData, patterns: readonly RegExp[]): Coa
 /** Said when a safety line somehow fails the gate: safety is never dropped. */
 export const SAFETY_FALLBACK_TEXT = 'Ease right off and take a breather. Stop if anything feels wrong.'
 
-/**
- * The line as it may be shown and spoken, or null when it must be dropped.
- * On Unhinged, the line passes through. Otherwise persona bans apply to
- * lines from that persona; while the supportive tone is forced, lines come
- * from Professional and only the global rules apply.
- */
-export function gateLine(line: CoachLine, opts: { personaId: string; profanity: ProfanitySetting }): CoachLine | null {
-  const level = toProfanity(opts.profanity)
-  if (level === 'unhinged') return line
-  // AI-written lines skip topic bans. Swearing still has to fit the setting.
-  if (line.lineId.startsWith('ai.')) {
-    if (!languageAllowed(line.text, level)) {
-      if (line.priority === PRIORITY.safety) return { ...line, text: SAFETY_FALLBACK_TEXT, speech: SAFETY_FALLBACK_TEXT }
-      return null
-    }
-    return line
-  }
-  const patterns = line.personaId === opts.personaId ? personaBannedPatterns(opts.personaId) : []
-  if (textAllowed(line.text, patterns, level)) return line
+/** The line as it may be shown and spoken, or null when it must be dropped. */
+export function gateLine(line: CoachLine, opts: { profanity: ProfanitySetting }): CoachLine | null {
+  if (textAllowed(line.text, opts.profanity)) return line
   if (line.priority === PRIORITY.safety) return { ...line, text: SAFETY_FALLBACK_TEXT, speech: SAFETY_FALLBACK_TEXT }
   return null
 }

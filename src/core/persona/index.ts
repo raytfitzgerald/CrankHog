@@ -29,7 +29,6 @@ export {
 } from './guardrails'
 export {
   BIBI,
-  BIBI_BANNED_PATTERNS,
   DATA_NERD,
   DISAPPOINTED_DAD,
   DRILL_SERGEANT,
@@ -39,7 +38,6 @@ export {
   ROAST_COMIC,
   THE_OVERLORD,
   TRUMP,
-  TRUMP_BANNED_PATTERNS,
   ZEN,
   packById,
 } from './packs'

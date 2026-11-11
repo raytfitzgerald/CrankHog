@@ -7,7 +7,6 @@ import { WorkoutPlan } from '../ride/workout-plan'
 import type { SessionEvent } from '../ride/session'
 import { BUILTIN_WORKOUTS } from '../workout/builtins'
 import type { Workout } from '../workout/model'
-import { matchesAny, personaBannedPatterns } from './content'
 import type { DetectorTick } from './detector'
 import { RideCoach } from './ride-coach'
 import { workoutSegments } from './segments'
@@ -112,19 +111,15 @@ describe('RideCoach', () => {
     expect(drive(s, { fromS: 1500.25, toS: 2200 }).length).toBeGreaterThan(0)
   })
 
-  it('never lets Bibi say a banned name from the workout file', () => {
+  it('never reads out a workout name or label that tells the rider to hurt themselves', () => {
     const w = builtin('vo2max-5x4')
-    w.name = 'Battle of the Bulge'
-    for (const seg of w.segments) seg.label = 'Attack'
-    const bans = personaBannedPatterns('bibi')
+    w.name = 'Kill Yourself Intervals'
+    for (const seg of w.segments) seg.label = 'Drop dead'
     for (const seed of [1, 2, 3, 4, 5]) {
       const s = setup(w, BIBI, { seed })
       const heard = drive(s, { toS: s.plan.timeline.durationS })
       expect(heard[0]?.trigger).toBe('ride_start')
-      for (const l of heard) {
-        expect(violatesGuardrails(l.text), l.text).toBeNull()
-        if (l.personaId === 'bibi') expect(matchesAny(l.text, bans), l.text).toBe(false)
-      }
+      for (const l of heard) expect(violatesGuardrails(l.text), l.text).toBeNull()
     }
   })
 

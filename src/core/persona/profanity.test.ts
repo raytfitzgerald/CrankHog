@@ -68,11 +68,11 @@ describe('profanity levels', () => {
 
   it('the gate lets AI lines swear only as far as the setting allows', () => {
     const ai = { text: 'Fucking move.', speech: 'Fucking move.', personaId: 'test', trigger: 'idle_banter' as const, priority: PRIORITY.banter, lineId: 'ai.1' }
-    expect(gateLine(ai, { personaId: 'test', profanity: 'mild' })).toBeNull()
-    expect(gateLine(ai, { personaId: 'test', profanity: 'unhinged' })).toBe(ai)
+    expect(gateLine(ai, { profanity: 'mild' })).toBeNull()
+    expect(gateLine(ai, { profanity: 'unhinged' })).toBe(ai)
     const mild = { ...ai, text: 'Damn, move.', speech: 'Damn, move.' }
-    expect(gateLine(mild, { personaId: 'test', profanity: 'mild' })).toBe(mild)
-    expect(gateLine(mild, { personaId: 'test', profanity: 'clean' })).toBeNull()
+    expect(gateLine(mild, { profanity: 'mild' })).toBe(mild)
+    expect(gateLine(mild, { profanity: 'clean' })).toBeNull()
   })
 
   it('Mild is heard at everyday spice, not only at 5', () => {

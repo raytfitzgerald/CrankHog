@@ -53,7 +53,7 @@ export function previewLine(
       const data = opts.withoutFacts ? Object.fromEntries(Object.entries(ctx.data).filter(([k]) => !opts.withoutFacts!.includes(k))) : ctx.data
       const line = engine.consider({ ...ctx, data, now })
       if (!line || line.personaId !== persona.meta.id) continue
-      const gated = gateLine(line, { personaId: persona.meta.id, profanity: opts.profanity })
+      const gated = gateLine(line, { profanity: opts.profanity })
       if (gated) return gated
     }
   }

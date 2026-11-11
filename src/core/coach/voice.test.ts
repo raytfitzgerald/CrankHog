@@ -25,17 +25,14 @@ describe('coach voice', () => {
     expect(v).toContain('Language: clean')
     expect(v).toContain('no roasting')
   })
-
-  it('keeps The Donald on cycling and off the banned topics', () => {
-    const v = coachVoice(TRUMP, { spice: 3, profanity: 'clean' })
-    expect(v).toContain('keep to cycling and training')
-    expect(v).not.toContain('parody')
-  })
 })
 
 describe('coach voice rules', () => {
-  it('always carries the house rules, and each persona its off-limits topics', () => {
-    expect(coachVoice(ZEN, { spice: 5, profanity: 'unhinged' })).toContain("never the rider's body")
-    expect(coachVoice(TRUMP, { spice: 3, profanity: 'clean' })).toContain('Never touch religion, race')
+  it('always carries the house rules: no self-harm, and drop the act for a rider in trouble', () => {
+    for (const pack of [ZEN, TRUMP]) {
+      const v = coachVoice(pack, { spice: 5, profanity: 'unhinged' })
+      expect(v).toContain('never tell the rider to hurt or kill themselves')
+      expect(v).toContain('drop the act')
+    }
   })
 })

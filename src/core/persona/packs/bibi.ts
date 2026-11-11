@@ -4,41 +4,8 @@
 // cartoon-bomb chart and its red line, the decades-long "weeks away from..."
 // refrain, standing ovations in Congress, longest-serving grandiosity, and
 // "fake news" jabs aimed at the rider's excuses. Every line is about the ride.
-//
-// Hard limits, enforced by BIBI_BANNED_PATTERNS in bibi.test.ts: no religion
-// or Jewish history and heritage, no land claims or territory, no ethnicity or
-// nationality, no war, military operations, hostages or casualties, no trial
-// or corruption allegations, and no real people other than the persona itself.
 import type { PersonaPack } from '../types'
 import { HARD, LAST_REP, PackBuilder, eq, gt, gte, kind, lt, lte, ne, rideKind, when } from './dsl'
-
-/**
- * Topics Bibi must never touch, on top of the global guardrails.
- * Deliberately broad: a line only has to be about pedaling.
- */
-export const BIBI_BANNED_PATTERNS: readonly RegExp[] = [
-  // religion, Jewish history and heritage
-  /\b(?:gods?|jews?|jewish|juda\w*|hebrews?|torah|bibles?|biblical|rabbi\w*|synagogue\w*|kosher|shabbat|sabbath|hanukk?ah|passover|menorah|zion\w*|messiah|moses|abraham|david|goliath|solomon|samson|maccabe\w*|temples?|holy|sacred|pray\w*|bless\w*|curse\w*|miracle\w*|prophe\w*|exodus|pharaoh|diaspora|exile\w*|chosen|covenant|genesis|heritage|ancestral|ancestors?|forefathers?|patriarchs?|eternal|ancient|kings?|kingdom)\b/i,
-  /\b(?:thousands? (?:of )?years|\d[\d,]* years of history|never again)\b/i,
-  // land claims and territory
-  /\b(?:promised land|lands?|territor\w*|borders?|settl\w*|annex\w*|occup\w*|west bank|judea|samaria|golan|sinai|homelands?|sovereign\w*|jerusalem|tel aviv|capital|maps?|inch(?:es)?|concession\w*|withdraw\w*|disengage\w*|partition\w*|two-state|one-state|states?|countr(?:y|ies)|national\w*|nationhood|neighbou?r\w*)\b/i,
-  /\b(?<!united )nations?\b/i,
-  // ethnicity and nationality
-  /\b(?:israel\w*|arab\w*|palestin\w*|persia\w*|iran\w*|semit\w*|antisemit\w*|ethnic\w*|race|racial|america\w*|usa|europe\w*|middle east\w*|the west|western)\b/i,
-  // war, military operations, security
-  /\b(?:wars?|warfare|wartime|military|army|armies|idf|soldiers?|troops?|operations?|operational|strikes?|airstrikes?|missiles?|rockets?|drones?|jets?|tanks?|artillery|iron|domes?|shields?|walls?|fences?|tunnels?|bunkers?|shelters?|sirens?|camps?|fronts?|bomb(?:s|ing|ings|ed|er|ers)|explo\w*|blast\w*|detonat\w*|fire|fires|fired|firing|ceasefire|attack\w*|defen[cs]\w*|offensive|security|secure|protect\w*|enem(?:y|ies)|threat\w*|existential|terror\w*|hostages?|captives?|kidnap\w*|casualt\w*|civilians?|kill\w*|dead|deaths?|die|died|dying|victims?|massacre\w*|invasion|invade\w*|truce|surrender\w*|retreat\w*|victory|victorious|triumph\w*|defeat\w*|conquer\w*|battle\w*|fight\w*|combat\w*|missions?|campaigns?|intelligence|mossad|spy|spies|assassin\w*|enrich\w*|uranium|centrifuge\w*|reactors?|atomic|sanctions?|proxy|proxies|regime\w*|axis|evil|darkness|barbar\w*|savage\w*|monsters?|animals?|civili[sz]ation\w*|rubble|ruins|flags?|anthem|october|entebbe|oslo|munich)\b/i,
-  // the explicitly requested "weeks away from a nuclear weapon" refrain is the only nuclear/weapon wording allowed
-  /\bnuclear\b(?! weapons?\b)/i,
-  /\b(?<!nuclear )weapons?\b/i,
-  // places and groups in the region's conflicts
-  /\b(?:gaza|tehran|hamas|hezbollah|houthi\w*|lebanon|beirut|syria\w*|damascus|iraq\w*|egypt\w*|jordan\w*|saudi\w*|qatar\w*|emirat\w*|yemen\w*|ramallah|rafah|jenin|natanz|fordow?|stuxnet|abraham accords|camp david)\b/i,
-  // the trial and scandal allegations
-  /\b(?:trials?|courts?|courtroom|judges|judicial\w*|judiciary|justice|indict\w*|charges?|charged|brib\w*|fraud\w*|breach of trust|corrupt\w*|scandal\w*|cigars?|champagne|gifts?|jewel\w*|case \d+|prosecut\w*|attorneys?|lawyers?|testif\w*|testimony|witness\w*|verdicts?|guilty|innocen\w*|acquit\w*|convict\w*|plea|pardon\w*|immunity|police|investigat\w*|jail\w*|prison\w*|crimes?|criminal\w*|legal|illegal|lawsuits?|hollywood|media|the press|milchan|packer|elovitch|bezeq|walla|mozes|yedioth)\b/i,
-  // domestic politics beyond the requested oratory
-  /\b(?:prime ministers?|ministers?|ministry|cabinet|government\w*|coalition\w*|opposition|knesset|likud|parliament\w*|elections?|votes?|voters?|voting|referendum|protest\w*|reform\w*|resign\w*|democra\w*|dictator\w*|balcony|rally|rallies|coffin|peace)\b/i,
-  // real people other than the persona itself
-  /\b(?:netanyahu|benjamin|sara|sarah|yair|avner|yoni|benzion|ben-zion|trump|biden|obama|clinton|bush|reagan|kerry|pompeo|kushner|blinken|harris|kamala|putin|khamenei|rouhani|raisi|soleimani|nasrallah|sinwar|haniyeh|arafat|abbas|erdogan|sisi|macron|merkel|sunak|starmer|guterres|bennett|lapid|gantz|gvir|ben-gvir|smotrich|herzog|peres|rabin|sharon|olmert|barak|golda|meir|ben-gurion|herzl|jabotinsky|dermer|gallant|churchill|lincoln|kennedy|roosevelt|elon|musk)\b/i,
-]
 
 const b = new PackBuilder('bibi')
 

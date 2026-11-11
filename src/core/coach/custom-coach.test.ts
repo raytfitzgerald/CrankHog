@@ -47,14 +47,14 @@ describe('custom coaches', () => {
     expect(c?.aiLines).toEqual([])
   })
 
-  it('holds a custom coach’s per-ride AI lines to the guardrails, whatever its description asks for', () => {
-    const fine = ['A record. Kettle is on.', 'Legs on, then.', 'Halfway. Grand.', 'Spin it up.']
-    const reply = { lines: [{ trigger: 'ride_start', text: 'Saddle up, you chubby lump.' }, ...fine.map((text) => ({ trigger: 'idle_banter', text }))] }
-    const custom = quipLinesFromPack(reply, { persona: customCoachMeta({ ...COACH, persona: 'Mocks my beer belly.' }), spice: 5, profanity: 'unhinged' })
-    expect(custom.lines.map((l) => l.text)).toEqual(fine)
-    expect(custom.rejected).toEqual([{ text: 'Saddle up, you chubby lump.', reason: 'topic' }])
-    // a built-in persona's quips are unchanged: the topic rules there are the engine's and the prompt's
-    expect(quipLinesFromPack(reply, { persona: { id: 'drill-sergeant', name: 'Drill Sergeant', tagline: '' }, spice: 5, profanity: 'unhinged' }).lines).toHaveLength(5)
+  it('holds every per-ride AI line to the self-harm rule, and nothing else', () => {
+    const fine = ['A record. Kettle is on.', 'Saddle up, you chubby lump.', 'Halfway. Grand.', 'Spin it up.']
+    const reply = { lines: [{ trigger: 'ride_start', text: 'Just kill yourself, slowpoke.' }, ...fine.map((text) => ({ trigger: 'idle_banter', text }))] }
+    for (const persona of [customCoachMeta({ ...COACH, persona: 'Mean as anything.' }), { id: 'drill-sergeant', name: 'Drill Sergeant', tagline: '' }]) {
+      const out = quipLinesFromPack(reply, { persona, spice: 5, profanity: 'unhinged' })
+      expect(out.lines.map((l) => l.text)).toEqual(fine)
+      expect(out.rejected).toEqual([{ text: 'Just kill yourself, slowpoke.', reason: 'self-harm' }])
+    }
   })
 
   it('keeps only stored coaches that parse, once per id', () => {
@@ -84,17 +84,19 @@ describe('custom coaches', () => {
     expect(engine(sweary, 'unhinged').consider(sampleContext('ride_start'))?.text).toBe('Shift, you lazy bastard.')
   })
 
-  it('refuses lines and names that touch a banned topic, and explains why', () => {
-    expect(phraseProblem('Pedal, you fat lump')).toMatch(/bodies and weight/)
+  it('refuses lines and names that tell the rider to hurt themselves, and nothing meaner than that', () => {
+    expect(phraseProblem('Go die in a ditch, slowpoke')).toMatch(/hurt or kill themselves/)
+    expect(phraseProblem('Pedal, you fat lump')).toBeNull()
     expect(phraseProblem('Lovely spin today')).toBeNull()
     expect(phraseProblem('Hold {pwoer} watts')).toMatch(/\{pwoer\}/)
     expect(phraseProblem('Hold {power} watts')).toBeNull()
     expect(phraseProblem('Go go go 🔥')).toMatch(/emoji/)
     expect(coachNameProblem('  ')).toMatch(/name/)
     expect(coachNameProblem('Uncle Rog')).toBeNull()
+    expect(coachNameProblem('Kill Yourself Kevin')).toMatch(/hurt or kill themselves/)
     // and drops them if they ever turn up stored
-    const pack = customCoachPack({ ...COACH, phrases: [{ text: 'Pedal, you fat lump', moment: 'any' }] })
-    expect(pack.lines.some((l) => l.text.includes('fat'))).toBe(false)
+    const pack = customCoachPack({ ...COACH, phrases: [{ text: 'Go die in a ditch', moment: 'any' }] })
+    expect(pack.lines.some((l) => l.text.includes('die'))).toBe(false)
   })
 
   it('tags the coach with its first sentence and carries the description to the AI', () => {
@@ -110,7 +112,7 @@ describe('custom coaches', () => {
     const reply = {
       lines: [
         { trigger: 'ride_start', text: 'Saddle up, lad.' },
-        { trigger: 'halfway', text: 'Halfway, you chubby thing.' },
+        { trigger: 'halfway', text: 'Halfway. Just drop dead already.' },
         { trigger: 'distress', text: 'Breathe.' },
         { trigger: 'pr', text: 'A record. Don’t let it go to your head.' },
         { trigger: 'idle_banter', text: 'Grand day for it.' },

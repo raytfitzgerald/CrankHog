@@ -1,12 +1,11 @@
 import { describe, expect, it } from 'vitest'
-import { matchesAny, personaBannedPatterns } from '../coach/content'
 import { HOG } from '../mascot/hog'
 import { detectProfanity, violatesGuardrails } from '../persona/guardrails'
 import { PACKS } from '../persona/packs'
 import { allTaunts, rivalTaunt } from './rival'
 
 describe('the coach, yelling at the hog', () => {
-  it('every persona has taunts that are clean and pass its own guardrails', () => {
+  it('every persona has taunts that are clean and pass the guardrail', () => {
     for (const p of PACKS) {
       const lines = allTaunts(p.meta.id)
       expect(lines.length).toBeGreaterThanOrEqual(2)
@@ -14,7 +13,6 @@ describe('the coach, yelling at the hog', () => {
         const t = line.replaceAll('{hog}', HOG.name)
         expect(detectProfanity(t), t).toBeNull()
         expect(violatesGuardrails(t), t).toBeNull()
-        expect(matchesAny(t, personaBannedPatterns(p.meta.id)), t).toBe(false)
       }
     }
   })

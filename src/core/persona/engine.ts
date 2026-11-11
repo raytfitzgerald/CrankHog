@@ -430,13 +430,10 @@ export class CoachEngine {
       if (line.criteria && !line.criteria.every((c) => criterionHolds(c, facts))) continue
       const text = renderTemplate(line.text, facts)
       if (text === null) continue
-      // Clean and Mild: canned lines still skip banned topics, and the words
-      // must fit the setting. AI lines skip the topic list either way.
-      // Unhinged filters nothing.
-      if (this.profanity !== 'unhinged') {
-        if (!line.id.startsWith('ai.') && violatesGuardrails(text) !== null) continue
-        if (!languageAllowed(text, this.profanity)) continue
-      }
+      // Nothing that tells the rider to hurt themselves, whoever wrote the line
+      // and whatever the setting; below Unhinged the words must fit the setting too.
+      if (violatesGuardrails(text) !== null) continue
+      if (this.profanity !== 'unhinged' && !languageAllowed(text, this.profanity)) continue
       candidates.push({ line, text, packId, specificity: line.criteria?.length ?? 0, spice: lineSpice, swear })
     }
     if (candidates.length === 0) return null
