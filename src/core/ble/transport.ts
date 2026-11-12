@@ -103,18 +103,43 @@ function withTimeout<T>(label: string, p: Promise<T>, ms: number): Promise<T> {
   })
 }
 
-/** Wraps a raw session so every operation is serialized through a GattQueue. */
+/**
+ * How long discovery and a subscription may take. They are the connection
+ * handshake, and on some devices they take far longer than the one round trip
+ * a read or a write is:
+ *   * Chromium on macOS walks the device's whole GATT table (every service,
+ *     characteristic and descriptor) before the first services() call
+ *     answers. A native app can look up just the service it wants, so a
+ *     device that connects there at once may still be slow here. A coin-cell
+ *     strap with a large table and a slow link can need more than the 4 s a
+ *     read gets (the Garmin HRM 200 carries Garmin's own services beside the
+ *     standard ones).
+ *   * The first subscription is where the system encrypts the link, or pairs,
+ *     with a device that asks for it (the HRM 200 in its secure mode).
+ * Neither happens while riding, so the longer wait never holds up control.
+ */
+export const HANDSHAKE_TIMEOUT_MS = 30_000
+
+/**
+ * Wraps a raw session so every operation is serialized through a GattQueue.
+ * Reads and writes keep the queue's short timeout; discovery and
+ * subscriptions get HANDSHAKE_TIMEOUT_MS.
+ */
 export function queuedSession(raw: GattSession, queue = new GattQueue()): GattSession {
   return {
-    services: () => queue.run('services', () => raw.services()),
-    characteristics: (s) => queue.run(`characteristics ${s}`, () => raw.characteristics(s)),
+    services: () => queue.run('services', () => raw.services(), HANDSHAKE_TIMEOUT_MS),
+    characteristics: (s) => queue.run(`characteristics ${s}`, () => raw.characteristics(s), HANDSHAKE_TIMEOUT_MS),
     read: (s, c) => queue.run(`read ${c}`, () => raw.read(s, c)),
     write: (s, c, d, o) => queue.run(`write ${c}`, () => raw.write(s, c, d, o)),
     subscribe: (s, c, l) =>
-      queue.run(`subscribe ${c}`, async () => {
-        const unsub = await raw.subscribe(s, c, l)
-        return () => queue.run(`unsubscribe ${c}`, unsub)
-      }),
+      queue.run(
+        `subscribe ${c}`,
+        async () => {
+          const unsub = await raw.subscribe(s, c, l)
+          return () => queue.run(`unsubscribe ${c}`, unsub)
+        },
+        HANDSHAKE_TIMEOUT_MS,
+      ),
   }
 }
 

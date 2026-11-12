@@ -1,8 +1,10 @@
-import { describe, expect, it } from 'vitest'
+import { describe, expect, it, vi } from 'vitest'
 import { BleError, type AcquireRequest, type BlePeripheral, type BleTransport, type GattSession } from '../ble/transport'
+import { CHAR, SERVICE } from '../ble/uuids'
 import { SensorHub } from '../sensors/hub'
 import { FakeClock } from '../time/clock'
 import type { Driver, DriverContext } from './driver'
+import { defaultDriverFactory } from './drivers'
 import { DeviceManager, type DeviceEvent } from './manager'
 
 class FakePeripheral implements BlePeripheral {
@@ -12,6 +14,13 @@ class FakePeripheral implements BlePeripheral {
   connected = false
   failConnects = 0
   connectCount = 0
+  session: GattSession = {
+    services: async () => [],
+    characteristics: async () => [],
+    read: async () => new DataView(new ArrayBuffer(0)),
+    write: async () => undefined,
+    subscribe: async () => async () => undefined,
+  }
   private dropListeners = new Set<() => void>()
   async connect(): Promise<GattSession> {
     this.connectCount++
@@ -20,13 +29,7 @@ class FakePeripheral implements BlePeripheral {
       throw new BleError('nope', 'gatt')
     }
     this.connected = true
-    return {
-      services: async () => [],
-      characteristics: async () => [],
-      read: async () => new DataView(new ArrayBuffer(0)),
-      write: async () => undefined,
-      subscribe: async () => async () => undefined,
-    }
+    return this.session
   }
   onDisconnect(l: () => void) {
     this.dropListeners.add(l)
@@ -70,6 +73,40 @@ function fakeDriverFactory(attaches: DriverContext[]) {
 
 const flush = async () => {
   for (let i = 0; i < 10; i++) await Promise.resolve()
+}
+
+/**
+ * A heart-rate strap whose first service discovery takes `discoveryMs`, the
+ * way a walk of a large GATT table over a slow link does. Later calls answer
+ * at once, as they do from the platform's cache.
+ */
+function slowStrap(discoveryMs: number) {
+  let discovered = false
+  let listener: ((value: DataView) => void) | null = null
+  const session: GattSession = {
+    services: () =>
+      new Promise((resolve) => {
+        setTimeout(
+          () => {
+            discovered = true
+            resolve([SERVICE.heartRate])
+          },
+          discovered ? 0 : discoveryMs,
+        )
+      }),
+    characteristics: async () => [CHAR.heartRateMeasurement],
+    read: async () => {
+      throw new BleError('not readable', 'gatt')
+    },
+    write: async () => undefined,
+    subscribe: async (_service, _characteristic, l) => {
+      listener = l
+      return async () => undefined
+    },
+  }
+  /** One Heart Rate Measurement: flags 0x00 (uint8 bpm, nothing else), then the bpm. */
+  const beat = (bpm: number) => listener?.(new DataView(Uint8Array.of(0x00, bpm).buffer))
+  return { session, beat }
 }
 
 describe('DeviceManager', () => {
@@ -133,5 +170,28 @@ describe('DeviceManager', () => {
     })
     await expect(mgr.connect('trainer')).rejects.toThrow(/No supported protocol/)
     expect(mgr.get('trainer')?.state).toBe('failed')
+  })
+
+  it('connects a heart-rate strap whose discovery outlasts one round trip', async () => {
+    // The Garmin HRM 200 in the Mac app: Chromium discovers the strap's whole
+    // GATT table before services() answers, which takes longer than a read may.
+    vi.useFakeTimers()
+    try {
+      const clock = new FakeClock()
+      const hub = new SensorHub()
+      const strap = slowStrap(6000)
+      const peripheral = new FakePeripheral()
+      peripheral.session = strap.session
+      const mgr = new DeviceManager({ transport: new FakeTransport(peripheral), hub, clock, driverFactory: defaultDriverFactory })
+      const connecting = mgr.connect('hr')
+      await vi.advanceTimersByTimeAsync(6000)
+      const dev = await connecting
+      expect(dev.state).toBe('connected')
+      expect(dev.drivers).toEqual(['hrs'])
+      strap.beat(72)
+      expect(hub.value('hr', clock.now())).toBe(72)
+    } finally {
+      vi.useRealTimers()
+    }
   })
 })
