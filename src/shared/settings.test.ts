@@ -96,3 +96,20 @@ describe('mergeSettings', () => {
     expect(next.rememberedDevices).toEqual([])
   })
 })
+
+describe('countdown beeps', () => {
+  it('are on for settings saved before they existed, and for new installs', () => {
+    const upgraded = AppSettingsSchema.parse(migrateStoredSettings({ units: 'metric', coach: { spice: 4 } }))
+    expect(upgraded.beeps).toEqual({ enabled: true, volume: 0.6 })
+    expect(DEFAULT_SETTINGS.beeps.enabled).toBe(true)
+  })
+
+  it('a volume patch keeps them switched off', () => {
+    const off = mergeSettings(DEFAULT_SETTINGS, { beeps: { enabled: false } })
+    expect(mergeSettings(off, { beeps: { volume: 0.3 } }).beeps).toEqual({ enabled: false, volume: 0.3 })
+  })
+
+  it('reject a volume outside 0 to 1', () => {
+    expect(AppSettingsPatchSchema.safeParse({ beeps: { volume: 1.5 } }).success).toBe(false)
+  })
+})

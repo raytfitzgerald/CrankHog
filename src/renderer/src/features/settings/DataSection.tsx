@@ -2,7 +2,7 @@ import { useRef, useState } from 'react'
 import { Download, RefreshCw, Upload } from 'lucide-react'
 import { createBackup, restoreBackup } from '../../db/backup'
 import { customCoachStore, mergeCustomCoachesAfterRestore } from '../../coach/custom'
-import { importFitFiles } from '../../db/fit-import'
+import { describeImport, importFitFiles } from '../../db/fit-import'
 import { bridge } from '../../platform/bridge'
 import { Button } from '../../ui/Button'
 import { Field, Section } from '../../ui/form'
@@ -54,7 +54,7 @@ export function DataSection() {
       const loaded: { name: string; bytes: Uint8Array }[] = []
       for (const f of files) loaded.push({ name: f.name, bytes: (await bridge().invoke('files.readFit', { name: f.name })).bytes })
       const r = await importFitFiles(loaded, (done, total) => setMsg(`Reading ${done} of ${total}…`))
-      setMsg(`Added ${r.imported.length} ride${r.imported.length === 1 ? '' : 's'} from ${dir}; ${r.skipped.length} already there or not rides.`)
+      setMsg(`Added ${describeImport(r)} from ${dir}; ${r.skipped.length} already there or unreadable.`)
     } catch (e) {
       setMsg(`Rebuild failed: ${e instanceof Error ? e.message : String(e)}`)
     } finally {

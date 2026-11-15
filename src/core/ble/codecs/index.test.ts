@@ -15,7 +15,7 @@ describe('codecs barrel', () => {
         'FtmsOp', 'FtmsResult', 'IndoorBikeDataAssembler', 'TRAINING_STATUS_LABELS', 'decodeFtmsCommand', 'encodeFtmsCommand',
         'encodeFtmsFeatures', 'encodeFtmsResponse', 'encodeFtmsStatus', 'encodeIndoorBikeData', 'encodeSupportedPowerRange',
         'encodeSupportedResistanceRange', 'encodeTrainingStatus', 'parseFtmsFeatures', 'parseFtmsResponse', 'parseFtmsStatus',
-        'parseIndoorBikeData', 'parseSupportedPowerRange', 'parseSupportedResistanceRange', 'parseTrainingStatus',
+        'parseIndoorBikeData', 'parseSpinDownTargets', 'parseSupportedPowerRange', 'parseSupportedResistanceRange', 'parseTrainingStatus',
         // HRS
         'BODY_SENSOR_LOCATIONS', 'encodeBodySensorLocation', 'encodeHeartRateMeasurement', 'parseBodySensorLocation',
         'parseHeartRateMeasurement',

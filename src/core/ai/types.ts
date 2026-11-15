@@ -4,7 +4,7 @@
 export type AiProviderId = 'anthropic' | 'openai' | 'grok' | 'ollama'
 
 /** What the call is for; drives model choice, effort, timeout and budget. */
-export type AiPurpose = 'quip-pack' | 'live-line' | 'debrief' | 'workout' | 'chat' | 'ride-title' | 'fitness-summary'
+export type AiPurpose = 'quip-pack' | 'live-line' | 'debrief' | 'workout' | 'chat' | 'ride-title' | 'fitness-summary' | 'training-plan'
 
 export interface AiMessage {
   role: 'user' | 'assistant'
@@ -50,4 +50,5 @@ export const PURPOSE_DEFAULTS: Record<AiPurpose, { timeoutMs: number; maxTokens:
   chat: { timeoutMs: 180_000, maxTokens: 16_000, effort: 'medium' },
   'ride-title': { timeoutMs: 20_000, maxTokens: 1500, effort: 'low' },
   'fitness-summary': { timeoutMs: 90_000, maxTokens: 4000, effort: 'low' },
+  'training-plan': { timeoutMs: 180_000, maxTokens: 16_000, effort: 'medium' },
 }

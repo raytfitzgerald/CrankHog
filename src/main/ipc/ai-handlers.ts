@@ -1,5 +1,5 @@
 import type { WebContents } from 'electron'
-import { CHAT_SYSTEM, DEBRIEF_SYSTEM, FITNESS_SUMMARY_SYSTEM, LIVE_LINE_SYSTEM, QUIP_PACK_SYSTEM, RIDE_TITLE_SYSTEM, WORKOUT_SYSTEM } from '@core/ai/prompts'
+import { CHAT_SYSTEM, DEBRIEF_SYSTEM, FITNESS_SUMMARY_SYSTEM, LIVE_LINE_SYSTEM, QUIP_PACK_SYSTEM, RIDE_TITLE_SYSTEM, TRAINING_PLAN_SYSTEM, WORKOUT_SYSTEM } from '@core/ai/prompts'
 import { AiError, type AiProviderId, type AiPurpose } from '@core/ai/types'
 import type { SecretStore } from '../secrets/secret-store'
 import { AnthropicProvider } from '../ai/providers/anthropic'
@@ -16,6 +16,7 @@ const SYSTEM: Record<AiPurpose, string> = {
   chat: CHAT_SYSTEM,
   'ride-title': RIDE_TITLE_SYSTEM,
   'fitness-summary': FITNESS_SUMMARY_SYSTEM,
+  'training-plan': TRAINING_PLAN_SYSTEM,
 }
 
 function configStore(secrets: SecretStore): AiConfigStore {

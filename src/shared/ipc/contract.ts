@@ -73,6 +73,16 @@ const AiStatusSchema = z.object({
 })
 const AiResultSchema = z.object({ ok: z.boolean(), text: z.string().optional(), model: z.string().optional(), error: z.string().optional(), code: z.string().optional() })
 
+/** A real calendar day, "2026-11-18": the shape alone would let "2026-13-45" through. */
+const LocalDay = z
+  .string()
+  .regex(/^\d{4}-\d{2}-\d{2}$/)
+  .refine((s) => {
+    const [y, m, d] = s.split('-').map(Number) as [number, number, number]
+    const t = new Date(Date.UTC(y, m - 1, d))
+    return t.getUTCFullYear() === y && t.getUTCMonth() === m - 1 && t.getUTCDate() === d
+  }, 'Not a real day')
+
 export const invoke = {
   'app.ping': {
     req: z.object({ msg: z.string().max(200) }),
@@ -195,6 +205,24 @@ export const invoke = {
   'intervals.status': { req: Empty, res: z.object({ configured: z.boolean(), athleteId: z.string().optional() }) },
   'intervals.configure': { req: z.object({ apiKey: z.string().min(8).max(200), athleteId: z.string().max(40).default('0') }), res: Ok },
   'intervals.clear': { req: Empty, res: Ok },
+  /** Planned rides on the athlete's intervals.icu calendar, local dates both included (at most 92 days). */
+  'intervals.planned': {
+    req: z.object({ oldest: LocalDay, newest: LocalDay }),
+    res: z.object({
+      events: z
+        .array(
+          z.object({
+            id: z.string().max(40),
+            start_date_local: z.string().max(40),
+            name: z.string().max(300),
+            type: z.string().max(40).nullable(),
+            description: z.string().max(20_000).nullable(),
+            zwo: z.string().max(200_000).nullable(),
+          }),
+        )
+        .max(400),
+    }),
+  },
   'uploads.enqueue': {
     req: z.object({
       rideId: RideId,
@@ -226,7 +254,7 @@ export const invoke = {
     res: AiResultSchema,
   },
   'ai.structured': {
-    req: z.object({ purpose: z.enum(['workout', 'quip-pack', 'ride-title']), input: z.string().max(40_000) }),
+    req: z.object({ purpose: z.enum(['workout', 'quip-pack', 'ride-title', 'training-plan']), input: z.string().max(40_000) }),
     res: z.object({ ok: z.boolean(), value: z.unknown().optional(), model: z.string().optional(), error: z.string().optional(), code: z.string().optional() }),
   },
   'ai.stream.start': {

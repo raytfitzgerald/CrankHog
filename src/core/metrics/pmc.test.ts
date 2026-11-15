@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { computePmc } from './pmc'
+import { computePmc, projectPmc } from './pmc'
 
 describe('computePmc', () => {
   it('first day: CTL = TSS/42, ATL = TSS/7, TSB = 0 (from yesterday’s zeros)', () => {
@@ -98,5 +98,24 @@ describe('computePmc', () => {
     }
     expect(() => computePmc([], { from: 'yesterday', to: '2026-01-01' })).toThrow(RangeError)
     expect(() => computePmc([], { ctlDays: 0 })).toThrow(RangeError)
+  })
+})
+
+describe('projectPmc', () => {
+  it('carries fitness on from history through the planned days, marking them projected', () => {
+    const rows = projectPmc([{ date: '2026-01-01', tss: 100 }], [{ date: '2026-01-03', tss: 70 }, { date: '2026-01-01', tss: 999 }], { today: '2026-01-01', to: '2026-01-03', ctlDays: 2, atlDays: 1 })
+    expect(rows.map((r) => [r.date, r.tss, r.projected])).toEqual([
+      ['2026-01-01', 100, false],
+      ['2026-01-02', 0, true],
+      ['2026-01-03', 70, true],
+    ])
+    // CTL: 50, then 25, then 47.5 (time constant 2); the planned 999 on a past day is ignored
+    expect(rows.map((r) => r.ctl)).toEqual([50, 25, 47.5])
+  })
+
+  it('is the plain history when nothing is planned', () => {
+    const plain = computePmc([{ date: '2026-01-01', tss: 80 }], { to: '2026-01-02' })
+    const projected = projectPmc([{ date: '2026-01-01', tss: 80 }], [], { today: '2026-01-02', to: '2026-01-02' })
+    expect(projected.map(({ projected: _p, ...r }) => r)).toEqual(plain)
   })
 })

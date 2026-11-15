@@ -2,13 +2,14 @@ import { useEffect, useState } from 'react'
 import { Check, Pencil, Plus, Volume2 } from 'lucide-react'
 import { MAX_CUSTOM_COACHES, customCoachMeta, isCustomCoachId, previewLine, type CustomCoach } from '@core/coach'
 import { PROFESSIONAL, type CoachLine, type CoachTrigger, type PersonaMeta } from '@core/persona'
-import type { CoachPrefs, FuelingPrefs } from '@shared/settings'
+import type { BeepPrefs, CoachPrefs, FuelingPrefs } from '@shared/settings'
 import { listVoices, onVoicesChanged, resolveVoice, speak } from '../../audio/tts'
 import { PersonaAvatar } from '../../coach/PersonaAvatar'
 import { aiReady } from '../../coach/quips'
 import { watchdogMs } from '../../coach/speech-queue'
 import { CoachToon } from '../../coach/toon/CoachToon'
 import { toonFor } from '../../coach/toon/heads'
+import { getRuntime } from '../../runtime/composition'
 import { patchSettings, useSettings } from '../../stores/settings'
 import { Button } from '../../ui/Button'
 import { cn } from '../../ui/cn'
@@ -102,6 +103,8 @@ export function CoachSection() {
   const fuel = useSettings((s) => s.fueling)
   const set = (patch: Partial<CoachPrefs>) => void patchSettings({ coach: { ...c, ...patch } })
   const setFuel = (patch: Partial<FuelingPrefs>) => void patchSettings({ fueling: { ...fuel, ...patch } })
+  const beeps = useSettings((s) => s.beeps)
+  const setBeeps = (patch: Partial<BeepPrefs>) => void patchSettings({ beeps: { ...beeps, ...patch } })
 
   const [voices, setVoices] = useState(() => listVoices())
   useEffect(() => onVoicesChanged(() => setVoices(listVoices())), [])
@@ -260,6 +263,22 @@ export function CoachSection() {
         </Field>
         <Field label="Volume">
           <Slider ariaLabel="Speech volume" value={c.volume} min={0} max={1} step={0.05} format={(v) => `${Math.round(v * 100)} %`} onChange={(v) => set({ volume: v })} />
+        </Field>
+      </Section>
+
+      <Section title="Countdown beeps" description="A short beep 3, 2 and 1 seconds before each workout interval ends, and a longer one as the next begins. They keep going when the coach is muted or off.">
+        <Field label="Beeps">
+          <Switch checked={beeps.enabled} onChange={(v) => setBeeps({ enabled: v })} label={beeps.enabled ? 'On' : 'Off'} />
+        </Field>
+        <Field label="Volume">
+          <div className="flex items-center gap-3">
+            <div className="min-w-0 flex-1">
+              <Slider ariaLabel="Beep volume" value={beeps.volume} min={0.05} max={1} step={0.05} format={(v) => `${Math.round(v * 100)} %`} onChange={(v) => setBeeps({ volume: v })} />
+            </div>
+            <Button size="sm" onClick={() => getRuntime().beeps.preview()} disabled={!beeps.enabled} aria-label="Test beeps" data-testid="beeps-test">
+              <Volume2 className="size-3.5" /> Test
+            </Button>
+          </div>
         </Field>
       </Section>
 

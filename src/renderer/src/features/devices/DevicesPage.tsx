@@ -1,5 +1,6 @@
 import { useState } from 'react'
-import { Battery, Bluetooth, BluetoothOff, Cpu, Fan, FlaskConical, Gauge, HeartPulse, Link2Off, RefreshCw, Thermometer, Trash2, Waves, Zap } from 'lucide-react'
+import { Battery, Bluetooth, BluetoothOff, Cpu, Fan, FlaskConical, Gauge, HeartPulse, Link2Off, RefreshCw, RotateCw, Thermometer, Trash2, Waves, Zap } from 'lucide-react'
+import { canSpinDown } from '@core/devices/driver'
 import type { ManagedDevice } from '@core/devices/manager'
 import { ROLE_LABEL, type DeviceRole } from '@core/devices/types'
 import { getRuntime } from '../../runtime/composition'
@@ -13,6 +14,7 @@ import { StatusDot } from '../../ui/StatusDot'
 import { isNative } from '../../platform/native'
 import { setDemoMode } from '../../platform/demo'
 import { CaptureConsole } from './CaptureConsole'
+import { SpinDownDialog } from './SpinDownDialog'
 
 const PRIMARY: DeviceRole[] = ['trainer', 'hr']
 const EXTRA: DeviceRole[] = ['power', 'cadence', 'coreTemp', 'smo2', 'fan']
@@ -159,6 +161,9 @@ function DeviceCard({ role, device, compact }: { role: DeviceRole; device?: Mana
   const Icon = ROLE_ICON[role]
   const state = device?.state ?? (connecting ? 'connecting' : 'none')
   const [error, setError] = useState<string | null>(null)
+  const [calibrating, setCalibrating] = useState(false)
+  // re-read whenever the device list changes, which re-renders this card
+  const calibratable = role === 'trainer' && device?.state === 'connected' && canSpinDown(rt.devices.trainer())
 
   const connect = async () => {
     setError(null)
@@ -227,12 +232,18 @@ function DeviceCard({ role, device, compact }: { role: DeviceRole; device?: Mana
               <Bluetooth className="size-3.5" /> {remembered ? 'Reconnect' : 'Pair'}
             </Button>
           )}
+          {calibratable && (
+            <Button size="sm" variant="secondary" onClick={() => setCalibrating(true)} data-testid="calibrate-trainer">
+              <RotateCw className="size-3.5" /> Calibrate trainer
+            </Button>
+          )}
           {remembered && (
             <Button size="sm" variant="ghost" onClick={() => void rt.forget(role)}>
               <Trash2 className="size-3.5" /> Forget
             </Button>
           )}
         </div>
+        {role === 'trainer' && <SpinDownDialog open={calibrating} onOpenChange={setCalibrating} create={() => rt.spinDown()} />}
       </CardBody>
     </Card>
   )

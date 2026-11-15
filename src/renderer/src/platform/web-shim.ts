@@ -222,6 +222,9 @@ export function createWebShim(): CrankHogBridge {
     'intervals.status': () => ({ configured: false }),
     'intervals.configure': () => ({ ok: false }),
     'intervals.clear': () => ({ ok: true }),
+    'intervals.planned': () => {
+      throw new Error('Importing from intervals.icu needs the Mac app, which keeps your API key.')
+    },
     'uploads.enqueue': ({ rideId, provider }) => ({ id: `${provider}:${rideId}`, status: 'error' }),
     'uploads.list': () => ({ items: [] }),
     'uploads.retry': () => ({ ok: false }),

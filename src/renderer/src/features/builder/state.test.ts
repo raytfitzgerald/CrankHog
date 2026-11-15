@@ -96,4 +96,21 @@ describe('builder editor state', () => {
     expect(isDirty(initEditor(newWorkout('ai:x'), false))).toBe(true)
     expect(contentKey(saved)).toBe(contentKey({ ...saved, createdAt: 99 }))
   })
+
+  it('takes the plan a save filed the workout in, and stays clean', () => {
+    // filed in a plan that didn't exist yet: the save makes it and returns the workout with its id
+    let s = run(fresh(), { type: 'insert', item: 'z2' })
+    s = run(s, { type: 'commit', workout: { ...s.history.present.workout, folder: 'plan' } }, { type: 'insert', item: 'z4' })
+    const draft = s.history.present.workout
+    expect(draft.planId).toBeUndefined()
+    const saved: Workout = { ...{ ...draft, planId: 'plan-1' }, createdAt: 1, updatedAt: 2 }
+    s = run(s, { type: 'saved', workout: saved })
+    expect(isDirty(s)).toBe(false)
+    expect(s.history.present.workout.planId).toBe('plan-1')
+    // not an undo step of its own: one undo takes back the last block
+    expect(run(s, { type: 'undo' }).history.present.workout.segments).toHaveLength(1)
+    // a save that files nothing leaves no planId behind
+    const plain = run(fresh(), { type: 'insert', item: 'z2' })
+    expect(run(plain, { type: 'saved', workout: { ...plain.history.present.workout, createdAt: 1 } }).history.present.workout).not.toHaveProperty('planId')
+  })
 })

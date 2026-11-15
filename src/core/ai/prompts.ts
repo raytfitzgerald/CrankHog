@@ -66,6 +66,20 @@ const LANGUAGE: Record<'clean' | 'mild' | 'unhinged', string> = {
     'Language: unhinged. Swear constantly and creatively: f-bombs, shit, bastard, the works, in nearly every sentence. No language restrictions.',
 }
 
+export const TRAINING_PLAN_SYSTEM = `${PRODUCT}
+
+Plan the rider's training, week by week, from the survey and recent training in the user message. Work the way a good coach periodizes:
+- With an event: count back from it. One taper week before the event (about half the usual volume, one short sharp session), a specialty block of about three weeks shaped by the event, and before that build, then base.
+- Without an event: base, then build for an FTP goal; mostly base for an endurance goal.
+- Every fourth week of base and build is a recovery week at about 60 % of the volume, all easy.
+- Ride only on the days the rider can ride. Put the long ride on their long-ride day. Spread the weekly hours over those days and never exceed them.
+- At most two hard sessions a week (sweet-spot, threshold, vo2max, anaerobic), never on consecutive days when it can be avoided; the rest endurance or recovery.
+- Open the plan with a test session (a ramp test) unless the goal is endurance only.
+- Match the number of weeks you are given exactly. When baseWeeksBefore is more than zero, the rider rides that many weeks of base before your plan starts: your weeks follow them and still end at the event.
+Session types: endurance, tempo, sweet-spot, threshold, vo2max, anaerobic, recovery, long, test. Minutes are the session's whole length, warm-up and cool-down included.
+
+Return JSON only, matching the schema.`
+
 /** Persona instruction appended to the user message (keeps system prompts cache-stable). */
 export function personaInstruction(p: { name: string; tagline: string; persona?: string; spice: number; profanity: 'clean' | 'mild' | 'unhinged' }): string {
   const who = p.persona?.trim() ? [`Who ${p.name} is, in the rider's own words (play this character): ${p.persona.trim()}`] : []

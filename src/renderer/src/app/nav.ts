@@ -1,6 +1,7 @@
 import {
   Activity,
   Bluetooth,
+  CalendarDays,
   Hammer,
   History,
   LayoutDashboard,
@@ -12,7 +13,7 @@ import {
 } from 'lucide-react'
 
 export interface NavItem {
-  to: '/' | '/ride' | '/workouts' | '/builder' | '/routes' | '/history' | '/fitness' | '/coach' | '/devices' | '/settings'
+  to: '/' | '/ride' | '/workouts' | '/calendar' | '/builder' | '/routes' | '/history' | '/fitness' | '/coach' | '/devices' | '/settings'
   label: string
   icon: LucideIcon
 }
@@ -21,6 +22,7 @@ export interface NavItem {
 export const NAV: NavItem[] = [
   { to: '/', label: 'Home', icon: LayoutDashboard },
   { to: '/workouts', label: 'Workouts', icon: ListChecks },
+  { to: '/calendar', label: 'Calendar', icon: CalendarDays },
   { to: '/builder', label: 'Builder', icon: Hammer },
   { to: '/routes', label: 'Routes', icon: Mountain },
   { to: '/history', label: 'History', icon: History },

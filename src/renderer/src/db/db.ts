@@ -5,7 +5,10 @@ import type { RideStreams } from '@core/ride/streams'
 import type { RideSummary } from '@core/ride/types'
 import type { Workout } from '@core/workout/model'
 import type { Journey } from '@core/journeys/progress'
+import type { ScheduledWorkout } from '@core/workout/schedule'
+import type { DayMark, TrainingPlan } from '@core/workout/plan'
 import type { StoredRoute, StoredRouteRide } from '../routes/route-codec'
+import { adoptLegacyPlanWorkouts } from './legacy-plan'
 
 export interface StoredWorkout {
   id: string
@@ -48,6 +51,28 @@ export interface ProfileEntry {
   birthYear?: number
 }
 
+/** A non-cycling activity from a FIT file (a run, a swim, a strength session): a summary for the calendar. */
+export interface OtherActivity {
+  id: string
+  startedAt: number
+  /** FIT sport: "running", "swimming", "training"… */
+  sport: string
+  subSport: string | null
+  name: string
+  movingS: number
+  distanceM: number | null
+  avgHr: number | null
+  maxHr: number | null
+  /** hrTSS (src/core/metrics/hr-load.ts), so it adds up with ride TSS. */
+  hrLoad: number | null
+  /** Garmin's Training Effect, when the file carries it. */
+  trainingEffect: { aerobic: number; anaerobic: number | null } | null
+  /** Garmin's own training load, when the file carries it. */
+  garminLoad: number | null
+  device: string | null
+  fileName: string
+}
+
 export interface KvEntry {
   key: string
   value: unknown
@@ -63,6 +88,10 @@ export class CrankHogDb extends Dexie {
   routes!: EntityTable<StoredRoute, 'id'>
   routeRides!: EntityTable<StoredRouteRide, 'rideId'>
   journeys!: EntityTable<Journey, 'id'>
+  schedule!: EntityTable<ScheduledWorkout, 'id'>
+  plans!: EntityTable<TrainingPlan, 'id'>
+  activities!: EntityTable<OtherActivity, 'id'>
+  dayMarks!: EntityTable<DayMark, 'id'>
 
   // The database name keeps the old brand for the same reason the app://
   // origin does (app-protocol.ts): renaming it would orphan every ride ever
@@ -87,6 +116,21 @@ export class CrankHogDb extends Dexie {
     this.version(3).stores({
       journeys: 'id, courseId, updatedAt',
     })
+    // v4: workouts scheduled on calendar days (src/core/workout/schedule.ts)
+    this.version(4).stores({
+      schedule: 'id, date, source',
+    })
+    // v5: named training plans, other sports from FIT files, and events and days off.
+    // The old Training plan folder becomes a plan, in the same transaction.
+    this.version(5)
+      .stores({
+        plans: 'id, updatedAt',
+        activities: 'id, startedAt, sport',
+        dayMarks: 'id, date, kind',
+      })
+      .upgrade(async (tx) => {
+        await adoptLegacyPlanWorkouts(tx.table('workouts'), tx.table('plans'))
+      })
   }
 }
 

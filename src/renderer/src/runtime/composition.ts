@@ -2,6 +2,8 @@
 // React (StrictMode double-mounts and HMR must never create a second engine
 // or double Bluetooth subscriptions).
 import type { BleTransport } from '@core/ble/transport'
+import { Calibrator } from '@core/control/calibrator'
+import type { SpinDown, SpinDownFailure } from '@core/control/spin-down'
 import { TrainerController } from '@core/control/trainer-controller'
 import { defaultDriverFactory } from '@core/devices/drivers'
 import type { TrainerDriver } from '@core/devices/driver'
@@ -21,6 +23,8 @@ import { bridge } from '../platform/bridge'
 import { devicesStore, pushCapture, pushNotice } from '../stores/devices'
 import { liveStore } from '../stores/live'
 import { patchSettings, settingsStore } from '../stores/settings'
+import { playBeep, primeBeeps } from '../audio/beeps'
+import { BeepRuntime } from './beeps'
 import { RideRunner } from './ride-runner'
 
 export type AppInfo = InvokeRes<'app.info'>
@@ -36,7 +40,11 @@ export interface Runtime {
   rides: RideRunner
   /** The live coach: lines on screen and spoken during rides. */
   coach: CoachRuntime
+  /** Interval countdown beeps. */
+  beeps: BeepRuntime
   sim: SimWorld | null
+  /** A spin-down calibration for the connected trainer, or why there can't be one. It won't start while a ride is recording. */
+  spinDown(): SpinDown | SpinDownFailure
   connect(role: DeviceRole): Promise<void>
   disconnect(role: DeviceRole): void
   forget(role: DeviceRole): Promise<void>
@@ -97,6 +105,19 @@ export function initRuntime(info: AppInfo): Runtime {
   })
 
   let rides: RideRunner | null = null
+  const calibrator = new Calibrator({
+    devices,
+    clock,
+    riding: () => rides?.active ?? false,
+    hold: () => {
+      controller.setDesired({ mode: 'idle' })
+      controller.bind(null)
+    },
+    // once it ends, rebind, and the next ride's first command goes out whatever it is
+    ended: bindTrainer,
+    // a trainer can ask for a spin down itself (after a firmware update, or once it has warmed up)
+    requested: () => pushNotice('trainer', 'Your trainer asks for a spin-down calibration. Open Devices and choose Calibrate trainer.'),
+  })
   const engine = new LiveEngine({
     clock,
     hub,
@@ -109,10 +130,15 @@ export function initRuntime(info: AppInfo): Runtime {
       rides?.publish(frame)
     },
   })
-  rides = new RideRunner({ clock, hub, controller, engine, simulated })
+  rides = new RideRunner({ clock, hub, controller, engine, simulated, calibrating: () => calibrator.running })
   // The coach follows every ride. Automated test runs never make the Mac talk.
   const coach = createCoachRuntime({ rides, engine, clock, hub, controller }, { speak: !info.isTest })
   coach.start()
+  // Countdown beeps follow every workout and FTP test, whatever the coach is doing.
+  // Test runs stay silent and make no audio context.
+  const beeps = new BeepRuntime({ rides, engine, clock, settings: () => settingsStore.getState(), play: info.isTest ? () => undefined : playBeep })
+  beeps.start()
+  if (!info.isTest) primeBeeps(() => settingsStore.getState().beeps.enabled)
   engine.start()
   void rides.loadRecoveries()
 
@@ -157,7 +183,9 @@ export function initRuntime(info: AppInfo): Runtime {
     engine,
     rides,
     coach,
+    beeps,
     sim,
+    spinDown: () => calibrator.create(),
     connect,
     disconnect: (role) => devices.disconnect(role),
     forget: async (role) => {

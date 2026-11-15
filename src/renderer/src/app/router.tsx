@@ -11,6 +11,7 @@ import { RideDetailPage } from '../features/history/RideDetailPage'
 import { SettingsPage } from '../features/settings/SettingsPage'
 import { FitnessPage } from '../features/fitness/FitnessPage'
 import { CoachChatPage } from '../features/ai/CoachChatPage'
+import { CalendarPage } from '../features/calendar/CalendarPage'
 import { RoutesPage } from '../features/routes/RoutesPage'
 
 const rootRoute = createRootRoute({ component: AppShell })
@@ -43,6 +44,7 @@ const settingsRoute = createRoute({
   validateSearch: (s: Record<string, unknown>): { tab?: string } => (typeof s.tab === 'string' ? { tab: s.tab } : {}),
   component: SettingsPage,
 })
+const calendarRoute = createRoute({ getParentRoute: () => rootRoute, path: '/calendar', component: CalendarPage })
 const fitnessRoute = createRoute({ getParentRoute: () => rootRoute, path: '/fitness', component: FitnessPage })
 const coachRoute = createRoute({ getParentRoute: () => rootRoute, path: '/coach', component: CoachChatPage })
 
@@ -50,6 +52,7 @@ const routeTree = rootRoute.addChildren([
   homeRoute,
   rideRoute,
   workoutsRoute,
+  calendarRoute,
   devicesRoute,
   historyRoute,
   rideDetailRoute,

@@ -8,6 +8,7 @@ import {
   FtmsOp,
   FtmsResult,
   parseFtmsResponse,
+  parseSpinDownTargets,
   type FtmsCommand,
 } from './ftms-control'
 
@@ -198,6 +199,14 @@ describe('control point response', () => {
     expect(Array.from(res?.params ?? [])).toEqual([0xe8, 0x03, 0xd0, 0x07])
     const params = toDataView(res?.params ?? new Uint8Array())
     expect([params.getUint16(0, true) / 100, params.getUint16(2, true) / 100]).toEqual([10, 20])
+  })
+
+  it('reads the spin down target speeds from a response', () => {
+    expect(parseSpinDownTargets(Uint8Array.of(0xe8, 0x03, 0xd0, 0x07))).toEqual({ lowKmh: 10, highKmh: 20 })
+    expect(parseSpinDownTargets(Uint8Array.of(0xb8, 0x0b, 0xac, 0x0d))).toEqual({ lowKmh: 30, highKmh: 35 })
+    // a trainer that answers without them
+    expect(parseSpinDownTargets(new Uint8Array())).toBeNull()
+    expect(parseSpinDownTargets(Uint8Array.of(0xe8, 0x03))).toBeNull()
   })
 
   it('returns null for anything that is not a response', () => {

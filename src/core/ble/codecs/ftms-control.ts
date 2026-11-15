@@ -156,6 +156,23 @@ export function parseFtmsResponse(dv: DataView): FtmsResponse | null {
   return { requestOp: r.uint8('request op code'), result: r.uint8('result code'), params: r.rest() }
 }
 
+/** The speed window a spin down asks the rider to reach, km/h. */
+export interface SpinDownTargets {
+  lowKmh: number
+  highKmh: number
+}
+
+/**
+ * The parameters of a successful Spin Down Control (Start) response: Target
+ * Speed Low and Target Speed High, uint16 in 0.01 km/h (FTMS v1.0 §4.16.2.20).
+ * Null when the trainer sent fewer bytes.
+ */
+export function parseSpinDownTargets(params: Uint8Array): SpinDownTargets | null {
+  if (params.byteLength < 4) return null
+  const dv = new DataView(params.buffer, params.byteOffset, params.byteLength)
+  return { lowKmh: dv.getUint16(0, true) / 100, highKmh: dv.getUint16(2, true) / 100 }
+}
+
 export function encodeFtmsResponse(requestOp: number, result: number, params: ArrayLike<number> = []): Uint8Array {
   return new ByteWriter()
     .uint8(FtmsOp.Response)

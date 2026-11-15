@@ -1,7 +1,7 @@
 import { useLiveQuery } from 'dexie-react-hooks'
 import { useMemo, useRef, useState, type DragEvent } from 'react'
 import { Link, useSearch } from '@tanstack/react-router'
-import { ArrowDown, ArrowUp, FileUp, FolderInput, Gauge, Plus, Search, Star } from 'lucide-react'
+import { FileUp, Gauge, Plus, Search, Star } from 'lucide-react'
 import { WorkoutThumb } from '../../charts/WorkoutThumb'
 import { useFtp } from '../../db/use-athlete'
 import { Button } from '../../ui/Button'
@@ -9,8 +9,12 @@ import { Input, Select } from '../../ui/form'
 import { PageHeader } from '../../ui/PageHeader'
 import { cn } from '../../ui/cn'
 import { formatDurationShort } from '../../ui/format'
-import { IMPORT_EXTENSIONS, loadLibrary, moveToFolder, movePlanItem, parseWorkoutFile, saveWorkout, tagLabel, type LibraryEntry } from '../../workouts/library'
+import { IMPORT_EXTENSIONS, loadLibrary, parseWorkoutFile, saveWorkout, tagLabel, type LibraryEntry } from '../../workouts/library'
 import { profileBlocks } from '../../workouts/profile'
+import { db } from '../../db/db'
+import { planImportNotice } from '../plan/import-notice'
+import { PlansPanel } from '../plan/PlansPanel'
+import { createPlan, deletePlan, importIntoPlan, listPlans } from '../../plan/plans-repo'
 import { WorkoutDetailDialog } from './WorkoutDetailDialog'
 
 type Filter = 'all' | 'favorites' | 'tests' | `tag:${string}`
@@ -19,7 +23,7 @@ type Tab = LibraryEntry['folder']
 const TABS: { id: Tab; label: string; empty: string }[] = [
   { id: 'crankhog', label: 'CrankHog workouts', empty: 'No workouts match. Try another filter.' },
   { id: 'custom', label: 'Custom workouts', empty: 'Nothing here yet. Build one with New workout, copy a CrankHog workout to the builder, or drop .zwo, .mrc or .erg files on this page.' },
-  { id: 'plan', label: 'Training plan', empty: 'Your training plan is empty. Import workout files while this tab is open (they go in in file-name order), set Folder to Training plan in the builder, or move one of your custom workouts here.' },
+  { id: 'plan', label: 'Training plan', empty: '' },
 ]
 type Length = 'any' | 'short' | 'medium' | 'long'
 
@@ -47,25 +51,27 @@ export function WorkoutsPage() {
   const [openId, setOpenId] = useState<string | null>(search.open ?? null)
   const [notice, setNotice] = useState<{ tone: 'good' | 'bad'; text: string } | null>(null)
   const [dragging, setDragging] = useState(false)
+  /** The plan open on the Training plan tab (null: the latest). */
+  const [planId, setPlanId] = useState<string | null>(null)
   const fileInput = useRef<HTMLInputElement>(null)
 
   const tags = useMemo(() => {
     const count = new Map<string, number>()
-    for (const e of library ?? []) if (e.folder === tab) for (const t of e.workout.tags) if (t !== 'test' && t !== 'ftp') count.set(t, (count.get(t) ?? 0) + 1)
+    for (const e of library ?? []) if ((tab === 'custom' ? e.folder !== 'crankhog' : e.folder === tab)) for (const t of e.workout.tags) if (t !== 'test' && t !== 'ftp') count.set(t, (count.get(t) ?? 0) + 1)
     return [...count.entries()].sort((a, b) => b[1] - a[1]).map(([t]) => t)
   }, [library, tab])
+  const planCount = useLiveQuery(() => db().plans.count(), [])
   const counts = useMemo(() => {
-    const c: Record<Tab, number> = { crankhog: 0, custom: 0, plan: 0 }
-    for (const e of library ?? []) c[e.folder]++
+    const c: Record<Tab, number> = { crankhog: 0, custom: 0, plan: planCount ?? 0 }
+    // Custom workouts: every workout of the rider's own, filed in a plan or not
+    for (const e of library ?? []) c[e.folder === 'crankhog' ? 'crankhog' : 'custom']++
     return c
-  }, [library])
+  }, [library, planCount])
 
   const visible = useMemo(() => {
     const q = query.trim().toLowerCase()
     const lengthTest = LENGTHS.find((l) => l.id === length)!.test
-    const inTab = (library ?? []).filter((e) => e.folder === tab)
-    // the plan is a sequence: in its own order
-    if (tab === 'plan') inTab.sort((a, b) => (a.planOrder ?? 0) - (b.planOrder ?? 0))
+    const inTab = (library ?? []).filter((e) => (tab === 'custom' ? e.folder !== 'crankhog' : e.folder === tab))
     return inTab.filter((e) => {
       const w = e.workout
       if (filter === 'favorites' && !e.favorite) return false
@@ -77,15 +83,14 @@ export function WorkoutsPage() {
   }, [library, tab, filter, length, query])
 
   const importFiles = async (files: FileList | File[]) => {
+    if (tab === 'plan') return importIntoOpenPlan(Array.from(files))
     const done: string[] = []
     const failed: string[] = []
-    // on the Training plan tab, imports join the plan, in file-name order ("01 …", "02 …")
-    const toPlan = tab === 'plan'
     const ordered = Array.from(files).sort((a, b) => a.name.localeCompare(b.name, undefined, { numeric: true }))
     for (const f of ordered) {
       try {
         const { workout } = parseWorkoutFile(f.name, await f.text())
-        await saveWorkout(toPlan ? { ...workout, folder: 'plan' } : workout, ftpW)
+        await saveWorkout(workout, ftpW)
         done.push(workout.name)
       } catch (e) {
         failed.push(`${f.name}: ${e instanceof Error ? e.message : String(e)}`)
@@ -94,9 +99,24 @@ export function WorkoutsPage() {
     setNotice(
       failed.length > 0
         ? { tone: 'bad', text: `${done.length ? `Imported ${done.join(', ')}. ` : ''}Couldn't import ${failed.join('; ')}` }
-        : { tone: 'good', text: done.length > 5 ? `Imported ${done.length} workouts${toPlan ? ' into your training plan' : ''}.` : `Imported ${done.join(', ')}${toPlan ? ' into your training plan' : ''}.` },
+        : { tone: 'good', text: done.length > 5 ? `Imported ${done.length} workouts.` : `Imported ${done.join(', ')}.` },
     )
-    if (done.length > 0 && !toPlan) pickTab('custom')
+    if (done.length > 0) pickTab('custom')
+  }
+
+  /** Files dropped on the Training plan tab go into the plan open there (a new "Training plan" when there is none), in file-name order. */
+  const importIntoOpenPlan = async (files: File[]) => {
+    try {
+      const plans = await listPlans()
+      const existing = plans.find((p) => p.id === planId) ?? plans[0]
+      const plan = existing ?? (await createPlan({ name: 'Training plan', source: 'files' }))
+      const r = await importIntoPlan(plan.id, await Promise.all(files.map(async (f) => ({ name: f.name, text: await f.text() }))))
+      if (!existing && r.added === 0) await deletePlan(plan.id)
+      else setPlanId(plan.id)
+      setNotice(planImportNotice(plan.name, r))
+    } catch (e) {
+      setNotice({ tone: 'bad', text: `Couldn't import: ${e instanceof Error ? e.message : String(e)}` })
+    }
   }
 
   const onDrop = (e: DragEvent) => {
@@ -139,9 +159,11 @@ export function WorkoutsPage() {
                 e.target.value = ''
               }}
             />
-            <Button size="sm" onClick={() => fileInput.current?.click()} title={tab === 'plan' ? 'Into your training plan, in file-name order (or drop files on this page)' : 'Or drop .zwo / .mrc / .erg / .txt files on this page'} data-testid="import-workouts">
-              <FileUp className="size-3.5" /> {tab === 'plan' ? 'Import into plan' : 'Import'}
-            </Button>
+            {tab !== 'plan' && (
+              <Button size="sm" onClick={() => fileInput.current?.click()} title="Or drop .zwo / .mrc / .erg / .txt files on this page" data-testid="import-workouts">
+                <FileUp className="size-3.5" /> Import
+              </Button>
+            )}
             <Button size="sm" variant="primary" asChild>
               <Link to="/builder">
                 <Plus className="size-3.5" /> New workout
@@ -188,7 +210,9 @@ export function WorkoutsPage() {
         ))}
       </div>
 
-      <div className="mb-5 flex flex-wrap items-center gap-2">
+      {tab === 'plan' && <PlansPanel selected={planId} onSelect={setPlanId} onNotice={setNotice} />}
+
+      <div className={cn('mb-5 flex flex-wrap items-center gap-2', tab === 'plan' && 'hidden')}>
         <div className="relative mr-2 w-64">
           <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-ink-faint" />
           <Input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Search workouts" className="pl-9" aria-label="Search workouts" />
@@ -218,41 +242,26 @@ export function WorkoutsPage() {
         </div>
       </div>
 
-      {library && visible.length === 0 && (
+      {tab !== 'plan' && library && visible.length === 0 && (
         <div className="mx-auto max-w-md py-16 text-center text-ink-faint">{counts[tab] === 0 ? TABS.find((t) => t.id === tab)!.empty : 'No workouts match. Try another filter.'}</div>
       )}
-      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3" data-testid="workout-grid">
-        {visible.map((e, i) => (
-          <WorkoutCard
-            key={e.workout.id}
-            entry={e}
-            ftpW={ftpW}
-            onOpen={() => setOpenId(e.workout.id)}
-            plan={tab === 'plan' ? { n: i + 1, first: i === 0, last: i === visible.length - 1, unfiltered: visible.length === counts.plan } : undefined}
-          />
-        ))}
-      </div>
+      {tab !== 'plan' && (
+        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3" data-testid="workout-grid">
+          {visible.map((e) => (
+            <WorkoutCard key={e.workout.id} entry={e} ftpW={ftpW} onOpen={() => setOpenId(e.workout.id)} />
+          ))}
+        </div>
+      )}
 
       {open && <WorkoutDetailDialog entry={open} ftpW={ftpW} onClose={() => setOpenId(null)} onNotice={setNotice} />}
     </div>
   )
 }
 
-function WorkoutCard({
-  entry,
-  ftpW,
-  onOpen,
-  plan,
-}: {
-  entry: LibraryEntry
-  ftpW: number
-  onOpen: () => void
-  /** On the Training plan tab: its place, and whether it can move (only in the full, unfiltered plan). */
-  plan?: { n: number; first: boolean; last: boolean; unfiltered: boolean }
-}) {
+function WorkoutCard({ entry, ftpW, onOpen }: { entry: LibraryEntry; ftpW: number; onOpen: () => void }) {
   const { workout: w, stats } = entry
   const blocks = useMemo(() => profileBlocks(entry.timeline, ftpW), [entry.timeline, ftpW])
-  const card = (
+  return (
     <button
       type="button"
       onClick={onOpen}
@@ -281,6 +290,7 @@ function WorkoutCard({
       </div>
       <div className="mt-2 flex flex-wrap gap-1">
         {!entry.builtin && <span className="rounded bg-accent/15 px-1.5 py-0.5 text-[10px] text-ink">{w.source === 'import' ? 'Imported' : w.source === 'ai' ? 'AI' : 'Mine'}</span>}
+        {entry.folder === 'plan' && <span className="rounded bg-panel-3 px-1.5 py-0.5 text-[10px] text-ink-dim">In a plan</span>}
         {w.tags.slice(0, 3).map((t) => (
           <span key={t} className="rounded bg-panel-3 px-1.5 py-0.5 text-[10px] text-ink-dim">
             {tagLabel(t)}
@@ -288,29 +298,5 @@ function WorkoutCard({
         ))}
       </div>
     </button>
-  )
-  if (!plan) return card
-  return (
-    <div className="relative" data-testid="plan-item">
-      <span className="absolute -left-2 -top-2 z-10 grid size-7 place-items-center rounded-full bg-accent font-display text-sm font-bold text-on-accent" aria-label={`Number ${plan.n} in your plan`}>
-        {plan.n}
-      </span>
-      {card}
-      <div className="absolute right-3 top-3 z-10 flex gap-1">
-        {plan.unfiltered && (
-          <>
-            <Button size="iconSm" variant="secondary" disabled={plan.first} onClick={() => void movePlanItem(w.id, -1)} aria-label={`Move ${w.name} earlier`}>
-              <ArrowUp className="size-3.5" />
-            </Button>
-            <Button size="iconSm" variant="secondary" disabled={plan.last} onClick={() => void movePlanItem(w.id, 1)} aria-label={`Move ${w.name} later`}>
-              <ArrowDown className="size-3.5" />
-            </Button>
-          </>
-        )}
-        <Button size="iconSm" variant="secondary" onClick={() => void moveToFolder(w.id, 'custom')} aria-label={`Move ${w.name} back to Custom workouts`} title="Back to Custom workouts">
-          <FolderInput className="size-3.5" />
-        </Button>
-      </div>
-    </div>
   )
 }

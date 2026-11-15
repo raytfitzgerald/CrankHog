@@ -120,4 +120,13 @@ describe('CoachSection', () => {
     expect(settingsStore.getState().coach.spice).toBe(5)
     expect(screen.queryByText('Use AI for fresh lines')).toBeNull()
   })
+
+  it('names the beeps Test apart from the voice Test, and disables it with the beeps off', async () => {
+    settingsStore.setState({ ...DEFAULT_SETTINGS, beeps: { enabled: false, volume: 0.6 } }, true)
+    render(<CoachSection />)
+    await flush()
+    const test = screen.getByRole('button', { name: 'Test beeps' })
+    expect(test.getAttribute('data-testid')).toBe('beeps-test')
+    expect((test as HTMLButtonElement).disabled).toBe(true)
+  })
 })

@@ -181,42 +181,49 @@ test('Ride it saves the workout and starts riding it', async () => {
   await expect(page.getByTestId('workout-card').filter({ hasText: 'E2E Ride It' })).toHaveCount(1)
 })
 
-test('a workout can be filed in the Training plan from the builder, ordered there, and moved back', async () => {
+test('a workout can be filed in a plan from the builder, ordered there, and taken out again', async () => {
   const { page } = ctx
-  for (const name of ['E2E Plan One', 'E2E Plan Two']) {
+  for (const [name, folder] of [
+    // no plans yet: filing makes one called Training plan
+    ['E2E Plan One', { label: 'Plan: Training plan (new)' }],
+    ['E2E Plan Two', { label: 'Plan: Training plan' }],
+  ] as const) {
     await newWorkout(page)
     await addBlocks(page, ['z2', 'z4'])
     await page.getByTestId('builder-name').fill(name)
-    await page.getByTestId('builder-folder').selectOption('plan')
+    await page.getByTestId('builder-folder').selectOption(folder)
     await page.getByTestId('builder-save').click()
     await expect(page.getByTestId('builder-clean')).toBeVisible()
   }
   await page.getByRole('link', { name: 'Workouts' }).click()
   await page.getByTestId('workout-tab-plan').click()
+  await expect(page.getByTestId('plan-card').filter({ hasText: 'Training plan' })).toHaveCount(1)
   const items = page.getByTestId('plan-item')
   await expect(items).toHaveCount(2)
   await expect(items.nth(0)).toContainText('E2E Plan One')
   await expect(items.nth(0).getByLabel('Number 1 in your plan')).toBeVisible()
   await page.getByRole('button', { name: 'Move E2E Plan Two earlier' }).click()
   await expect(items.nth(0)).toContainText('E2E Plan Two')
-  await page.getByRole('button', { name: 'Move E2E Plan One back to Custom workouts' }).click()
+  await page.getByRole('button', { name: 'Take E2E Plan One out of the plan' }).click()
   await expect(items).toHaveCount(1)
   await page.getByTestId('workout-tab-custom').click()
   await expect(page.getByTestId('workout-card').filter({ hasText: 'E2E Plan One' })).toHaveCount(1)
 })
 
-test('importing on the Training plan tab files workouts into the plan, in file-name order', async () => {
+test('importing into a plan adds workouts in file-name order, and a dated file keeps its day', async () => {
   const { page } = ctx
   await page.getByRole('link', { name: 'Workouts' }).click()
   await page.getByTestId('workout-tab-plan').click()
+  await page.getByTestId('plan-card').filter({ hasText: 'Training plan' }).click()
   const before = await page.getByTestId('plan-item').count()
   const file = (name: string, body: string) => ({ name, mimeType: 'text/plain', buffer: Buffer.from(body) })
-  // chosen out of order: the plan follows the numbers in the names
-  await page.locator('input[type="file"]').setInputFiles([file('02 Second.txt', '- 20m 70%'), file('01 First.txt', '- 10m 60%'), file('10 Tenth.txt', '- 30m 65%')])
-  await expect(page.getByRole('status').filter({ hasText: 'into your training plan' })).toBeVisible()
+  // chosen out of order: the plan follows the names, and a YYYY-MM-DD_ name fixes the day
+  await page.getByTestId('plan-import-input').setInputFiles([file('02 Second.txt', '- 20m 70%'), file('01 First.txt', '- 10m 60%'), file('2030-01-15_Tenth.txt', '- 30m 65%')])
+  await expect(page.getByRole('status').filter({ hasText: 'into Training plan' })).toBeVisible()
   const items = page.getByTestId('plan-item')
   await expect(items).toHaveCount(before + 3)
   await expect(items.nth(before)).toContainText('01 First')
   await expect(items.nth(before + 1)).toContainText('02 Second')
-  await expect(items.nth(before + 2)).toContainText('10 Tenth')
+  await expect(items.nth(before + 2)).toContainText('Tenth')
+  await expect(items.nth(before + 2).getByTestId('plan-item-date')).toContainText('(from the file name)')
 })

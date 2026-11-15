@@ -32,17 +32,19 @@ async function seedRides(page: Page) {
   })
 }
 
-test('History switches between the list and a month calendar, and remembers the choice', async () => {
+test('the Calendar shows the month’s rides, steps through months, and opens a ride; History keeps the list', async () => {
   const { page } = ctx
   await seedRides(page)
   await page.getByRole('link', { name: 'History', exact: true }).click()
   await expect(page.getByTestId('ride-list')).toBeVisible()
-  await page.getByRole('radio', { name: 'Calendar' }).click()
+  await page.getByRole('navigation', { name: 'Main' }).getByRole('link', { name: 'Calendar', exact: true }).click()
   const cal = page.getByTestId('ride-calendar')
   await expect(cal).toBeVisible()
   await expect(cal.getByTestId('calendar-ride')).toHaveCount(5)
   await expect(cal.getByTestId('calendar-ride-day')).toHaveCount(4) // two rides share the 5th
   await expect(cal.getByTestId('calendar-summary')).toContainText('5 rides')
+  await expect(cal.locator('[data-today]')).toHaveCount(1)
+  await expect(cal.getByTestId('week-volume').first()).toBeVisible()
 
   // a month back has none of its own (the faded days at its end may still show this month's), and Today comes home
   const month = await cal.getByTestId('calendar-month').textContent()
@@ -51,16 +53,14 @@ test('History switches between the list and a month calendar, and remembers the 
   await cal.getByRole('button', { name: 'Today' }).click()
   await expect(cal.getByTestId('calendar-month')).toHaveText(month!)
 
-  // a chip opens the ride
   // a chip opens the ride, and a bare record (older app versions, imports) still renders
   await cal.getByTestId('calendar-ride').filter({ hasText: 'VO2 Max' }).click()
   await expect(page).toHaveURL(/#\/history\/demo-5$/)
   await expect(page.getByRole('heading', { name: 'VO2 Max 5×4' })).toBeVisible()
   await expect(page.getByText('Something went wrong')).toHaveCount(0)
 
-  // back on History, the calendar is still the view
+  // History links back to the Calendar
   await page.getByRole('navigation', { name: 'Main' }).getByRole('link', { name: 'History', exact: true }).click()
+  await page.getByTestId('history-to-calendar').click()
   await expect(page.getByTestId('ride-calendar')).toBeVisible()
-  await page.getByRole('radio', { name: 'List' }).click()
-  await expect(page.getByTestId('ride-list')).toBeVisible()
 })

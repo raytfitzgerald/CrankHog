@@ -1,37 +1,17 @@
 import { useLiveQuery } from 'dexie-react-hooks'
 import { useRef, useState, type DragEvent } from 'react'
-import { useNavigate } from '@tanstack/react-router'
-import { Bike, FileDown, FileUp, FlaskConical, Gauge, LifeBuoy, Mountain } from 'lucide-react'
+import { Link, useNavigate } from '@tanstack/react-router'
+import { Bike, CalendarDays, FileDown, FileUp, FlaskConical, Gauge, LifeBuoy, Mountain } from 'lucide-react'
 import type { RideSummary } from '@core/ride/types'
 import { db } from '../../db/db'
-import { importFitFiles, type FitImportReport } from '../../db/fit-import'
+import { describeImport, importFitFiles, type FitImportReport } from '../../db/fit-import'
 import { Button } from '../../ui/Button'
 import { PageHeader } from '../../ui/PageHeader'
 import { cn } from '../../ui/cn'
 import { formatDate, formatDurationShort } from '../../ui/format'
-import { Segmented } from '../../ui/Segmented'
 import { THIS_DEVICE } from '../../platform/where'
-import { RideCalendar } from './RideCalendar'
 
 const KIND_ICON = { free: Bike, workout: Gauge, route: Mountain, 'ftp-test': FlaskConical } as const
-
-type View = 'list' | 'calendar'
-const VIEW_KEY = 'freegaz.history.view'
-/** The last view picked, per Mac: a convenience, so storage failing just means the list. */
-function savedView(): View {
-  try {
-    return localStorage.getItem(VIEW_KEY) === 'calendar' ? 'calendar' : 'list'
-  } catch {
-    return 'list'
-  }
-}
-function saveView(v: View): void {
-  try {
-    localStorage.setItem(VIEW_KEY, v)
-  } catch {
-    // storage unavailable: the choice lasts until the page closes
-  }
-}
 
 export function HistoryPage() {
   const rides = useLiveQuery(() => db().rides.orderBy('startedAt').reverse().limit(500).toArray(), [])
@@ -39,11 +19,6 @@ export function HistoryPage() {
   const [busy, setBusy] = useState<string | null>(null)
   const [report, setReport] = useState<FitImportReport | null>(null)
   const [dragging, setDragging] = useState(false)
-  const [view, setView] = useState<View>(savedView)
-  const pick = (v: View) => {
-    setView(v)
-    saveView(v)
-  }
 
   const importFiles = async (list: FileList | File[]) => {
     const files = await Promise.all(Array.from(list).filter((f) => /\.fit$/i.test(f.name)).map(async (f) => ({ name: f.name, bytes: new Uint8Array(await f.arrayBuffer()) })))
@@ -76,15 +51,11 @@ export function HistoryPage() {
         subtitle={`Every ride, every second, stored on ${THIS_DEVICE}.`}
         actions={
           <>
-            <Segmented
-              ariaLabel="History view"
-              value={view}
-              onChange={pick}
-              options={[
-                { value: 'list', label: 'List', hint: 'Every ride, newest first' },
-                { value: 'calendar', label: 'Calendar', hint: 'A month at a time' },
-              ]}
-            />
+            <Button size="sm" variant="ghost" asChild>
+              <Link to="/calendar" data-testid="history-to-calendar">
+                <CalendarDays className="size-3.5" /> Calendar
+              </Link>
+            </Button>
             <input ref={input} type="file" accept=".fit" multiple className="hidden" onChange={(e) => e.target.files && void importFiles(e.target.files)} />
             <Button size="sm" disabled={!!busy} onClick={() => input.current?.click()} title="Garmin, Wahoo or other apps' .fit files (or drop them here)">
               <FileUp className="size-3.5" /> {busy ?? 'Import FIT files'}
@@ -98,8 +69,7 @@ export function HistoryPage() {
           No rides yet. Go suffer and come back, or drop old .fit files here to bring your history with you.
         </div>
       )}
-      {rides && rides.length > 0 && view === 'calendar' && <RideCalendar />}
-      {rides && rides.length > 0 && view === 'list' && (
+      {rides && rides.length > 0 && (
         <div className="overflow-hidden rounded-2xl border border-line" data-testid="ride-list">
           <table className="w-full text-sm">
             <thead className="bg-panel-2 text-left eyebrow text-ink-faint">
@@ -131,7 +101,7 @@ function ImportReport({ report, onClose }: { report: FitImportReport; onClose: (
     <div className="mb-4 rounded-2xl border border-line bg-panel px-5 py-3 text-sm" role="status" data-testid="fit-import-report">
       <div className="flex items-center justify-between">
         <span className="flex items-center gap-2 font-medium">
-          <FileDown className="size-4 text-accent" /> Imported {report.imported.length} ride{report.imported.length === 1 ? '' : 's'}
+          <FileDown className="size-4 text-accent" /> Imported {describeImport(report)}
           {report.skipped.length > 0 && `, skipped ${report.skipped.length}`}
         </span>
         <Button size="sm" variant="ghost" onClick={onClose}>

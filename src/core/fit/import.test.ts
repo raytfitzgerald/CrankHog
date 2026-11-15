@@ -2,7 +2,7 @@ import FitParser from 'fit-file-parser'
 import { describe, expect, it } from 'vitest'
 import { finalizeRide } from '../ride/finalize'
 import type { RideRecord } from '../ride/recorder'
-import { FitImportError, importFitActivity, type DecodedFit, type DecodedRecord } from './import'
+import { FitImportError, importFitActivity, importOtherActivity, splitMultisport, type DecodedFit, type DecodedRecord } from './import'
 
 const T0 = Date.UTC(2026, 8, 20, 6, 30, 0)
 
@@ -103,5 +103,91 @@ describe('importFitActivity', () => {
     expect(() => importFitActivity({ sessions: [{ sport: 'running' }] })).toThrow(/running activity, not a ride/)
     expect(() => importFitActivity({ sessions: [{ sport: 'cycling' }], records: [] })).toThrow(/no recorded data/)
     expect(() => importFitActivity({ records: Array.from({ length: 20 }, (_, s) => ({ timestamp: at(s), power: 100 })) })).toThrow(/Less than a minute/)
+  })
+})
+
+describe('importOtherActivity', () => {
+  const run = (over: Partial<NonNullable<DecodedFit['sessions']>[number]> = {}): DecodedFit => ({
+    file_ids: [{ manufacturer: 'garmin', garmin_product: 'fr965' }],
+    sessions: [{ sport: 'running', sub_sport: 'generic', total_training_effect: 3.2, total_anaerobic_training_effect: 1.4, training_load_peak: 87.5, ...over }],
+    // 30 min at 1 Hz, with a timer pause from 600 to 900 that is not filled
+    records: [
+      ...Array.from({ length: 600 }, (_, s) => ({ timestamp: at(s), heart_rate: 150, distance: s * 3 })),
+      ...Array.from({ length: 1200 }, (_, s) => ({ timestamp: at(900 + s), heart_rate: 160, distance: 1800 + s * 3 })),
+    ],
+    events: [
+      { event: 'timer', event_type: 'start', timestamp: at(0) },
+      { event: 'timer', event_type: 'stop_all', timestamp: at(601) },
+      { event: 'timer', event_type: 'start', timestamp: at(900) },
+    ],
+  })
+
+  it('reads a run: sport, moving time, distance, heart rate, and Garmin’s Training Effect and load', () => {
+    const a = importOtherActivity(run())
+    expect(a).toMatchObject({
+      sport: 'running',
+      subSport: 'generic',
+      // like a ride: the first record marks the end of the first moving second
+      startedAt: T0 - 1000,
+      movingS: 1800,
+      distanceM: 1800 + 1199 * 3,
+      avgHr: 157,
+      maxHr: 160,
+      trainingEffect: { aerobic: 3.2, anaerobic: 1.4 },
+      garminLoad: 87.5,
+      device: 'garmin fr965',
+    })
+    expect(a.hr).toHaveLength(1800)
+  })
+
+  it('leaves out what the file does not carry: missing is not zero', () => {
+    const a = importOtherActivity(run({ total_training_effect: undefined, total_anaerobic_training_effect: undefined, training_load_peak: undefined }))
+    expect(a.trainingEffect).toBeNull()
+    expect(a.garminLoad).toBeNull()
+    const noHr = importOtherActivity({ sessions: [{ sport: 'training', sub_sport: 'strength_training' }], records: Array.from({ length: 900 }, (_, s) => ({ timestamp: at(s) })) })
+    expect(noHr).toMatchObject({ sport: 'training', subSport: 'strength_training', movingS: 900, avgHr: null, maxHr: null, distanceM: null })
+  })
+
+  it('falls back to the session’s own totals when the file has no records', () => {
+    const a = importOtherActivity({ sessions: [{ sport: 'swimming', start_time: at(0), total_timer_time: 2400.4, total_distance: 2000, avg_heart_rate: 128, max_heart_rate: 151 }] })
+    expect(a).toMatchObject({ sport: 'swimming', startedAt: T0, movingS: 2400, distanceM: 2000, avgHr: 128, maxHr: 151, hr: [] })
+  })
+
+  it('refuses a file with nothing in it', () => {
+    expect(() => importOtherActivity({ sessions: [{ sport: 'running' }] })).toThrow(FitImportError)
+  })
+})
+
+describe('splitMultisport', () => {
+  // a sprint triathlon: 20 min swim, 2 min transition, 40 min bike, 1 min transition, 20 min run
+  const legs: [string, number, number][] = [
+    ['swimming', 0, 1200],
+    ['transition', 1200, 120],
+    ['cycling', 1320, 2400],
+    ['transition', 3720, 60],
+    ['running', 3780, 1200],
+  ]
+  const tri: DecodedFit = {
+    sessions: legs.map(([sport, start]) => ({ sport, start_time: at(start) })),
+    records: Array.from({ length: 4980 }, (_, s) => ({ timestamp: at(s), heart_rate: 150 })),
+    laps: legs.map(([, start]) => ({ start_time: at(start) })),
+  }
+
+  it('makes one activity of each leg, with its own records and laps, leaving the transitions out', () => {
+    const parts = splitMultisport(tri)
+    expect(parts.map((p) => [p.sessions![0]!.sport, p.records!.length, p.laps!.length])).toEqual([
+      ['swimming', 1200, 1],
+      ['cycling', 2400, 1],
+      ['running', 1200, 1],
+    ])
+    expect(importFitActivity(parts[1]!).records).toHaveLength(2400)
+    expect(importOtherActivity(parts[2]!)).toMatchObject({ sport: 'running', movingS: 1200 })
+  })
+
+  it('leaves a file with one session, or sessions without start times, whole', () => {
+    const one: DecodedFit = { sessions: [{ sport: 'cycling' }], records: [] }
+    expect(splitMultisport(one)).toEqual([one])
+    const undated: DecodedFit = { sessions: [{ sport: 'swimming' }, { sport: 'running' }] }
+    expect(splitMultisport(undated)).toEqual([undated])
   })
 })

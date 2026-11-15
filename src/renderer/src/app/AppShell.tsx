@@ -9,6 +9,7 @@ import { RecoveryBanner } from '../features/ride/RecoveryBanner'
 import { ReportBugDialog, ReportBugLink } from '../features/support/ReportBugDialog'
 import { BikeFundLink } from '../features/support/BikeFund'
 import { UpdateReadyLink } from '../features/updates/UpdatesField'
+import { WhatsNewDialog } from '../features/whats-new/WhatsNewDialog'
 import { useGlobalHotkeys } from './hotkeys'
 import { ToastHost } from './ToastHost'
 import { MobileTabBar, MobileTopBar } from './MobileNav'
@@ -59,6 +60,7 @@ export function AppShell() {
       <ChooserDialog />
       <ToastHost />
       <ReportBugDialog />
+      <WhatsNewDialog />
     </div>
   )
 }

@@ -46,6 +46,8 @@ export interface RideRunnerDeps {
   controller: TrainerController
   engine: LiveEngine
   simulated: boolean
+  /** True while a spin-down calibration runs: no ride starts then. */
+  calibrating?: () => boolean
 }
 
 export class RideRunner {
@@ -83,6 +85,7 @@ export class RideRunner {
 
   async start(opts: { plan?: RidePlan; name?: string; kind?: RideKind } = {}): Promise<void> {
     if (this.active || this.starting) return
+    if (this.deps.calibrating?.()) throw new Error('The trainer is calibrating. Finish or cancel the calibration, then start the ride.')
     this.starting = true
     try {
       await this.begin(opts)

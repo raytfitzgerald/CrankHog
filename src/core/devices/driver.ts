@@ -2,6 +2,7 @@
 // top of a GattSession and pushes normalized samples into the SensorHub via
 // its DriverContext. Drivers are re-attached with a fresh session after every
 // reconnect, so attach() must be idempotent and (re)subscribe everything.
+import type { SpinDownStatus, SpinDownTargets } from '../ble/codecs'
 import type { GattSession, Uuid } from '../ble/transport'
 import type { Metric } from '../sensors/types'
 import type { CommandResult, DeviceRole, DriverKind, TrainerCaps, TrainerCommand } from './types'
@@ -39,6 +40,30 @@ export interface TrainerDriver extends Driver {
   /** Another client (Zwift, Wahoo app, head unit) took control of the trainer. */
   onControlLost(listener: () => void): () => void
 }
+
+/** What a trainer said to Spin Down Control (Start): ok with the speed window to reach, or why not. */
+export interface SpinDownStart {
+  result: CommandResult
+  targets: SpinDownTargets | null
+}
+
+/**
+ * What a trainer says that bears on a spin down: its Spin Down Status
+ * (requested, stop pedalling, success or error), or that it reset or another
+ * app took control, either of which ends one.
+ */
+export type SpinDownUpdate = SpinDownStatus | 'reset' | 'controlLost'
+
+/** A trainer driver that can run a spin-down calibration (FTMS). */
+export interface SpinDownCapable {
+  startSpinDown(): Promise<SpinDownStart>
+  /** Ends a spin down the trainer has not finished, so it takes targets again. */
+  stopSpinDown(): Promise<CommandResult>
+  onSpinDownStatus(listener: (update: SpinDownUpdate) => void): () => void
+}
+
+/** True for a connected trainer whose driver and features both support spin down. */
+export const canSpinDown = (d: TrainerDriver | null): d is TrainerDriver & SpinDownCapable => d !== null && d.caps.spinDown && 'startSpinDown' in d
 
 export interface FanDriver extends Driver {
   setSpeed(pct: number): Promise<CommandResult>

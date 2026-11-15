@@ -17,4 +17,13 @@ describe('IPC contract', () => {
     expect(invoke['app.ping'].req.safeParse({ msg: 'x'.repeat(201) }).success).toBe(false)
     expect(invoke['app.ping'].req.safeParse({ msg: 'hi' }).success).toBe(true)
   })
+
+  it('takes only real days for the intervals.icu calendar', () => {
+    const ok = (oldest: string, newest = '2026-12-15') => invoke['intervals.planned'].req.safeParse({ oldest, newest }).success
+    expect(ok('2026-11-18')).toBe(true)
+    expect(ok('2028-02-29')).toBe(true)
+    expect(ok('2026-13-45')).toBe(false)
+    expect(ok('2026-02-30')).toBe(false)
+    expect(ok('2026-11-8')).toBe(false)
+  })
 })

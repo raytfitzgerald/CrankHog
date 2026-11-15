@@ -97,3 +97,24 @@ function dayNumber(date: string): number {
 function isoDate(dayNum: number): string {
   return new Date(dayNum * MS_PER_DAY).toISOString().slice(0, 10)
 }
+
+export interface ProjectedPmcRow extends PmcRow {
+  /** After today: computed from planned workouts, not rides. */
+  projected: boolean
+}
+
+/**
+ * Fitness, fatigue and form carried on from the ride history through the
+ * planned days, as TrainingPeaks projects them. History counts up to and
+ * including `today`; after that only the planned TSS does. Planned TSS on
+ * days up to today is ignored, since those days already have what happened.
+ */
+export function projectPmc(
+  history: readonly PmcDay[],
+  planned: readonly PmcDay[],
+  opts: { today: string; to: string; from?: string; ctlDays?: number; atlDays?: number },
+): ProjectedPmcRow[] {
+  const today = dayNumber(opts.today)
+  const days = [...history.filter((d) => dayNumber(d.date) <= today), ...planned.filter((d) => dayNumber(d.date) > today)]
+  return computePmc(days, { from: opts.from, to: opts.to, ctlDays: opts.ctlDays, atlDays: opts.atlDays }).map((r) => ({ ...r, projected: dayNumber(r.date) > today }))
+}

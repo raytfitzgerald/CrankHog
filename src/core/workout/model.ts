@@ -114,6 +114,8 @@ export interface Workout {
   ftpTest?: FtpTestSpec
   /** Where the rider files their own workout: Custom workouts (the default) or their Training plan. Built-ins ignore it. */
   folder?: WorkoutFolder
+  /** With folder 'plan': which training plan (src/core/workout/plan.ts) it was filed in. */
+  planId?: string
   /** Epoch ms. */
   createdAt?: number
   updatedAt?: number

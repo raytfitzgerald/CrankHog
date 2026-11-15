@@ -1,8 +1,10 @@
 import { useState, type ReactNode } from 'react'
+import { useLiveQuery } from 'dexie-react-hooks'
 import { X } from 'lucide-react'
 import type { Workout } from '@core/workout/model'
 import { Input, Select } from '../../ui/form'
 import { tagLabel } from '../../workouts/library'
+import { listPlans } from '../../plan/plans-repo'
 import { addTags, withOptional } from './fields'
 
 type Meta = Pick<Workout, 'name' | 'author' | 'description' | 'tags' | 'folder'>
@@ -44,10 +46,7 @@ export function MetaCard({ workout, onChange }: { workout: Workout; onChange: (n
           />
         </Labeled>
         <Labeled label="Folder">
-          <Select value={workout.folder ?? 'custom'} onChange={(e) => set('folder', e.target.value === 'plan' ? 'plan' : undefined)} data-testid="builder-folder">
-            <option value="custom">Custom workouts</option>
-            <option value="plan">Training plan</option>
-          </Select>
+          <FolderSelect workout={workout} onChange={onChange} />
         </Labeled>
       </div>
       <Labeled label="Description">
@@ -108,5 +107,30 @@ function Labeled({ label, children }: { label: string; children: ReactNode }) {
       <span className={fieldLabel}>{label}</span>
       {children}
     </label>
+  )
+}
+
+/**
+ * Custom workouts, or one of the rider's plans: saving files the workout at
+ * the end of that plan. With no plans yet, "Training plan" makes one.
+ */
+function FolderSelect({ workout, onChange }: { workout: Workout; onChange: (next: Workout, group?: string) => void }) {
+  const plans = useLiveQuery(() => listPlans(), []) ?? []
+  const value = workout.folder === 'plan' ? `plan:${workout.planId && plans.some((p) => p.id === workout.planId) ? workout.planId : 'new'}` : 'custom'
+  const pick = (v: string) => {
+    const { folder: _f, planId: _p, ...rest } = workout
+    if (v === 'custom') onChange(rest)
+    else onChange({ ...rest, folder: 'plan', ...(v === 'plan:new' ? {} : { planId: v.slice('plan:'.length) }) })
+  }
+  return (
+    <Select value={value} onChange={(e) => pick(e.target.value)} data-testid="builder-folder">
+      <option value="custom">Custom workouts</option>
+      {plans.map((p) => (
+        <option key={p.id} value={`plan:${p.id}`}>
+          Plan: {p.name}
+        </option>
+      ))}
+      {(plans.length === 0 || value === 'plan:new') && <option value="plan:new">Plan: Training plan (new)</option>}
+    </Select>
   )
 }

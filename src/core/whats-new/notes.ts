@@ -1,0 +1,33 @@
+// What's new: the short version of each release, shown once after an update.
+// The full notes live in docs/releases/v<version>.md and on the GitHub release;
+// this is the part a rider reads before getting on the bike.
+//
+// Every release adds an entry here (tests/unit/whats-new.test.ts fails a
+// version bump without one). Newest first. Keep it brief: one line that says
+// what changed for the rider, then up to four short points, in the app's voice
+// (docs/BRAND.md: plain, specific, no exclamation marks or hype).
+
+export interface WhatsNewEntry {
+  /** The app version, as in package.json. */
+  version: string
+  /** The release in one sentence. */
+  title: string
+  /** One to four short points. */
+  points: string[]
+}
+
+export const WHATS_NEW: readonly WhatsNewEntry[] = [
+  {
+    version: '0.6.4',
+    title: 'Heart-rate straps that are slow to connect get the time they need.',
+    points: [
+      'Some straps, like the Garmin HRM 200, showed up in Devices and then failed to connect. Connecting now waits up to 30 seconds for them.',
+      "Reading from and writing to a device still gives up after 4 seconds, so a trainer that stops answering can't hold up a ride.",
+    ],
+  },
+]
+
+/** The GitHub release page with the full notes for a version. */
+export function releaseNotesUrl(version: string): string {
+  return `https://github.com/raytfitzgerald/CrankHog/releases/tag/v${encodeURIComponent(version)}`
+}

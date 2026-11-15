@@ -8,6 +8,8 @@
 //     indication [0x80, requestOp, result, ...] which we match with a timeout
 //   * "Control Not Permitted" (result 5) or Status 0xFF means another client
 //     took over; we re-request control once and retry, then report.
+//   * a spin down the app gives up on is ended with Stop; Start goes out
+//     again before the next target.
 import {
   FtmsResult,
   IndoorBikeDataAssembler,
@@ -16,6 +18,7 @@ import {
   parseFtmsResponse,
   parseFtmsStatus,
   parseIndoorBikeData,
+  parseSpinDownTargets,
   parseSupportedPowerRange,
   parseSupportedResistanceRange,
   type FtmsCommand,
@@ -23,18 +26,24 @@ import {
 } from '../../ble/codecs'
 import { toHex, type GattSession } from '../../ble/transport'
 import { CHAR, SERVICE } from '../../ble/uuids'
-import type { DriverContext, TrainerDriver } from '../driver'
+import type { DriverContext, SpinDownCapable, SpinDownStart, SpinDownUpdate, TrainerDriver } from '../driver'
 import type { CommandResult, Range, TrainerCaps, TrainerCommand } from '../types'
 
 const CP_TIMEOUT_MS = 3000
 
+/** A control point answer: the result code and any response parameters. */
+interface Answer {
+  result: number
+  params: Uint8Array
+}
+
 interface PendingOp {
   op: number
-  resolve: (result: number) => void
+  resolve: (answer: Answer) => void
   timer: ReturnType<typeof setTimeout>
 }
 
-export class FtmsTrainerDriver implements TrainerDriver {
+export class FtmsTrainerDriver implements TrainerDriver, SpinDownCapable {
   readonly kind = 'ftms' as const
   readonly role = 'trainer' as const
   caps: TrainerCaps
@@ -49,6 +58,15 @@ export class FtmsTrainerDriver implements TrainerDriver {
   private resistanceEncoding: 'uint8' | 'sint16' = 'sint16'
   private readonly assembler = new IndoorBikeDataAssembler()
   private readonly controlLostListeners = new Set<() => void>()
+  private readonly spinDownListeners = new Set<(update: SpinDownUpdate) => void>()
+  /** A Stop has been queued since the last Start: the next target sends Start first. */
+  private stopped = false
+  /** The Stop under way, its Reset fallback included; a new spin down waits for it. */
+  private stopping: Promise<unknown> = Promise.resolve()
+  /** Bumped by a Stop, a reset and lost control, so a spin down Start still waiting to go out is dropped. */
+  private spinDownRun = 0
+  /** Our own Reset (Stop's fallback) went out: the Reset status it brings ends nothing new. */
+  private ownReset = false
   private attached = false
 
   constructor(private features: FtmsFeatures | null = null) {
@@ -128,7 +146,7 @@ export class FtmsTrainerDriver implements TrainerDriver {
       if (!this.hasControl) {
         const c = await this.ensureControl()
         if (c !== FtmsResult.Success) return mapResult(c)
-      }
+      } else if (this.stopped) await this.startSession()
       let result = await this.write(ftms)
       if (result === FtmsResult.ControlNotPermitted) {
         this.hasControl = false
@@ -140,6 +158,78 @@ export class FtmsTrainerDriver implements TrainerDriver {
     } catch {
       return this.session ? 'timeout' : 'disconnected'
     }
+  }
+
+  /**
+   * Spin Down Control (Start), after taking control like any command. On
+   * success the trainer answers with the speed window to reach; what follows
+   * arrives as Spin Down Status (onSpinDownStatus).
+   */
+  async startSpinDown(): Promise<SpinDownStart> {
+    if (!this.session || !this.attached) return { result: 'disconnected', targets: null }
+    if (!this.caps.spinDown) return { result: 'unsupported', targets: null }
+    const cmd: FtmsCommand = { op: 'spinDown', start: true }
+    const run = this.spinDownRun
+    // stopped, reset or taken over before it went out: a Start sent now would outlive that
+    const stopped: SpinDownStart = { result: 'rejected', targets: null }
+    try {
+      // an earlier Stop (and its Reset fallback) goes first
+      await this.stopping
+      if (run !== this.spinDownRun) return stopped
+      if (!this.hasControl) {
+        const c = await this.ensureControl()
+        if (c !== FtmsResult.Success) return { result: mapResult(c), targets: null }
+        if (run !== this.spinDownRun) return stopped
+      }
+      let answer = await this.procedure(cmd)
+      if (answer.result === FtmsResult.ControlNotPermitted) {
+        this.hasControl = false
+        const c = await this.ensureControl()
+        if (c !== FtmsResult.Success) return { result: mapResult(c), targets: null }
+        if (run !== this.spinDownRun) return stopped
+        answer = await this.procedure(cmd)
+      }
+      const result = mapResult(answer.result)
+      return { result, targets: result === 'ok' ? parseSpinDownTargets(answer.params) : null }
+    } catch {
+      return { result: this.session ? 'timeout' : 'disconnected', targets: null }
+    }
+  }
+
+  /**
+   * Ends a spin down early with Stop (FTMS v1.0 §4.16.2.9), which ends the
+   * trainer's session and the spin down in it. Start goes out again before
+   * the next target. A trainer without Stop is sent Reset instead, which also
+   * hands back control; the next command takes it again. Queued behind
+   * anything already sent, so it also ends a Start still waiting for its answer.
+   */
+  stopSpinDown(): Promise<CommandResult> {
+    if (!this.session || !this.attached) return Promise.resolve('disconnected')
+    this.spinDownRun++
+    // set as the Stop is queued, so a target queued behind it sends Start first
+    this.stopped = true
+    const stop = this.endSession()
+    this.stopping = stop
+    return stop
+  }
+
+  private async endSession(): Promise<CommandResult> {
+    try {
+      const r = await this.write({ op: 'stop' })
+      if (r !== FtmsResult.NotSupported) return mapResult(r)
+      this.ownReset = true
+      const reset = await this.write({ op: 'reset' })
+      if (reset === FtmsResult.Success) this.hasControl = false
+      else this.ownReset = false
+      return mapResult(reset)
+    } catch {
+      return this.session ? 'timeout' : 'disconnected'
+    }
+  }
+
+  onSpinDownStatus(listener: (update: SpinDownUpdate) => void): () => void {
+    this.spinDownListeners.add(listener)
+    return () => this.spinDownListeners.delete(listener)
   }
 
   // ---- internals ------------------------------------------------------------
@@ -175,12 +265,17 @@ export class FtmsTrainerDriver implements TrainerDriver {
     }
     this.hasControl = true
     this.controlLostReported = false
-    if (!this.started) {
-      const s = await this.write({ op: 'start' })
-      // Some trainers answer "not supported" to Start; they're still controllable.
-      if (s === FtmsResult.Success || s === FtmsResult.NotSupported) this.started = true
-    }
+    if (!this.started || this.stopped) await this.startSession()
     return r
+  }
+
+  /** Start: tried once per control, and once after each Stop. */
+  private async startSession(): Promise<void> {
+    // cleared as Start is queued: a Stop queued after it sets it again
+    this.stopped = false
+    const s = await this.write({ op: 'start' })
+    // Some trainers answer "not supported" to Start; they're still controllable.
+    if (s === FtmsResult.Success || s === FtmsResult.NotSupported) this.started = true
   }
 
   private reportControlLost(): void {
@@ -191,24 +286,29 @@ export class FtmsTrainerDriver implements TrainerDriver {
   }
 
   /** Writes one control-point procedure and resolves with its result code. */
-  private write(cmd: FtmsCommand): Promise<number> {
-    const run = async (): Promise<number> => {
+  private async write(cmd: FtmsCommand): Promise<number> {
+    return (await this.procedure(cmd)).result
+  }
+
+  /** Writes one control-point procedure and resolves with the trainer's whole answer. */
+  private procedure(cmd: FtmsCommand): Promise<Answer> {
+    const run = async (): Promise<Answer> => {
       const session = this.session
       if (!session) throw new Error('disconnected')
       const bytes = encodeFtmsCommand(cmd)
       const op = bytes[0]!
-      const response = new Promise<number>((resolve) => {
+      const response = new Promise<Answer>((resolve) => {
         const timer = setTimeout(() => {
           if (this.pending?.op === op) this.pending = null
-          resolve(-1)
+          resolve({ result: -1, params: new Uint8Array() })
         }, CP_TIMEOUT_MS)
         this.pending = { op, resolve, timer }
       })
       this.ctx?.capture({ dir: 'tx', service: SERVICE.fitnessMachine, characteristic: CHAR.fitnessMachineControlPoint, hex: toHex(bytes) })
       await session.write(SERVICE.fitnessMachine, CHAR.fitnessMachineControlPoint, bytes, { withResponse: true })
-      const result = await response
-      if (result === -1) throw new Error(`FTMS op 0x${op.toString(16)} timed out`)
-      return result
+      const answer = await response
+      if (answer.result === -1) throw new Error(`FTMS op 0x${op.toString(16)} timed out`)
+      return answer
     }
     const p = this.cpChain.then(run, run)
     this.cpChain = p.catch(() => undefined)
@@ -222,7 +322,7 @@ export class FtmsTrainerDriver implements TrainerDriver {
     const p = this.pending
     this.pending = null
     clearTimeout(p.timer)
-    p.resolve(res.result)
+    p.resolve({ result: res.result, params: res.params })
   }
 
   private onStatus(dv: DataView): void {
@@ -235,10 +335,24 @@ export class FtmsTrainerDriver implements TrainerDriver {
     }
     if (status.kind === 'controlPermissionLost') {
       this.reportControlLost()
+      this.spinDownRun++
+      this.spinDownUpdate('controlLost')
     } else if (status.kind === 'reset') {
       this.hasControl = false
       this.started = false
+      if (this.ownReset) {
+        this.ownReset = false
+        return
+      }
+      this.spinDownRun++
+      this.spinDownUpdate('reset')
+    } else if (status.kind === 'spinDown') {
+      this.spinDownUpdate(status.status)
     }
+  }
+
+  private spinDownUpdate(update: SpinDownUpdate): void {
+    for (const l of this.spinDownListeners) l(update)
   }
 
   private onBikeData(dv: DataView): void {
@@ -265,7 +379,7 @@ export class FtmsTrainerDriver implements TrainerDriver {
   private failPending(result: number): void {
     if (!this.pending) return
     clearTimeout(this.pending.timer)
-    this.pending.resolve(result)
+    this.pending.resolve({ result, params: new Uint8Array() })
     this.pending = null
   }
 }
