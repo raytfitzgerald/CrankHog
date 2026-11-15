@@ -50,7 +50,7 @@ export function RideDescriptionFields() {
         </div>
       </Field>
       <Field label="Numbers" hint="Each one appears only when the ride has it, such as heart rate with a strap.">
-        <div className="flex flex-wrap gap-x-4 gap-y-2 pt-2 text-sm" role="group" aria-label="Numbers in the description">
+        <div className="flex flex-col gap-2 pt-2 text-sm" role="group" aria-label="Numbers in the description">
           {DESCRIPTION_STATS.map((s) => (
             <label key={s.id} className="flex items-center gap-2">
               <input type="checkbox" checked={prefs.stats.includes(s.id)} onChange={(e) => toggle(s.id, e.target.checked)} data-testid={`ride-description-stat-${s.id}`} />
