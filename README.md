@@ -204,7 +204,7 @@ npm run dev
 
 ### Updates
 
-From 0.5.0, the Mac app updates itself. It checks GitHub's releases a little after launch and every six hours, downloads a new version in the background, and installs it the next time you quit, or straight away from **Restart to update** in the sidebar. Nothing restarts during a ride. **Settings → About** has **Check for updates**, a switch to turn automatic updates off, and one for pre-releases (every 0.x release is one). The check only asks GitHub which release is newest; it sends nothing about you or your rides.
+From 0.5.0, the Mac app updates itself. It checks GitHub's releases a little after launch and every six hours, downloads a new version in the background, and installs it the next time you quit, or straight away from **Restart to update** in the sidebar. Nothing restarts during a ride. **Settings → About** has **Check for updates**, a switch to turn automatic updates off, and one for pre-releases (test builds published before a release; every release before 1.0 was one). The check only asks GitHub which release is newest; it sends nothing about you or your rides.
 
 0.4.0 and earlier can't update themselves: download 0.5.0 from [crankhog.app](https://crankhog.app) once, and it takes over from there.
 

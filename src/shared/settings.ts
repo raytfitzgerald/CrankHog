@@ -91,7 +91,7 @@ export const JourneyPrefsSchema = z.object({
 export const UpdatePrefsSchema = z.object({
   /** Check at launch and every few hours, and download in the background. Installing waits for a restart or quit. */
   auto: z.boolean().default(true),
-  /** Take pre-releases too. Every 0.x release is a pre-release, so this is on by default. */
+  /** Take pre-releases too: test builds like 1.1.0-beta.1. On by default from before 1.0, when every release was one. */
   prereleases: z.boolean().default(true),
 })
 

@@ -18,6 +18,16 @@ export interface WhatsNewEntry {
 
 export const WHATS_NEW: readonly WhatsNewEntry[] = [
   {
+    version: '1.0.0',
+    title: 'CrankHog 1.0: a training calendar and plans, and a ride clock that waits for you.',
+    points: [
+      'Calendar in the sidebar: put workouts on days, mark events and days off, and build a training plan for an event, with or without AI.',
+      'The ride clock starts at your first pedal stroke, and pauses are closed up, so Strava shows the same time as CrankHog.',
+      'Countdown beeps before each workout step ends, and spin-down calibration for trainers that support it (Devices, then Calibrate).',
+      'Coasting downhill keeps you rolling instead of pausing, and free rides and ERG workouts measure distance from your power, not your gear.',
+    ],
+  },
+  {
     version: '0.6.4',
     title: 'Heart-rate straps that are slow to connect get the time they need.',
     points: [

@@ -50,7 +50,7 @@ export function UpdatesField() {
           <Field label="Update automatically" hint="Checks at launch and every six hours, and downloads in the background. Nothing installs until you restart or quit.">
             <Switch checked={prefs.auto} onChange={(v) => setPrefs({ auto: v })} label={prefs.auto ? 'On' : 'Off'} />
           </Field>
-          <Field label="Include pre-releases" hint="Every 0.x release is a pre-release, so turning this off stops updates until 1.0.">
+          <Field label="Include pre-releases" hint="Test builds published before a release, named like 1.1.0-beta.1. Full releases come either way.">
             <Switch checked={prefs.prereleases} onChange={(v) => setPrefs({ prereleases: v })} label={prefs.prereleases ? 'On' : 'Off'} />
           </Field>
         </>
