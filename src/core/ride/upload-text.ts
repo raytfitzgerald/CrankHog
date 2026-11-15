@@ -1,82 +1,64 @@
 // The description CrankHog writes under a ride it uploads to Strava and
-// intervals.icu: a line about CrankHog (or the rider's own, or none: Settings →
-// Strava & sync), a journey's line when there is one, and the numbers people
-// actually look at.
+// intervals.icu. The rider writes it in Settings → Strava & sync; {stats}
+// stands for the numbers they tick, in a fixed order. On a journey, the
+// journey's line goes above it.
 
-export const SITE = 'crankhog.app'
+export const STATS_TOKEN = '{stats}'
+export const MAX_DESCRIPTION = 1000
 
-/** The rotating lines, one per ride. Sir Loin's rule holds: nothing about what a hog is made of. */
-export const HOG_LINES: readonly string[] = [
-  'Cranked hog with CrankHog',
-  'Went the whole hog with CrankHog',
-  'Went hog wild with CrankHog',
-  'Hogged the trainer with CrankHog',
-  'Chased Sir Loin with CrankHog',
-]
-
-export type DescriptionLine = 'hog' | 'cranked' | 'whole-hog' | 'recorded' | 'custom' | 'none'
-
-/** The fixed lines a rider can pick instead of the rotating ones. */
-export const FIXED_LINES: Readonly<Record<'cranked' | 'whole-hog' | 'recorded', string>> = {
-  cranked: 'Cranked hog with CrankHog',
-  'whole-hog': 'Went the whole hog with CrankHog',
-  recorded: 'Recorded with CrankHog',
-}
-
-export const MAX_CUSTOM_LINE = 200
-
-export interface DescriptionPrefs {
-  line: DescriptionLine
-  /** The rider's own line, used when `line` is 'custom'. */
-  custom: string
-  /** The numbers: NP, IF, TSS, kJ and average heart rate. */
-  stats: boolean
-}
+export type DescriptionStat = 'avgPower' | 'np' | 'maxPower' | 'avgHr' | 'maxHr' | 'avgCadence' | 'kj' | 'tss' | 'if'
 
 export interface RideNumbers {
+  avgPower: number | null
   np: number | null
-  intensityFactor: number | null
-  tss: number | null
-  kj: number
+  maxPower: number | null
   avgHr: number | null
+  maxHr: number | null
+  avgCadence: number | null
+  kj: number
+  tss: number | null
+  intensityFactor: number | null
 }
 
-/** Picks from the ride's id, so a retried upload keeps its line. */
-function pick(rideId: string): string {
-  let h = 0
-  for (const ch of rideId) h = (h * 31 + ch.charCodeAt(0)) >>> 0
-  return HOG_LINES[h % HOG_LINES.length]!
-}
+const int = (v: number | null) => (v === null || !Number.isFinite(v) ? null : Math.round(v))
 
-/** The first line, or null when the rider wants none. CrankHog's own lines carry the site's address. */
-export function crankHogLine(prefs: DescriptionPrefs, rideId: string): string | null {
-  switch (prefs.line) {
-    case 'none':
-      return null
-    case 'custom': {
-      const own = prefs.custom.replace(/\s+/g, ' ').trim().slice(0, MAX_CUSTOM_LINE)
-      return own || null
-    }
-    case 'hog':
-      return `${pick(rideId)} · ${SITE}`
-    default:
-      return `${FIXED_LINES[prefs.line]} · ${SITE}`
-  }
-}
+/** Every number a rider can include, in the order they appear. A ride without one (no HR strap) leaves it out. */
+export const DESCRIPTION_STATS: readonly { id: DescriptionStat; label: string; text: (n: RideNumbers) => string | null }[] = [
+  { id: 'avgPower', label: 'Average power', text: (n) => (int(n.avgPower) !== null ? `Avg power ${int(n.avgPower)} W` : null) },
+  { id: 'np', label: 'Normalized power', text: (n) => (int(n.np) !== null ? `NP ${int(n.np)} W` : null) },
+  { id: 'maxPower', label: 'Max power', text: (n) => (int(n.maxPower) !== null ? `Max power ${int(n.maxPower)} W` : null) },
+  { id: 'avgHr', label: 'Average heart rate', text: (n) => (int(n.avgHr) !== null ? `Avg HR ${int(n.avgHr)} bpm` : null) },
+  { id: 'maxHr', label: 'Max heart rate', text: (n) => (int(n.maxHr) !== null ? `Max HR ${int(n.maxHr)} bpm` : null) },
+  { id: 'avgCadence', label: 'Average cadence', text: (n) => (int(n.avgCadence) !== null ? `Avg cadence ${int(n.avgCadence)} rpm` : null) },
+  { id: 'kj', label: 'Total output', text: (n) => `Total output ${int(n.kj) ?? 0} kJ` },
+  { id: 'tss', label: 'TSS', text: (n) => (int(n.tss) !== null ? `TSS ${int(n.tss)}` : null) },
+  { id: 'if', label: 'Intensity factor', text: (n) => (n.intensityFactor !== null && Number.isFinite(n.intensityFactor) ? `IF ${n.intensityFactor.toFixed(2)}` : null) },
+]
 
-export function numbersLine(n: RideNumbers): string {
-  return [
-    n.np !== null ? `NP ${n.np} W` : null,
-    n.intensityFactor !== null ? `IF ${n.intensityFactor.toFixed(2)}` : null,
-    n.tss !== null ? `TSS ${Math.round(n.tss)}` : null,
-    `${Math.round(n.kj)} kJ`,
-    n.avgHr !== null ? `avg HR ${n.avgHr}` : null,
-  ]
-    .filter(Boolean)
+export function statsText(numbers: RideNumbers, stats: readonly DescriptionStat[]): string {
+  return DESCRIPTION_STATS.filter((s) => stats.includes(s.id))
+    .map((s) => s.text(numbers))
+    .filter((t): t is string => t !== null)
     .join(' · ')
 }
 
-/** The whole description; empty when the rider turned everything off. */
-export function uploadDescription(o: { prefs: DescriptionPrefs; rideId: string; numbers: RideNumbers; extra?: string }): string {
-  return [crankHogLine(o.prefs, o.rideId), o.extra?.trim() || null, o.prefs.stats ? numbersLine(o.numbers) : null].filter(Boolean).join('\n')
+/**
+ * The description: the rider's text with {stats} filled in. A line left with
+ * nothing but separators once {stats} comes out empty is dropped; the rest of
+ * the text stays as written. Empty means send no description.
+ */
+export function uploadDescription(o: { text: string; stats: readonly DescriptionStat[]; numbers: RideNumbers; extra?: string }): string {
+  const stats = statsText(o.numbers, o.stats)
+  const lines = o.text
+    .slice(0, MAX_DESCRIPTION)
+    .split(/\r?\n/)
+    .flatMap((line) => {
+      if (!line.includes(STATS_TOKEN)) return [line]
+      const filled = line.split(STATS_TOKEN).join(stats)
+      if (stats) return [filled]
+      // "Cranked hog · {stats} · CrankHog.app" with nothing ticked: no doubled separator
+      const tidied = filled.replace(/(\s*·\s*){2,}/g, ' · ').replace(/^\s*·\s*|\s*·\s*$/g, '')
+      return tidied.trim() ? [tidied] : []
+    })
+  return [o.extra?.trim() || null, lines.join('\n').trim() || null].filter(Boolean).join('\n')
 }

@@ -50,12 +50,8 @@ export async function saveFinishedRide(
   const stravaConnected = auto.strava ? await bridge().invoke('strava.status', {}).then((st) => st.connected, () => false) : false
   const stravaSkip = uploadSkipReason({ simulated: fin.summary.simulated, movingS: fin.summary.movingS, hasFit: fitPath !== null, autoOn: auto.strava, connected: stravaConnected })
   if (fitPath && !fin.summary.simulated && fin.summary.movingS >= MIN_UPLOAD_S) {
-    const description = uploadDescription({
-      prefs: settingsStore.getState().rideDescription,
-      rideId: fin.summary.id,
-      numbers: fin.summary,
-      extra: descriptionExtra,
-    })
+    const { text, stats } = settingsStore.getState().rideDescription
+    const description = uploadDescription({ text, stats, numbers: fin.summary, extra: descriptionExtra })
     for (const provider of ['strava', 'intervals'] as const) {
       if (!auto[provider] || (provider === 'strava' && stravaSkip !== null)) continue
       await bridge().invoke('uploads.enqueue', {

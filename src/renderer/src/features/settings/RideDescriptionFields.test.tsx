@@ -1,6 +1,7 @@
 import { act, cleanup, fireEvent, render, screen } from '@testing-library/react'
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
-import { DEFAULT_SETTINGS } from '@shared/settings'
+import { DESCRIPTION_STATS } from '@core/ride/upload-text'
+import { DEFAULT_SETTINGS, DESCRIPTION_STAT_IDS } from '@shared/settings'
 import { createWebShim } from '../../platform/web-shim'
 import { settingsStore } from '../../stores/settings'
 import { RideDescriptionFields } from './RideDescriptionFields'
@@ -16,32 +17,36 @@ beforeEach(() => {
 afterEach(cleanup)
 
 describe('RideDescriptionFields', () => {
-  it('starts on a hog line with the numbers, and previews it', () => {
-    render(<RideDescriptionFields />)
-    expect(preview()).toMatch(/with CrankHog · crankhog\.app/)
-    expect(preview()).toContain('NP 210 W · IF 0.82 · TSS 65 · 812 kJ · avg HR 145')
+  it('offers every number the settings accept', () => {
+    expect(DESCRIPTION_STATS.map((s) => s.id)).toEqual([...DESCRIPTION_STAT_IDS])
   })
 
-  it("saves the rider's own line on blur, and previews it as typed", async () => {
+  it('starts with the hog line, average power, average HR and total output', () => {
     render(<RideDescriptionFields />)
-    fireEvent.change(screen.getByTestId('ride-description-line'), { target: { value: 'custom' } })
-    await flush()
-    const input = screen.getByTestId('ride-description-custom')
-    fireEvent.change(input, { target: { value: 'Suffered in the shed' } })
-    expect(preview()).toContain('Suffered in the shed')
-    expect(settingsStore.getState().rideDescription.custom).toBe('')
-    fireEvent.blur(input)
-    await flush()
-    expect(settingsStore.getState().rideDescription).toEqual({ line: 'custom', custom: 'Suffered in the shed', stats: true })
+    expect(preview()).toBe('Cranked hog with CrankHog\nAvg power 205 W · Avg HR 142 bpm · Total output 812 kJ\nCrankHog.app')
   })
 
-  it('says so when there is nothing to write', async () => {
+  it('saves the edited text on blur, previewing it as typed', async () => {
     render(<RideDescriptionFields />)
-    fireEvent.change(screen.getByTestId('ride-description-line'), { target: { value: 'none' } })
+    const area = screen.getByTestId('ride-description-text')
+    fireEvent.change(area, { target: { value: 'Suffered in the shed\n{stats}' } })
+    expect(preview()).toBe('Suffered in the shed\nAvg power 205 W · Avg HR 142 bpm · Total output 812 kJ')
+    expect(settingsStore.getState().rideDescription.text).toContain('Cranked hog')
+    fireEvent.blur(area)
     await flush()
-    fireEvent.click(screen.getByRole('switch'))
+    expect(settingsStore.getState().rideDescription.text).toBe('Suffered in the shed\n{stats}')
+  })
+
+  it('ticks numbers on and off, and resets', async () => {
+    render(<RideDescriptionFields />)
+    fireEvent.click(screen.getByTestId('ride-description-stat-avgHr'))
     await flush()
-    expect(settingsStore.getState().rideDescription).toMatchObject({ line: 'none', stats: false })
-    expect(preview()).toBe('No description: Strava shows the ride without one.')
+    fireEvent.click(screen.getByTestId('ride-description-stat-tss'))
+    await flush()
+    expect(settingsStore.getState().rideDescription.stats).toEqual(['avgPower', 'kj', 'tss'])
+    expect(preview()).toContain('Avg power 205 W · Total output 812 kJ · TSS 65')
+    fireEvent.click(screen.getByTestId('ride-description-reset'))
+    await flush()
+    expect(settingsStore.getState().rideDescription).toEqual(DEFAULT_SETTINGS.rideDescription)
   })
 })

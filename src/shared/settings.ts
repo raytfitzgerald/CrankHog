@@ -95,6 +95,12 @@ export const UpdatePrefsSchema = z.object({
   prereleases: z.boolean().default(true),
 })
 
+/** The numbers an uploaded ride's description can carry (core/ride/upload-text.ts has their text). */
+export const DESCRIPTION_STAT_IDS = ['avgPower', 'np', 'maxPower', 'avgHr', 'maxHr', 'avgCadence', 'kj', 'tss', 'if'] as const
+export const DescriptionStatSchema = z.enum(DESCRIPTION_STAT_IDS)
+export const DEFAULT_RIDE_DESCRIPTION = 'Cranked hog with CrankHog\n{stats}\nCrankHog.app'
+export const DEFAULT_DESCRIPTION_STATS = ['avgPower', 'avgHr', 'kj'] as const
+
 export const AppSettingsSchema = z.object({
   version: z.literal(1).default(1),
   /** One remembered device per role, auto-selected on launch. */
@@ -118,14 +124,13 @@ export const AppSettingsSchema = z.object({
   autoUpload: z.object({ strava: z.boolean().default(false), intervals: z.boolean().default(false) }).default({ strava: false, intervals: false }),
   /** Capture the hardest effort and a coach line from each ride as images, saved next to its FIT file. */
   rideSnapshots: z.boolean().default(true),
-  /** The description on uploaded rides (core/ride/upload-text.ts): CrankHog's line, the rider's own or none, and the numbers. */
+  /** The description on uploaded rides (core/ride/upload-text.ts): the rider's text, with {stats} for the numbers they tick. */
   rideDescription: z
     .object({
-      line: z.enum(['hog', 'cranked', 'whole-hog', 'recorded', 'custom', 'none']).default('hog'),
-      custom: z.string().max(200).default(''),
-      stats: z.boolean().default(true),
+      text: z.string().max(1000).default(DEFAULT_RIDE_DESCRIPTION),
+      stats: z.array(DescriptionStatSchema).max(DESCRIPTION_STAT_IDS.length).default([...DEFAULT_DESCRIPTION_STATS]),
     })
-    .default({ line: 'hog', custom: '', stats: true }),
+    .default({ text: DEFAULT_RIDE_DESCRIPTION, stats: [...DEFAULT_DESCRIPTION_STATS] }),
   /** The version whose What's new the rider last saw: null on a new install, and in versions before What's new existed. */
   whatsNewSeen: z.string().max(40).nullable().default(null),
   trainer: TrainerPrefsSchema.default(TrainerPrefsSchema.parse({})),
