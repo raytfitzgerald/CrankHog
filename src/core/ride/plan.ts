@@ -69,6 +69,12 @@ export interface PlanTick {
   grade?: number | null
   altitude?: number | null
   speed?: number | null
+  /**
+   * Routes and journeys: the rider is on a virtual road and rolls on without
+   * pedalling (down a hill, or slowing on the flat), so auto-pause waits for
+   * `speed` to fall to a crawl.
+   */
+  freewheels?: boolean
   distanceM?: number | null
   /** Where on a real-world route, degrees (routes only). */
   lat?: number | null

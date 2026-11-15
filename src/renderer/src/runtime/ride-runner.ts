@@ -2,6 +2,7 @@
 // tick, the journal (via main), keep-awake, commands and persistence.
 import { maskLanguage } from '@core/persona'
 import { MIN_RIDE_S } from '@core/ride/finalize'
+import { FlatRoadLayer } from '@core/ride/flat-road'
 import { decideFtpUpdate, FTP_SOURCE } from '@core/ride/ftp-update'
 import { FuelingTimer } from '@core/ride/fueling'
 import type { RidePlan } from '@core/ride/plan'
@@ -96,6 +97,9 @@ export class RideRunner {
     const rideId = newRideId()
     const name = opts.plan?.name ?? opts.name ?? defaultName()
     const journey = await prepareRideJourney({ plan: opts.plan, athlete })
+    const t = settingsStore.getState().trainer
+    // a journey is the ride's road; without one, the watts move the rider along a flat one
+    const layer = journey?.layer ?? new FlatRoadLayer({ riderKg: athlete.weightKg, bikeKg: t.bikeKg, cda: t.cda, crr: t.crr })
     // every ride starts at the intensity it was written at: last ride's "5 % easier" isn't this one's
     this.deps.controller.updateSettings({ intensityPct: 100 })
     const session = new RideSession(
@@ -106,9 +110,9 @@ export class RideRunner {
         kind: opts.plan?.kind ?? opts.kind ?? 'free',
         simulated: this.deps.simulated,
         athlete,
-        autoPause: settingsStore.getState().trainer.autoPause,
+        autoPause: t.autoPause,
         plan: opts.plan,
-        ...(journey ? { layer: journey.layer } : {}),
+        layer,
         bests,
       },
     )
@@ -129,7 +133,7 @@ export class RideRunner {
     const fueling = new FuelingTimer(settingsStore.getState().fueling)
     this.offTick = this.deps.engine.onTick((now) => {
       session.tick(now)
-      if (opts.plan || journey) rideStore.setState({ plan: session.planTick })
+      rideStore.setState({ plan: session.liveTick })
       if (workout) this.trackActual(session, workout)
       for (const r of fueling.due(session.movingSeconds)) {
         pushToast(r.kind === 'drink' ? { tone: 'fuel', title: 'Drink', body: 'A few good sips.' } : { tone: 'fuel', title: `Eat about ${r.grams} g of carbs`, body: 'A gel, a bar or a banana.' })
@@ -147,7 +151,7 @@ export class RideRunner {
       snapshot: session.snapshot(),
       error: null,
       lastSaved: null,
-      plan: opts.plan ? session.planTick : null,
+      plan: session.liveTick,
       workout: workout ? { plan: workout, rev: workout.revision } : null,
       actual: workout ? new Array<number | null>(Math.ceil(workout.timeline.durationS)).fill(null) : null,
       rescue: null,
@@ -164,7 +168,7 @@ export class RideRunner {
     }
     if (cmd.type === 'rescue') rideStore.setState({ rescue: null })
     this.session?.command(cmd)
-    if (this.session) rideStore.setState({ snapshot: this.session.snapshot(), plan: this.session.options.plan || this.journey ? this.session.planTick : null })
+    if (this.session) rideStore.setState({ snapshot: this.session.snapshot(), plan: this.session.liveTick })
   }
 
   /** Keeps the chart's actual-power trace aligned with the (possibly edited) workout timeline. */

@@ -12,7 +12,8 @@
 // trainer controller applies the rider's uphill/downhill/limit feel.
 // Records get the true grade, the elevation, the virtual speed (a 1-second
 // mean, so the recorded distance tracks the route position) and FIT gets
-// them from there.
+// them from there. Reactive speed freewheels: a rider who stops pedalling
+// rolls on, and auto-pause waits until they have nearly stopped.
 //
 // Time is moving time: the plan advances by the change in PlanInput.movingS,
 // not by the tick's nominal dt, so the position, the 1 Hz records and a
@@ -454,6 +455,8 @@ export class RoutePlan implements RidePlan {
       grade: round2(grade),
       altitude: Math.round(s.ele * 10) / 10,
       speed: this.recordSpeed(t, speedMps),
+      // Reactive speed (and the cool-down past the line) is physics, so it rolls on; Steady's pace never slows
+      freewheels: done || this.playback === 'reactive',
       distanceM: position,
       // a real course goes in the FIT as GPS; the demo routes are shapes at an arbitrary spot, so they stay off the map
       ...(this.route.source !== 'synthetic' ? { lat: s.lat, lon: s.lon } : {}),

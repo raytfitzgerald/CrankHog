@@ -40,7 +40,7 @@ interface RideStoreState {
   error: string | null
   recoveries: PendingRecovery[]
   cue: { text: string; at: number } | null
-  /** The player's latest tick (updated at the engine rate while a plan runs). */
+  /** The ride's latest plan tick, as the screen shows it (updated at the engine rate while a ride runs). */
   plan: PlanTick | null
   /** The workout being ridden, with its timeline revision (bumped by extend/rescue). */
   workout: { plan: WorkoutPlan; rev: number } | null
@@ -73,6 +73,15 @@ export const rideStore = createStore<RideStoreState>(() => ({
   ftpTest: null,
   toasts: [],
 }))
+
+/**
+ * The rider's speed, km/h, wherever the app shows or uses it (the HUD, the fan,
+ * the races): the ride's virtual speed, the same one its records and FIT file
+ * get, else the trainer's or wheel's own.
+ */
+export function riderSpeedKmh(plan: PlanTick | null, frameKmh: number | null): number | null {
+  return plan?.speed != null ? plan.speed * 3.6 : frameKmh
+}
 
 let toastSeq = 0
 /** Shows a toast (the newest three stay on screen, each for ~8 s). */

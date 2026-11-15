@@ -8,7 +8,7 @@ import { advanceHogRace } from '../../brand/hog/useHogRace'
 import { useFtp } from '../../db/use-athlete'
 import { getRuntime } from '../../runtime/composition'
 import { liveStore } from '../../stores/live'
-import { rideStore, useRide } from '../../stores/ride'
+import { rideStore, riderSpeedKmh, useRide } from '../../stores/ride'
 import { patchSettings, settingsStore, useSettings } from '../../stores/settings'
 import { Button } from '../../ui/Button'
 import { cn } from '../../ui/cn'
@@ -135,7 +135,7 @@ function advance(now: number, ftpW: number): void {
   const paused = ride.snapshot?.state === 'paused' || ride.snapshot?.state === 'waiting'
   // nobody is riding: hold still rather than let the coach ride off
   if (paused || (!ride.active && !(f.power3s ?? f.power))) return
-  race.state = stepRideAlong(race.state, dt, { watts: f.power3s ?? f.power, kmh: f.speedKmh }, coachPaceW(f.trainer.targetW, ftpW))
+  race.state = stepRideAlong(race.state, dt, { watts: f.power3s ?? f.power, kmh: riderSpeedKmh(ride.plan, f.speedKmh) }, coachPaceW(f.trainer.targetW, ftpW))
 }
 
 function Scene({ personaId, name, coachOn, muted, ftpW }: { personaId: string; name: string; coachOn: boolean; muted: boolean; ftpW: number }) {
