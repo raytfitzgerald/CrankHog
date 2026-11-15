@@ -34,14 +34,14 @@ export function TrainerSection() {
         <Field label="PowerMatch" hint="With power pedals connected, ERG is corrected so your pedals read the target instead of the trainer's own sensor.">
           <Switch checked={t.powerMatch} onChange={(v) => set({ powerMatch: v })} label={t.powerMatch ? 'On' : 'Off'} />
         </Field>
-        <Field label="Auto-pause" hint="Pause recording when you stop pedalling.">
+        <Field label="Auto-pause" hint="Pause recording when you stop pedalling. On a route or a journey you roll on first, as on the road, and the ride pauses once you have nearly stopped.">
           <Switch checked={t.autoPause} onChange={(v) => set({ autoPause: v })} label={t.autoPause ? 'On' : 'Off'} />
         </Field>
       </Section>
 
       <FanSettings />
 
-      <Section title="Virtual bike" description="Physics for virtual speed and distance on routes and free rides.">
+      <Section title="Virtual bike" description="Physics that turns your watts into speed and distance, on routes, journeys, free rides and workouts.">
         <Field label="Bike weight">
           <NumberInput
             value={bikeShown}

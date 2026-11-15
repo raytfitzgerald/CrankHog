@@ -199,4 +199,68 @@ describe('a route on the simulated KICKR', () => {
     expect(verdict).toMatch(/ahead of your ghost\.$/)
     expect(ghostFinish - second.plan.finishedAtS!).toBeGreaterThan(0)
   }, 60_000)
+
+  it('coasting down a descent rolls on with auto-pause on, and stops once the road levels out', async () => {
+    const descent = syntheticRoute({
+      id: 'sim-descent',
+      name: 'Sim Descent',
+      segments: [
+        { kind: 'flat', lengthM: 1000 },
+        { kind: 'climb', lengthM: 4000, gradePct: -6 },
+        { kind: 'flat', lengthM: 3000 },
+      ],
+    })
+    /** 200 W to the top of the descent, then no pedalling: where the rider got to, and whether the ride stayed on. */
+    async function coastFromTheTop(mode: 'reactive' | 'steady', coastS: number) {
+      const rig = simRig({ ftpW: 250 })
+      await rig.connect('trainer')
+      const plan = new RoutePlan(descent, { mode, rider: RIDER })
+      const session = new RideSession(
+        { clock: rig.clock, hub: rig.hub, controller: rig.controller, journal, setPaused: (p) => rig.engine.setPaused(p) },
+        { rideId: 'sim-descent', name: descent.name, kind: plan.kind, simulated: true, athlete: { ftpW: 250, weightKg: 75 }, autoPause: true, plan },
+      )
+      const pauses: string[] = []
+      session.on((e) => e.type === 'state' && e.state === 'paused' && pauses.push(e.reason ?? ''))
+      let route = { riddenM: 0, speedMps: 0 }
+      rig.engine.onTick((now) => {
+        session.tick(now)
+        const tick = session.planTick
+        if (isRouteTick(tick)) route = tick.route
+      })
+      rig.world.setBehavior({ kind: 'hold', watts: 200 })
+      await rig.advance(2000, 250)
+      session.start()
+      while (route.riddenM < 1000) await rig.advance(1000, 250)
+      const topM = route.riddenM
+      rig.world.setBehavior({ kind: 'coast' })
+      await rig.advance(coastS * 1000, 250)
+      const out = { topM, coastedM: route.riddenM - topM, kmh: route.speedMps * 3.6, state: session.currentState, pauses }
+      const { records } = await rig.until(session.finish())
+      rig.engine.stop()
+      rig.devices.disconnectAll()
+      rig.world.stop()
+      return { ...out, records }
+    }
+
+    // a minute later the rider is still rolling, well down the hill: auto-pause used to stop them 58 m in
+    const minute = await coastFromTheTop('reactive', 60)
+    expect(minute.state).toBe('riding')
+    expect(minute.pauses).toEqual([])
+    expect(minute.coastedM).toBeGreaterThan(750)
+    expect(minute.kmh).toBeGreaterThan(50)
+    // the recorded distance kept up with the road while coasting
+    expect(Math.abs(minute.records.at(-1)!.distance - (minute.topM + minute.coastedM))).toBeLessThan(3)
+
+    // past the bottom the road levels out, the rider rolls to a crawl, and only then does the ride pause
+    const run = await coastFromTheTop('reactive', 480)
+    expect(run.coastedM).toBeGreaterThan(4500)
+    expect(run.state).toBe('paused')
+    expect(run.pauses).toEqual(['auto'])
+    expect(run.kmh).toBeLessThan(3)
+
+    // Steady: the route's pace doesn't slow, so stopping pedalling still pauses after 3 s
+    const steady = await coastFromTheTop('steady', 10)
+    expect(steady.state).toBe('paused')
+    expect(steady.coastedM).toBeLessThan(60)
+  }, 60_000)
 })

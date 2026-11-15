@@ -6,6 +6,8 @@ import { FakeClock } from '../time/clock'
 import { MIN_RIDE_S, finalizeRide, fitFileName } from './finalize'
 import { parseJournal } from './journal'
 import { courseFromData } from '../journeys/course'
+import { DEFAULT_BIKE, steadySpeedForPower } from '../physics/bike'
+import { FlatRoadLayer } from './flat-road'
 import { JourneyLayer, type PlanLayer } from '../journeys/layer'
 import { encodePolyline } from '../journeys/polyline'
 import type { RidePlan } from './plan'
@@ -448,5 +450,85 @@ describe('RideSession on a journey', () => {
     expect(last.distance).toBeCloseTo(layer.riddenM, -1)
     expect(last.lat!).toBeGreaterThan(48.8584 + 1000 / 111_195)
     expect(last.speed!).toBeGreaterThan(8)
+  })
+
+  it('rolls on when the rider stops pedalling, and auto-pauses only once the dot has nearly stopped', async () => {
+    const layer = new JourneyLayer({ course, journeyId: null, startM: 0, terrain: 'real', rider: { riderKg: 75 }, gps: true })
+    const { session, ride } = setup({ layer })
+    session.start()
+    await ride(120, 250)
+    await ride(30, 0, 0)
+    expect(session.currentState).toBe('riding')
+    expect(session.planTick.speed! * 3.6).toBeGreaterThan(15)
+    await ride(180, 0, 0)
+    expect(session.currentState).toBe('paused')
+    expect(session.planTick.speed! * 3.6).toBeLessThan(3)
+    expect(session.liveTick.speed).toBe(0)
+  })
+})
+
+describe('RideSession on a flat road (a free ride or a workout with no journey)', () => {
+  /** Five minutes at 200 W, with the trainer reporting `wheelMps` (null: no speed at all). */
+  async function ride200(wheelMps: number | null, layer: PlanLayer | null = new FlatRoadLayer({ riderKg: 75 })) {
+    const { session, ride } = setup(layer ? { layer } : {})
+    session.start()
+    await ride(300, 200, 90, 140, wheelMps)
+    return (await session.finish()).records
+  }
+
+  it('saves the same distance for the same watts in any gear, and the FIT carries it', async () => {
+    const smallGear = await ride200(25 / 3.6)
+    const bigGear = await ride200(40 / 3.6)
+    const last = bigGear.at(-1)!
+    expect(last.distance).toBe(smallGear.at(-1)!.distance)
+    expect(last.speed!).toBeCloseTo(steadySpeedForPower(200, 0, DEFAULT_BIKE), 2)
+    expect(last.distance).toBeGreaterThan(2600)
+    expect(last.distance).toBeLessThan(2800)
+    // before, the trainer's flywheel speed set the distance: 2.1 km in the small gear, 3.3 km in the big one
+    expect((await ride200(25 / 3.6, null)).at(-1)!.distance).toBeLessThan(2100)
+    expect((await ride200(40 / 3.6, null)).at(-1)!.distance).toBeGreaterThan(3300)
+
+    const fin = finalizeRide({
+      rideId: 'ride-test-01', name: 'Test ride', kind: 'free', simulated: true, startedAt: bigGear[0]!.ts - 1000,
+      athlete: { ftpW: 250, weightKg: 75 }, records: bigGear, utcOffsetMin: 0, softwareVersion: 10, now: Date.now(),
+    })
+    expect(fin.summary.distanceM).toBeCloseTo(last.distance, 0)
+    const { messages } = new Decoder(Stream.fromByteArray(Array.from(fin.fit!))).read()
+    expect(messages.sessionMesgs![0]!.totalDistance).toBeCloseTo(last.distance, 0)
+    expect(messages.recordMesgs!.at(-1)!.enhancedSpeed).toBeCloseTo(last.speed!, 2)
+  })
+
+  it('saves distance from the watts when the trainer reports no speed at all', async () => {
+    const records = await ride200(null)
+    expect(records.every((r) => r.speed !== null)).toBe(true)
+    expect(records.at(-1)!.distance).toBe((await ride200(25 / 3.6)).at(-1)!.distance)
+    // before: no speed, so no distance
+    expect((await ride200(null, null)).at(-1)!.distance).toBe(0)
+  })
+
+  it('keeps the wheel speed on a bike with no power', async () => {
+    const { session, ride } = setup({ layer: new FlatRoadLayer() })
+    session.start()
+    await ride(120, null, null, 140, 8)
+    const { records } = await session.finish()
+    expect(records.length).toBeGreaterThan(110)
+    expect(records.every((r) => r.speed === 8)).toBe(true)
+    expect(records.at(-1)!.distance).toBe(records.length * 8)
+  })
+
+  it('still auto-pauses 3 s after the pedalling stops, and the screen shows the rider stopped', async () => {
+    const { session, ride } = setup({ layer: new FlatRoadLayer() })
+    session.start()
+    await ride(60, 200)
+    await ride(5, 0, 0)
+    expect(session.currentState).toBe('paused')
+    // the road speed the ride picks up again with, but standing still on screen
+    expect(session.planTick.speed! * 3.6).toBeGreaterThan(25)
+    expect(session.liveTick.speed).toBe(0)
+    expect(session.liveTick).toBe(session.liveTick)
+    await ride(3, 200)
+    expect(session.currentState).toBe('riding')
+    expect(session.liveTick).toBe(session.planTick)
+    expect(session.liveTick.speed! * 3.6).toBeGreaterThan(25)
   })
 })

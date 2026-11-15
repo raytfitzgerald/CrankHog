@@ -5,7 +5,7 @@ import type { LiveFrame } from '@shared/live'
 import type { AthleteSnapshot } from '@core/ride/types'
 import { COGGAN_POWER, FRIEL_HR_LTHR } from '@core/metrics/zones'
 import { distanceUnit, formatLongDistanceFixed, formatSpeedKmh, formatTempC, speedUnit, tempUnit, type SpeedUnitSetting, type UnitSystem } from '@core/units'
-import type { rideStore } from '../stores/ride'
+import { riderSpeedKmh, type rideStore } from '../stores/ride'
 import { formatDuration } from '../ui/format'
 
 export interface HudState {
@@ -103,7 +103,8 @@ export const WIDGETS: readonly WidgetDef[] = [
   { id: 'clock', label: 'Time of day', group: 'Time', read: (s) => new Date(s.wall).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' }) },
   // ---- speed & distance
   { id: 'speed', label: 'Speed', group: 'Speed & distance', unit: (s) => speedUnit(s.speedUnit), accent: SPEED, read: (s) => {
-    const kmh = s.ride.plan?.speed != null ? Math.round(s.ride.plan.speed * 36) / 10 : s.frame.speedKmh
+    const v = riderSpeedKmh(s.ride.plan, s.frame.speedKmh)
+    const kmh = v === null ? null : Math.round(v * 10) / 10
     return s.speedUnit === 'mph' ? formatSpeedKmh(kmh, 'mph') : kmh
   } },
   { id: 'distance', label: 'Distance', group: 'Speed & distance', unit: (s) => distanceUnit(s.units), read: (s) => (s.ride.snapshot ? formatLongDistanceFixed(s.ride.snapshot.distanceM, s.units, 2) : null) },

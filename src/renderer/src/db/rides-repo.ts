@@ -6,6 +6,7 @@ import { MIN_RIDE_S, finalizeRide, type FinalizeInput } from '@core/ride/finaliz
 import { parseJournal } from '@core/ride/journal'
 import type { RideSummary } from '@core/ride/types'
 import { MIN_UPLOAD_S, uploadSkipReason, type UploadSkip } from '@core/ride/upload-policy'
+import { uploadDescription } from '@core/ride/upload-text'
 import type { Journey } from '@core/journeys/progress'
 import type { SavedJourney } from '../journeys/ride'
 import type { SavedMoment } from '../moments/store'
@@ -49,7 +50,8 @@ export async function saveFinishedRide(
   const stravaConnected = auto.strava ? await bridge().invoke('strava.status', {}).then((st) => st.connected, () => false) : false
   const stravaSkip = uploadSkipReason({ simulated: fin.summary.simulated, movingS: fin.summary.movingS, hasFit: fitPath !== null, autoOn: auto.strava, connected: stravaConnected })
   if (fitPath && !fin.summary.simulated && fin.summary.movingS >= MIN_UPLOAD_S) {
-    const description = descriptionExtra ? `${descriptionExtra}\n${describe(fin.summary)}` : describe(fin.summary)
+    const { text, stats } = settingsStore.getState().rideDescription
+    const description = uploadDescription({ text, stats, numbers: fin.summary, extra: descriptionExtra })
     for (const provider of ['strava', 'intervals'] as const) {
       if (!auto[provider] || (provider === 'strava' && stravaSkip !== null)) continue
       await bridge().invoke('uploads.enqueue', {
@@ -71,18 +73,6 @@ export async function saveFinishedRide(
   })
   await bridge().invoke('journal.remove', { rideId: input.rideId }).catch(() => undefined)
   return { summary: fin.summary, fitPath, uploads, stravaSkip }
-}
-
-/** A short Strava description: the numbers people actually look at. */
-export function describe(s: RideSummary): string {
-  const parts = [
-    s.np !== null ? `NP ${s.np} W` : null,
-    s.intensityFactor !== null ? `IF ${s.intensityFactor.toFixed(2)}` : null,
-    s.tss !== null ? `TSS ${Math.round(s.tss)}` : null,
-    `${Math.round(s.kj)} kJ`,
-    s.avgHr !== null ? `avg HR ${s.avgHr}` : null,
-  ].filter(Boolean)
-  return `${parts.join(' · ')}\nRecorded with CrankHog.`
 }
 
 export interface PendingRecovery {

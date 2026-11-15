@@ -5,6 +5,7 @@ import { bridge } from '../../platform/bridge'
 import { patchSettings, useSettings } from '../../stores/settings'
 import { Button } from '../../ui/Button'
 import { Field, Input, Section, Switch } from '../../ui/form'
+import { RideDescriptionFields } from './RideDescriptionFields'
 
 const open = (url: string) => void bridge().invoke('files.openUrl', { url })
 
@@ -122,6 +123,7 @@ export function IntegrationsSection() {
         <Field label="Auto-upload" hint="Upload every real (non-simulated) ride when you finish.">
           <Switch checked={autoUpload.strava} disabled={!strava?.connected} onChange={(v) => void patchSettings({ autoUpload: { ...autoUpload, strava: v } })} label={autoUpload.strava ? 'On' : 'Off'} />
         </Field>
+        <RideDescriptionFields />
         <Field
           label="Ride moments"
           hint="Capture your hardest effort and a coach line as pictures, saved next to the FIT file. Strava doesn't let apps add photos, so copy one from the saved-ride card and paste it into the post."

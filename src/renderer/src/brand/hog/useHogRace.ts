@@ -9,7 +9,7 @@
 
 import { HOG_RACE_START, stepHogRace, type HogRaceState } from '@core/mascot/race'
 import { liveStore } from '../../stores/live'
-import { rideStore } from '../../stores/ride'
+import { rideStore, riderSpeedKmh } from '../../stores/ride'
 
 const race = { state: HOG_RACE_START, rideId: null as string | null, last: 0 }
 
@@ -27,7 +27,7 @@ export function advanceHogRace(now: number, ftpW: number): HogRaceState {
   // waiting for the first pedal stroke holds still too
   const paused = ride.snapshot?.state === 'paused' || ride.snapshot?.state === 'waiting'
   if (paused || (!ride.active && !(live.power3s ?? live.power))) return race.state
-  race.state = stepHogRace(race.state, dt, { watts: live.power3s ?? live.power, kmh: live.speedKmh }, ftpW)
+  race.state = stepHogRace(race.state, dt, { watts: live.power3s ?? live.power, kmh: riderSpeedKmh(ride.plan, live.speedKmh) }, ftpW)
   return race.state
 }
 

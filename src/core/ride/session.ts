@@ -67,6 +67,8 @@ const START_HOLD_MS = 2000
 const START_POWER_W = 20
 /** A bike without power or cadence starts on its wheel: about 7 km/h. */
 const START_SPEED_MPS = 2
+/** On a virtual road, a rider still rolling faster than this (about 3 km/h) is coasting, not stopped. */
+const ROLLING_MPS = 3 / 3.6
 const PR_DURATIONS = [5, 60, 300, 1200]
 
 export class RideSession {
@@ -85,6 +87,8 @@ export class RideSession {
   /** Events logged while waiting, journaled with the first stroke's time once the ride begins. */
   private waitingEvents: JournalEvent[] = []
   private lastTick: PlanTick = IDLE_TICK
+  /** liveTick's copy of lastTick with the speed at 0, kept so a paused screen doesn't re-render every tick. */
+  private stoppedTick: { from: PlanTick; tick: PlanTick } | null = null
   private lastSegment: number | null = null
   private planFinished = false
   private readonly listeners = new Set<(e: SessionEvent) => void>()
@@ -140,6 +144,16 @@ export class RideSession {
   }
   get planTick(): PlanTick {
     return this.lastTick
+  }
+  /**
+   * The plan tick as the screen shows it: a waiting or paused ride stands
+   * still. The plan keeps its own speed and picks it up again on resume.
+   */
+  get liveTick(): PlanTick {
+    const t = this.lastTick
+    if ((this.state !== 'waiting' && this.state !== 'paused') || !t.speed) return t
+    if (this.stoppedTick?.from !== t) this.stoppedTick = { from: t, tick: { ...t, speed: 0 } }
+    return this.stoppedTick.tick
   }
   get movingSeconds(): number {
     return this.recorder.movingSeconds
@@ -425,7 +439,11 @@ export class RideSession {
   private autoPause(now: number, power: number | null, cadence: number | null, speed: number | null): void {
     // a bike with no power or cadence (a classic trainer's speed sensor) goes by its wheel
     const cranks = power !== null || cadence !== null
-    const zero = cranks ? power === 0 && (cadence === 0 || cadence === null) : speed === 0
+    // on a route or a journey the rider rolls on without pedalling, down a hill or slowing on the flat,
+    // so that isn't a stop until the virtual speed is down to a crawl
+    const t = this.lastTick
+    const rolling = t.freewheels === true && (t.speed ?? 0) >= ROLLING_MPS
+    const zero = !rolling && (cranks ? power === 0 && (cadence === 0 || cadence === null) : speed === 0)
     const silent = !cranks && speed === null
     if (this.state === 'riding') {
       this.zeroSince = zero ? (this.zeroSince ?? now) : null

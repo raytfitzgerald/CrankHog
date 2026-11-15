@@ -4,7 +4,8 @@
 // a dot along the journey's road at the speed the rider's power would give them there (the
 // same physics as route rides). The dot's position goes into the FIT file as
 // GPS, and its speed into the ride's speed and distance, so the activity's
-// numbers match its map. No power is freewheeling, and a pause stands still.
+// numbers match its map. No power is freewheeling (auto-pause waits until the
+// dot has nearly stopped), and a pause stands still.
 import { DEFAULT_BIKE, stepSpeed, type BikeParams } from '../physics/bike'
 import type { PlanInput, PlanTick } from '../ride/plan'
 import { sampleAt } from '../routes/lookup'
@@ -155,6 +156,7 @@ export class JourneyLayer implements PlanLayer {
       ...base,
       // the virtual road sets speed and distance, so the activity's numbers match its map
       speed: this.speedMps,
+      freewheels: true,
       ...(base.altitude === undefined || base.altitude === null ? { altitude: journey.ele } : {}),
       ...(base.grade === undefined || base.grade === null ? { grade: gradePct } : {}),
       ...(this.opts.gps ? { lat: here.lat, lon: here.lon } : {}),
