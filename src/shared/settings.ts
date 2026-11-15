@@ -118,6 +118,14 @@ export const AppSettingsSchema = z.object({
   autoUpload: z.object({ strava: z.boolean().default(false), intervals: z.boolean().default(false) }).default({ strava: false, intervals: false }),
   /** Capture the hardest effort and a coach line from each ride as images, saved next to its FIT file. */
   rideSnapshots: z.boolean().default(true),
+  /** The description on uploaded rides (core/ride/upload-text.ts): CrankHog's line, the rider's own or none, and the numbers. */
+  rideDescription: z
+    .object({
+      line: z.enum(['hog', 'cranked', 'whole-hog', 'recorded', 'custom', 'none']).default('hog'),
+      custom: z.string().max(200).default(''),
+      stats: z.boolean().default(true),
+    })
+    .default({ line: 'hog', custom: '', stats: true }),
   /** The version whose What's new the rider last saw: null on a new install, and in versions before What's new existed. */
   whatsNewSeen: z.string().max(40).nullable().default(null),
   trainer: TrainerPrefsSchema.default(TrainerPrefsSchema.parse({})),
