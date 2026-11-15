@@ -112,6 +112,8 @@ export const AppSettingsSchema = z.object({
   autoUpload: z.object({ strava: z.boolean().default(false), intervals: z.boolean().default(false) }).default({ strava: false, intervals: false }),
   /** Capture the hardest effort and a coach line from each ride as images, saved next to its FIT file. */
   rideSnapshots: z.boolean().default(true),
+  /** The version whose What's new the rider last saw: null on a new install, and in versions before What's new existed. */
+  whatsNewSeen: z.string().max(40).nullable().default(null),
   trainer: TrainerPrefsSchema.default(TrainerPrefsSchema.parse({})),
   coach: CoachPrefsSchema.default(CoachPrefsSchema.parse({})),
   fueling: FuelingPrefsSchema.default(FuelingPrefsSchema.parse({})),

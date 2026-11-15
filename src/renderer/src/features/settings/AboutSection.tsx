@@ -8,6 +8,7 @@ import { BIKE_FUND_BLURB, hasBikeFund } from '@core/support/bike-fund'
 import { BikeFundButtons } from '../support/BikeFund'
 import { Field, Section } from '../../ui/form'
 import { UpdatesField } from '../updates/UpdatesField'
+import { showWhatsNew } from '../whats-new/whats-new'
 
 export function AboutSection() {
   const [info, setInfo] = useState<InvokeRes<'app.info'> | null>(null)
@@ -23,6 +24,11 @@ export function AboutSection() {
         <div className="pt-2 text-sm">{info ? `${info.version} · Electron ${info.electron} · Chrome ${info.chrome} · Node ${info.node}` : '…'}</div>
       </Field>
       <UpdatesField />
+      <Field label="What's new" hint="The short notes for this version, as shown after the update.">
+        <Button size="sm" onClick={showWhatsNew} data-testid="about-whats-new">
+          Show what's new
+        </Button>
+      </Field>
       <Field label="Your data">
         <div className="pt-2 text-sm text-ink-dim">
           App data: <code className="text-xs">{info?.userData}</code>
