@@ -18,6 +18,16 @@ export interface WhatsNewEntry {
 
 export const WHATS_NEW: readonly WhatsNewEntry[] = [
   {
+    version: '1.0.1',
+    title: 'Runs, swims and squash on the calendar, next to your rides.',
+    points: [
+      "Click a day's number to plan a session of any sport, or log one you've done. Each week splits into Ride, Run, Swim and Other.",
+      'Fitness, fatigue and form now count every sport. The power curve and FTP stay rides only.',
+      "Turn on Completed activities in Settings → Integrations to bring in your Garmin's runs and swims from intervals.icu.",
+      'Import planned runs and swims as text files, or paste one on the Run & swim tab of Workouts. The Format guide shows how.',
+    ],
+  },
+  {
     version: '1.0.0',
     title: 'CrankHog 1.0: a training calendar and plans, and a ride clock that waits for you.',
     points: [
