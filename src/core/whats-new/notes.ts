@@ -18,6 +18,16 @@ export interface WhatsNewEntry {
 
 export const WHATS_NEW: readonly WhatsNewEntry[] = [
   {
+    version: '1.0.3',
+    title: 'Your planned training, in Google Calendar.',
+    points: [
+      'Click Connect Google Calendar at the top of the calendar, or find it in Settings → Strava & sync. Every planned session then shows as an all-day event in a calendar named CrankHog.',
+      'Add, move, rename or remove a session here and Google follows within seconds. Changes made offline go across later.',
+      'CrankHog can only reach the calendar it made. Your other calendars and events stay out of its hands.',
+      "Google may say it hasn't verified CrankHog yet. Choose Advanced, then Go to CrankHog.",
+    ],
+  },
+  {
     version: '1.0.2',
     title: 'Swims count by distance in each week, in metres or yards.',
     points: [
