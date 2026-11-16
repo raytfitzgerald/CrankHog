@@ -227,3 +227,32 @@ test('importing into a plan adds workouts in file-name order, and a dated file k
   await expect(items.nth(before + 2)).toContainText('Tenth')
   await expect(items.nth(before + 2).getByTestId('plan-item-date')).toContainText('(from the file name)')
 })
+
+test('Browse workouts lists a plan like a folder: numbered in order, searched and filtered, and any one ridden', async () => {
+  const { page } = ctx
+  await page.getByRole('link', { name: 'Workouts' }).click()
+  await page.getByTestId('workout-tab-plan').click()
+  await page.getByRole('radio', { name: 'Browse workouts' }).click()
+  await expect(page.getByTestId('plan-editor')).toHaveCount(0)
+  // the plan the tests above left: E2E Plan Two, 01 First, 02 Second, Tenth
+  const cards = page.getByTestId('workout-grid').getByTestId('workout-card')
+  await expect(cards).toHaveCount(4)
+  await expect(cards.nth(0)).toContainText('E2E Plan Two')
+  await expect(page.getByLabel('Number 4 in your plan')).toBeVisible()
+  // a search keeps each workout's number in the plan
+  await page.getByPlaceholder('Search workouts').fill('second')
+  await expect(cards).toHaveCount(1)
+  await expect(page.getByLabel('Number 3 in your plan')).toBeVisible()
+  await page.getByPlaceholder('Search workouts').fill('')
+  await page.getByLabel('Workout length').selectOption('long')
+  await expect(page.getByText('No workouts match. Try another filter.')).toBeVisible()
+  await page.getByLabel('Workout length').selectOption('any')
+  await cards.filter({ hasText: '01 First' }).click()
+  await expect(page.getByRole('dialog')).toContainText('01 First')
+  // (disabled here: the first test's ride is still going)
+  await expect(page.getByTestId('ride-workout')).toBeVisible()
+  await page.keyboard.press('Escape')
+  await expect(page.getByRole('dialog')).toHaveCount(0)
+  await page.getByRole('radio', { name: 'Plans and calendar' }).click()
+  await expect(page.getByTestId('plan-editor')).toBeVisible()
+})

@@ -7,6 +7,7 @@ import { useFtp } from '../../db/use-athlete'
 import { Button } from '../../ui/Button'
 import { Input, Select } from '../../ui/form'
 import { PageHeader } from '../../ui/PageHeader'
+import { Segmented, type SegmentedOption } from '../../ui/Segmented'
 import { cn } from '../../ui/cn'
 import { formatDurationShort } from '../../ui/format'
 import { IMPORT_EXTENSIONS, loadLibrary, parseWorkoutFile, saveWorkout, tagLabel, type LibraryEntry } from '../../workouts/library'
@@ -30,6 +31,14 @@ const TABS: { id: Tab; label: string; empty: string }[] = [
   { id: 'plan', label: 'Training plan', empty: '' },
   { id: 'sessions', label: 'Run & swim', empty: '' },
 ]
+/** The Training plan tab: your plans, to edit and put on the calendar, or their workouts, to search, filter and ride like any folder. */
+type PlanView = 'plans' | 'workouts'
+const PLAN_VIEWS: SegmentedOption<PlanView>[] = [
+  { value: 'plans', label: 'Plans and calendar', hint: 'Build plans and lay them out on your calendar' },
+  { value: 'workouts', label: 'Browse workouts', hint: 'Search and filter the workouts in your plans, and ride any of them' },
+]
+/** A card on a folder tab. Browse workouts numbers each one as in its plan. */
+type Row = { key: string; entry: LibraryEntry; n?: number }
 type Length = 'any' | 'short' | 'medium' | 'long'
 
 const LENGTHS: { id: Length; label: string; test: (s: number) => boolean }[] = [
@@ -58,28 +67,50 @@ export function WorkoutsPage() {
   const [dragging, setDragging] = useState(false)
   /** The plan open on the Training plan tab (null: the latest). */
   const [planId, setPlanId] = useState<string | null>(null)
+  const [planView, setPlanView] = useState<PlanView>('plans')
+  /** Browse workouts: every plan's workouts, instead of the open plan's. */
+  const [allPlans, setAllPlans] = useState(false)
   const fileInput = useRef<HTMLInputElement>(null)
+
+  const plans = useLiveQuery(() => listPlans(), [])
+  const browsingPlan = tab === 'plan' && planView === 'workouts'
+  /** The tab lists workout cards, with search and filters. */
+  const grid = tab === 'crankhog' || tab === 'custom' || browsingPlan
+  const showAll = allPlans && (plans?.length ?? 0) > 1
+  const shownPlan = showAll ? null : (plans?.find((p) => p.id === planId) ?? plans?.[0] ?? null)
+  const inTab = useMemo((): Row[] => {
+    if (tab !== 'plan') return (library ?? []).filter((e) => (tab === 'custom' ? e.folder !== 'crankhog' : e.folder === tab)).map((e) => ({ key: e.workout.id, entry: e }))
+    // the plan's bike workouts (runs and swims live on Run & swim): one plan in its order, or every plan's, each once
+    const byId = new Map((library ?? []).map((e) => [e.workout.id, e]))
+    if (shownPlan) return shownPlan.items.flatMap((item, i) => (item.sport || !byId.has(item.workoutId) ? [] : [{ key: item.id, entry: byId.get(item.workoutId)!, n: i + 1 }]))
+    const seen = new Set<string>()
+    return (plans ?? []).flatMap((p) =>
+      p.items.flatMap((item) => {
+        if (item.sport || seen.has(item.workoutId) || !byId.has(item.workoutId)) return []
+        seen.add(item.workoutId)
+        return [{ key: item.workoutId, entry: byId.get(item.workoutId)! }]
+      }),
+    )
+  }, [library, tab, plans, shownPlan])
 
   const tags = useMemo(() => {
     const count = new Map<string, number>()
-    for (const e of library ?? []) if ((tab === 'custom' ? e.folder !== 'crankhog' : e.folder === tab)) for (const t of e.workout.tags) if (t !== 'test' && t !== 'ftp') count.set(t, (count.get(t) ?? 0) + 1)
+    for (const { entry: e } of inTab) for (const t of e.workout.tags) if (t !== 'test' && t !== 'ftp') count.set(t, (count.get(t) ?? 0) + 1)
     return [...count.entries()].sort((a, b) => b[1] - a[1]).map(([t]) => t)
-  }, [library, tab])
-  const planCount = useLiveQuery(() => db().plans.count(), [])
+  }, [inTab])
   const sessionCount = useLiveQuery(() => db().sessionWorkouts.count(), [])
   const [report, setReport] = useState<ImportLine[] | null>(null)
   const counts = useMemo(() => {
-    const c: Record<Tab, number> = { crankhog: 0, custom: 0, plan: planCount ?? 0, sessions: sessionCount ?? 0 }
+    const c: Record<Tab, number> = { crankhog: 0, custom: 0, plan: plans?.length ?? 0, sessions: sessionCount ?? 0 }
     // Custom workouts: every workout of the rider's own, filed in a plan or not
     for (const e of library ?? []) c[e.folder === 'crankhog' ? 'crankhog' : 'custom']++
     return c
-  }, [library, planCount, sessionCount])
+  }, [library, plans, sessionCount])
 
   const visible = useMemo(() => {
     const q = query.trim().toLowerCase()
     const lengthTest = LENGTHS.find((l) => l.id === length)!.test
-    const inTab = (library ?? []).filter((e) => (tab === 'custom' ? e.folder !== 'crankhog' : e.folder === tab))
-    return inTab.filter((e) => {
+    return inTab.filter(({ entry: e }) => {
       const w = e.workout
       if (filter === 'favorites' && !e.favorite) return false
       if (filter === 'tests' && !w.ftpTest) return false
@@ -87,7 +118,7 @@ export function WorkoutsPage() {
       if (!lengthTest(e.stats.durationS)) return false
       return !q || w.name.toLowerCase().includes(q) || (w.description ?? '').toLowerCase().includes(q) || w.tags.some((t) => t.includes(q))
     })
-  }, [library, tab, filter, length, query])
+  }, [inTab, filter, length, query])
 
   const importFiles = async (files: FileList | File[]) => {
     if (tab === 'plan') return importIntoOpenPlan(Array.from(files))
@@ -123,8 +154,8 @@ export function WorkoutsPage() {
   /** Files dropped on the Training plan tab go into the plan open there (a new "Training plan" when there is none), in file-name order. */
   const importIntoOpenPlan = async (files: File[]) => {
     try {
-      const plans = await listPlans()
-      const existing = plans.find((p) => p.id === planId) ?? plans[0]
+      const latest = await listPlans()
+      const existing = latest.find((p) => p.id === planId) ?? latest[0]
       const plan = existing ?? (await createPlan({ name: 'Training plan', source: 'files' }))
       const r = await importIntoPlan(plan.id, await Promise.all(files.map(async (f) => ({ name: f.name, text: await f.text() }))))
       if (!existing && r.added === 0) await deletePlan(plan.id)
@@ -231,10 +262,39 @@ export function WorkoutsPage() {
         ))}
       </div>
 
-      {tab === 'plan' && <PlansPanel selected={planId} onSelect={setPlanId} onNotice={setNotice} />}
+      {tab === 'plan' && <Segmented ariaLabel="Training plan view" value={planView} onChange={setPlanView} options={PLAN_VIEWS} className="mb-4" />}
+      {tab === 'plan' && planView === 'plans' && (
+        <PlansPanel
+          selected={planId}
+          onSelect={(id) => {
+            setPlanId(id)
+            setAllPlans(false)
+          }}
+          onNotice={setNotice}
+        />
+      )}
       {tab === 'sessions' && <SessionsPanel onNotice={setNotice} />}
 
-      <div className={cn('mb-5 flex flex-wrap items-center gap-2', (tab === 'plan' || tab === 'sessions') && 'hidden')}>
+      <div className={cn('mb-5 flex flex-wrap items-center gap-2', !grid && 'hidden')}>
+        {browsingPlan && plans && plans.length > 1 && (
+          <Select
+            value={shownPlan?.id ?? ''}
+            onChange={(e) => {
+              setAllPlans(!e.target.value)
+              if (e.target.value) setPlanId(e.target.value)
+            }}
+            aria-label="Training plan"
+            className="w-48"
+            data-testid="plan-browse-select"
+          >
+            <option value="">All plans</option>
+            {plans.map((p) => (
+              <option key={p.id} value={p.id}>
+                {p.name}
+              </option>
+            ))}
+          </Select>
+        )}
         <div className="relative mr-2 w-64">
           <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-ink-faint" />
           <Input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Search workouts" className="pl-9" aria-label="Search workouts" />
@@ -264,13 +324,21 @@ export function WorkoutsPage() {
         </div>
       </div>
 
-      {tab !== 'plan' && tab !== 'sessions' && library && visible.length === 0 && (
-        <div className="mx-auto max-w-md py-16 text-center text-ink-faint">{counts[tab] === 0 ? TABS.find((t) => t.id === tab)!.empty : 'No workouts match. Try another filter.'}</div>
+      {grid && library && plans && visible.length === 0 && (
+        <div className="mx-auto max-w-md py-16 text-center text-ink-faint">
+          {inTab.length > 0
+            ? 'No workouts match. Try another filter.'
+            : tab !== 'plan'
+              ? TABS.find((t) => t.id === tab)!.empty
+              : plans.length === 0
+                ? 'No training plans yet. Add one under Plans and calendar.'
+                : 'No workouts in this plan yet. Add some under Plans and calendar.'}
+        </div>
       )}
-      {tab !== 'plan' && tab !== 'sessions' && (
+      {grid && (
         <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3" data-testid="workout-grid">
-          {visible.map((e) => (
-            <WorkoutCard key={e.workout.id} entry={e} ftpW={ftpW} onOpen={() => setOpenId(e.workout.id)} />
+          {visible.map((r) => (
+            <WorkoutCard key={r.key} entry={r.entry} ftpW={ftpW} onOpen={() => setOpenId(r.entry.workout.id)} plan={tab === 'plan' ? { n: r.n } : undefined} />
           ))}
         </div>
       )}
@@ -280,10 +348,21 @@ export function WorkoutsPage() {
   )
 }
 
-function WorkoutCard({ entry, ftpW, onOpen }: { entry: LibraryEntry; ftpW: number; onOpen: () => void }) {
+function WorkoutCard({
+  entry,
+  ftpW,
+  onOpen,
+  plan,
+}: {
+  entry: LibraryEntry
+  ftpW: number
+  onOpen: () => void
+  /** On the Training plan tab: its place in the plan, when one plan is shown. */
+  plan?: { n?: number }
+}) {
   const { workout: w, stats } = entry
   const blocks = useMemo(() => profileBlocks(entry.timeline, ftpW), [entry.timeline, ftpW])
-  return (
+  const card = (
     <button
       type="button"
       onClick={onOpen}
@@ -312,7 +391,7 @@ function WorkoutCard({ entry, ftpW, onOpen }: { entry: LibraryEntry; ftpW: numbe
       </div>
       <div className="mt-2 flex flex-wrap gap-1">
         {!entry.builtin && <span className="rounded bg-accent/15 px-1.5 py-0.5 text-[10px] text-ink">{w.source === 'import' ? 'Imported' : w.source === 'ai' ? 'AI' : 'Mine'}</span>}
-        {entry.folder === 'plan' && <span className="rounded bg-panel-3 px-1.5 py-0.5 text-[10px] text-ink-dim">In a plan</span>}
+        {entry.folder === 'plan' && !plan && <span className="rounded bg-panel-3 px-1.5 py-0.5 text-[10px] text-ink-dim">In a plan</span>}
         {w.tags.slice(0, 3).map((t) => (
           <span key={t} className="rounded bg-panel-3 px-1.5 py-0.5 text-[10px] text-ink-dim">
             {tagLabel(t)}
@@ -320,5 +399,14 @@ function WorkoutCard({ entry, ftpW, onOpen }: { entry: LibraryEntry; ftpW: numbe
         ))}
       </div>
     </button>
+  )
+  if (plan?.n === undefined) return card
+  return (
+    <div className="relative">
+      <span className="absolute -left-2 -top-2 z-10 grid size-7 place-items-center rounded-full bg-accent font-display text-sm font-bold text-on-accent" aria-label={`Number ${plan.n} in your plan`}>
+        {plan.n}
+      </span>
+      {card}
+    </div>
   )
 }
