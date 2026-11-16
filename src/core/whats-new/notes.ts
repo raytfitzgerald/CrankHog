@@ -18,6 +18,14 @@ export interface WhatsNewEntry {
 
 export const WHATS_NEW: readonly WhatsNewEntry[] = [
   {
+    version: '1.0.2',
+    title: 'Swims count by distance in each week, in metres or yards.',
+    points: [
+      "The Swim line beside each week shows the distance you swam against the distance planned, in your units, with the time beside it.",
+      'A swim planned by time alone keeps its time there: "1,800 m + 45 min".',
+    ],
+  },
+  {
     version: '1.0.1',
     title: 'Runs, swims and squash on the calendar, next to your rides.',
     points: [
