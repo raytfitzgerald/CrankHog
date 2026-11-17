@@ -76,6 +76,7 @@ The rider asked for the feature and handed over the how. The base branch, what s
 - **Refusals are per change.** A change Google refuses outright (a 4xx that isn't a rate limit) is counted and skipped, and the rest of the sync goes through; the status reports how many and Google's reason for the first. Retryable errors and a lost sign-in still stop the sync for a retry. An update to an event deleted in Google since the list becomes an insert.
 - **Testing mode signs riders out weekly.** While the Google project is in Testing, Google expires refresh tokens after 7 days. CrankHog then shows "sign in again" (`GoogleAuthError`), which is Google's rule, not a bug. Publishing the app ends it: unverified (a 100-user cap and a warning screen) or verified.
 - **Swim distances** in event descriptions use `formatSportDistance` (metres or yards), like the calendar since #61.
+- **Session steps in the event.** A run, swim or other session's description carries its steps as in its `.txt` file, without CrankHog's header lines (`session.text`, else the library session's body), between the summary and the notes. Steps are capped at 6000 characters and notes at 1500, cut at a line break with "…", so a description stays inside the 8000-character limit. Bike workouts keep the summary and their description.
 - **No reminders, shown as free time.** A planned workout shouldn't block the day or ping the rider's phone.
 - **CrankHog's day wins.** An event dragged in Google goes back. A title edited in Google stays until the entry changes in CrankHog.
 

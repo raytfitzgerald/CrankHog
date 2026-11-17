@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { MIRROR_FOOTER, mirrorEvent, plainDuration } from './event-text'
+import { clip, MIRROR_FOOTER, mirrorEvent, plainDuration } from './event-text'
 
 describe('plainDuration', () => {
   it('reads as hours and minutes', () => {
@@ -35,5 +35,27 @@ describe('mirrorEvent', () => {
     const swim = (units: 'metric' | 'imperial') => mirrorEvent({ id: 's5', date: '2026-11-21', name: 'Swim', sport: 'swim', distanceM: 1800 }, units).description.split('\n\n')[0]
     expect(swim('metric')).toBe('Swim · 1,800 m')
     expect(swim('imperial')).toBe('Swim · 1,969 yd')
+  })
+
+  it('puts a session’s steps between the summary and the notes, line for line', () => {
+    const steps = 'Warmup\n- 15m Z2 HR\n\nMain set 4x\n- 8m 4:10-4:20/km Pace\n- 2m Z1 HR'
+    const e = mirrorEvent({ id: 's6', date: '2026-11-22', name: 'Threshold 4x8', sport: 'run', durationS: 4200, steps: `\n${steps}\n`, notes: 'Flat route.' }, 'metric')
+    expect(e.description).toBe(`Run · 1 h 10 min\n\n${steps}\n\nFlat route.\n\n${MIRROR_FOOTER}`)
+  })
+
+  it('cuts very long steps at a line break, and stays inside the description limit', () => {
+    const line = '- 1m Z2 HR'
+    const steps = Array.from({ length: 1000 }, () => line).join('\n')
+    const e = mirrorEvent({ id: 's7', date: '2026-11-22', name: 'Long', sport: 'run', steps, notes: 'n'.repeat(5000) }, 'metric')
+    expect(e.description.length).toBeLessThanOrEqual(8000)
+    const kept = e.description.split('\n\n')[1]!.split('\n')
+    expect(kept.at(-1)).toBe('…')
+    expect(kept.slice(0, -1).every((l) => l === line)).toBe(true)
+  })
+
+  it('clips plain text without a line break too', () => {
+    expect(clip('abcdefghij', 6)).toBe('abcd\n…')
+    expect(clip('  short  ', 6)).toBe('short')
+    expect(clip('   ', 6)).toBeUndefined()
   })
 })

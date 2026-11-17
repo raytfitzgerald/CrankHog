@@ -1,6 +1,8 @@
 import 'fake-indexeddb/auto'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { MIRROR_FOOTER, plainDuration } from '@core/calendar-mirror/event-text'
+import { sessionFromFile } from '@core/multisport/build'
+import { SESSION_EXAMPLES } from '@core/multisport/examples'
 import { addDays, dateKey } from '@core/workout/schedule'
 import type { CrankHogBridge } from '@shared/ipc/contract'
 import { DEFAULT_SETTINGS } from '@shared/settings'
@@ -8,6 +10,7 @@ import { recordFtp } from '../db/athlete-repo'
 import { db } from '../db/db'
 import { settingsStore } from '../stores/settings'
 import { BUILTINS, describeWorkout, plannedStatsOf } from '../workouts/library'
+import { planSessionWorkout, saveSessionWorkout } from '../workouts/sessions-repo'
 import { CALENDARS_KV, MIRROR_DEBOUNCE_MS, mirrorSnapshot, startGoogleMirror } from './google-mirror'
 import { moveScheduled, removeScheduled, scheduleSession, scheduleWorkout } from './schedule-repo'
 
@@ -36,6 +39,21 @@ describe('the snapshot sent to Google', () => {
     const planned = plannedStatsOf(workout, describeWorkout(workout, 250).stats)
     expect(snap.events[0]!.description.split('\n\n')[0]).toBe(`Ride · ${plainDuration(planned.durationS)} · TSS ${Math.round(planned.tss!)}`)
     expect(snap.events[1]!.description).toBe(`Run · 1 h 30 min · 15 km · Easy\n\nFlat route.\n\n${MIRROR_FOOTER}`)
+  })
+
+  it('gives a session from a .txt file its steps, without the header lines', async () => {
+    const example = SESSION_EXAMPLES.find((x) => x.fileName.includes('Threshold 4x8'))!
+    const { workout: w } = sessionFromFile(example.fileName, example.text, {}, NOW)
+    await saveSessionWorkout(w!)
+    const planned = await planSessionWorkout(addDays(TODAY, 1), w!)
+    const steps = example.text.split('\n\n').slice(1).join('\n\n').trim()
+    const description = (await mirrorSnapshot(NOW, 'metric')).events[0]!.description
+    expect(description.split('\n\n').slice(1, -1).join('\n\n')).toBe(steps)
+    expect(description).not.toMatch(/^(sport|name):/m)
+
+    // planned before its steps were kept with it: they come from the library workout
+    await db().schedule.update(planned.id, { session: { sessionWorkoutId: w!.id } })
+    expect((await mirrorSnapshot(NOW, 'metric')).events[0]!.description).toContain('Main set 4x\n- 8m 4:10-4:20/km Pace')
   })
 })
 
