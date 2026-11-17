@@ -18,6 +18,16 @@ export interface WhatsNewEntry {
 
 export const WHATS_NEW: readonly WhatsNewEntry[] = [
   {
+    version: '1.1.0',
+    title: 'Build your runs and swims, pick a workout from any day, and count a plan back from race day.',
+    points: [
+      'Workouts and the builder have Bike, Run and Swim tabs. Build a run or swim step by step, with targets in heart rate, pace, or a percent of threshold pace or CSS.',
+      'Click a day on the calendar to pick a bike workout, run or swim for it, with the same tabs and filters as the Workouts page.',
+      'Under Dates in a training plan, choose Race date and the plan counts back from it, so its last workout is the ride day before the race.',
+      "The Training plan tab's Browse workouts view lists a plan's workouts in order, to search, filter and ride.",
+    ],
+  },
+  {
     version: '1.0.3',
     title: 'Your planned training, in Google Calendar.',
     points: [
