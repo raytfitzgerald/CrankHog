@@ -103,7 +103,8 @@ export function NewPlanFlow({ onClose, onCreated }: { onClose: () => void; onCre
     act(async () => {
       const read = files ? await Promise.all(files.map(async (f) => ({ name: f.name, text: await f.text() }))) : null
       const mark = event ? await addMark({ date: event.date, kind: 'event', name: event.name, priority: event.priority }) : undefined
-      const plan = await createPlan({ name: name.trim() || 'Training plan', source: read ? 'files' : 'manual', eventId: mark?.id })
+      // a plan to an event counts back from it, so its last workout lands before race day
+      const plan = await createPlan({ name: name.trim() || 'Training plan', source: read ? 'files' : 'manual', eventId: mark?.id, ...(mark ? { anchor: 'race' as const } : {}) })
       if (!read) return onCreated(plan.id)
       const r = await importIntoPlan(plan.id, read)
       if (r.added === 0) {

@@ -1,4 +1,5 @@
 import { X } from 'lucide-react'
+import { SPORT_GROUP_LABEL } from '@core/sport/group'
 import { dateKeyToMs } from '@core/workout/schedule'
 import { Button } from '../../ui/Button'
 import { cn } from '../../ui/cn'
@@ -12,7 +13,7 @@ function where(l: ImportLine): string {
     case 'day':
       return `on ${DAY.format(dateKeyToMs(l.date!))}`
     case 'library':
-      return l.kind === 'session' ? 'in Run & swim' : 'in Custom workouts'
+      return l.kind === 'session' ? `in ${l.sport ? SPORT_GROUP_LABEL[l.sport] : 'Workouts'}` : 'in Custom workouts'
     case 'plan':
       return `in plan ${l.planName ?? ''}`.trim()
     case 'skipped':

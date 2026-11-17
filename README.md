@@ -117,13 +117,14 @@ It's a data-obsessed indoor cycling trainer for macOS, and [for your phone](#on-
 - **Your units.** Metric or imperial, with speed (km/h or mph) and weight (kg or lb) set on their own. Tap the unit on the speed tile to flip it mid-ride.
 
 **Building workouts**
-- **Three shelves.** CrankHog's own workouts, your Custom workouts, and your Training plans. Anything you build lands in Custom unless you file it in a plan.
+- **Bike, Run and Swim.** Workouts and the builder each have the three. Bike has three shelves: CrankHog's own workouts, your Custom workouts, and your Training plans. Anything you build lands in Custom unless you file it in a plan. Run and Swim hold your runs and swims, to search, plan on a day or add to a plan.
+- **Training plan tab.** **Plans and calendar** to build plans and put them on the calendar, or **Browse workouts** to search and filter a plan's workouts, numbered in plan order, and ride any of them.
 - **Training plans.** **Add a training plan** asks what you're training for and when, then:
   - **Import your workout files.** They go in in file-name order, and a file named `YYYY-MM-DD_name` goes on that day.
   - **Build a plan for me.** A few questions (hours a week, the days you ride, your long-ride day, raise FTP, build endurance, or the event, whether all-round, climbing, time trial or criterium), then a week-by-week plan: base, build, specialty and a taper into your event, with a recovery week every fourth week and a ramp test to start. CrankHog builds it from its own workouts, or your AI plans the weeks and writes any workout the library is missing.
   - **Start empty** and pick workouts from your library.
 
-  A plan is its workouts in order, the days you ride and a start date. Put it on the calendar, and every change re-lays it; workouts you've ridden stay where they were.
+  A plan is its workouts in order, the days you ride and its dates: a start date, or a race date it counts back from, so its last workout is the ride day before the race. Put it on the calendar, and every change re-lays it; workouts you've ridden stay where they were.
 - **A builder like zwofactory.com**, with blocks you can grab:
   - drag a block's edge to change its duration, or its top to change its power;
   - drag a block to reorder it;
@@ -136,6 +137,7 @@ It's a data-obsessed indoor cycling trainer for macOS, and [for your phone](#on-
   - `.zwo`, `.mrc`, `.erg` and intervals.icu text;
   - **Export to Zwift** drops the file straight into Zwift's Custom Workouts.
 - **Optional AI.** "45 minutes of over-unders, finish with sprints" becomes a workout you can edit.
+- **Runs and swims too.** The builder's Run and Swim tabs build sessions step by step: sections and repeats, lengths in time or distance, and targets in heart rate, pace, or a percent of threshold pace or CSS, with the time and load worked out as you go. Or type them in the session format in Text mode.
 
 **Coaching**
 - **Twenty-seven coaches**, each with a face (a cartoon, or a talking photo head):
@@ -159,11 +161,11 @@ It's a data-obsessed indoor cycling trainer for macOS, and [for your phone](#on-
 **Your history**
 - **History.** Every ride newest first.
 - **The Calendar** (its own page in the sidebar). The whole month: today highlighted, past days greyed, done workouts green and missed ones red.
-  - **Moving and planning:** drag a planned workout to another day, plan any workout on a day with **Add to calendar**, or bring in what's planned on your intervals.icu calendar.
+  - **Moving and planning:** click a day to pick a bike workout, run or swim for it from the same tabs and filters as the Workouts page, drag a planned workout to another day, or bring in what's planned on your intervals.icu calendar.
   - **Google Calendar:** sign in with Google and your planned training shows up as all-day events in a calendar named CrankHog. Move or remove a workout here and Google follows within seconds.
-  - **Events and days off:** click a day's number to mark an event (A, B or C) or a rest, sick or travel day. Plans skip days off and stop before their event, and Home counts down to your next A event.
+  - **Events and days off:** click a day to mark an event (A, B or C) or a rest, sick or travel day. Plans skip days off and stop before their event, and Home counts down to your next A event.
   - **Other sports:** runs, swims, squash and strength sessions show up too: from your Garmin's FIT files, from intervals.icu, or logged by hand. Each has a load on the same scale as ride TSS (hrTSS from heart rate, intervals.icu's load, or how hard you say it was).
-  - **Planning any sport:** click a day's number to plan a run, a swim or a squash game, or import planned sessions as text files named `YYYY-MM-DD_Name.txt`. The format is in [docs/WORKOUT-FORMAT.md](docs/WORKOUT-FORMAT.md) and the in-app **Format guide**. A planned session turns green when an activity of its sport lands on its day.
+  - **Planning any sport:** click a day to plan a run, a swim or a squash game, or import planned sessions as text files named `YYYY-MM-DD_Name.txt`. The format is in [docs/WORKOUT-FORMAT.md](docs/WORKOUT-FORMAT.md) and the in-app **Format guide**. A planned session turns green when an activity of its sport lands on its day.
   - **Beside each week:** planned against done time, load and sessions, split into Ride, Run, Swim and Other, with fitness, fatigue and form at the week's end, projected from your plan for the weeks ahead. Fitness counts every sport; the power curve and FTP stay rides only.
 - **Ride detail:** power, cadence, HR, speed and W′ balance charts, laps, time in zones, RPE and notes, and an AI debrief.
 - **Fitness:** the PMC (fitness, fatigue, form), weekly load, the power curve against your 90-day best, and FTP history.

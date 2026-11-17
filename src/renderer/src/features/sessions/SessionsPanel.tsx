@@ -1,11 +1,12 @@
-// The Run & swim tab: run, swim and other sessions imported or pasted, each
-// with its steps and what it adds up to, ready to plan on a day.
+// The Run and Swim tabs of Workouts: sessions of that sport, built, imported
+// or pasted, each with its steps and what it adds up to, ready to plan on a day.
 import { useLiveQuery } from 'dexie-react-hooks'
 import { useMemo, useState } from 'react'
-import { CalendarPlus, ClipboardPaste, Copy, ListPlus, Trash2 } from 'lucide-react'
+import { Link } from '@tanstack/react-router'
+import { CalendarPlus, ClipboardPaste, Copy, ListPlus, PencilLine, Plus, Search, Trash2 } from 'lucide-react'
 import { describeSession, sessionFromFile } from '@core/multisport/build'
 import type { SessionThresholds } from '@core/multisport/estimate'
-import type { SessionWorkout } from '@core/multisport/model'
+import type { SessionSport, SessionWorkout } from '@core/multisport/model'
 import { formatSportDistance } from '@core/sport/format'
 import { SPORT_GROUP_LABEL } from '@core/sport/group'
 import { dateKey, isDateKey } from '@core/workout/schedule'
@@ -14,13 +15,15 @@ import { Button } from '../../ui/Button'
 import { Dialog } from '../../ui/Dialog'
 import { Field, Input, Select } from '../../ui/form'
 import { formatDurationShort } from '../../ui/format'
-import { deleteSessionWorkout, listSessionWorkouts, planSessionWorkout, saveSessionWorkout, sessionThresholds } from '../../workouts/sessions-repo'
+import { deleteSessionWorkout, planSessionWorkout, saveSessionWorkout, sessionThresholds } from '../../workouts/sessions-repo'
 import { SportIcon } from '../calendar/SportIcon'
 import { addSessionToPlan, listPlans } from '../../plan/plans-repo'
 import { FormatGuideLink } from './FormatGuide'
+import { buildable, SESSIONS_NOUN, useSessions } from './sessions'
 import { SessionSteps } from './SessionSteps'
 
-const PASTE_PLACEHOLDER = `sport: run
+const PASTE_PLACEHOLDER: Record<SessionSport, string> = {
+  run: `sport: run
 name: Hill repeats
 
 Warmup
@@ -31,7 +34,25 @@ Hills 6x
 - 2m30s Z1 HR
 
 Cooldown
-- 10m Z1 HR`
+- 10m Z1 HR`,
+  swim: `sport: swim
+name: CSS 10x100
+pool: 25m
+
+Warmup
+- 400mtr Z2 Pace
+
+Main set 10x
+- 100mtr 95% Pace
+- 15s rest
+
+Cooldown
+- 200mtr Z1 Pace`,
+  other: `sport: other
+name: Squash
+duration: 1h
+effort: hard`,
+}
 
 /** "1h 05m · 12.4 km · 92 TSS", with what's missing left out. */
 function numbers(e: { durationS: number | null; distanceM: number | null; load: number | null } | null, sport: SessionWorkout['sport'], units: 'metric' | 'imperial'): string {
@@ -40,23 +61,39 @@ function numbers(e: { durationS: number | null; distanceM: number | null; load: 
   return parts.filter(Boolean).join(' · ')
 }
 
-export function SessionsPanel({ onNotice }: { onNotice: (n: { tone: 'good' | 'bad'; text: string }) => void }) {
-  const sessions = useLiveQuery(() => listSessionWorkouts(), [])
+/** Run, swim and other sessions: one sport's when `sport` is given. Build one, paste one, or open one to plan it. */
+export function SessionsPanel({ sport, onNotice }: { sport?: SessionSport; onNotice: (n: { tone: 'good' | 'bad'; text: string }) => void }) {
+  const [query, setQuery] = useState('')
+  const sessions = useSessions(sport, query)
   const thresholds = useLiveQuery(() => sessionThresholds(), []) ?? {}
   const [pasting, setPasting] = useState(false)
   const [open, setOpen] = useState<SessionWorkout | null>(null)
+  const noun = sport ? SESSIONS_NOUN[sport] : 'runs, swims or other sessions'
   return (
     <div>
       <div className="mb-4 flex flex-wrap items-center gap-2">
+        <div className="relative mr-2 w-64">
+          <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-ink-faint" />
+          <Input value={query} onChange={(e) => setQuery(e.target.value)} placeholder={`Search ${noun}`} className="pl-9" aria-label={`Search ${noun}`} />
+        </div>
+        {sport && buildable(sport) && (
+          <Button size="sm" variant="primary" asChild>
+            <Link to="/builder" search={{ sport }} data-testid="build-session">
+              <Plus className="size-3.5" /> Build a {sport}
+            </Link>
+          </Button>
+        )}
         <Button size="sm" onClick={() => setPasting((p) => !p)} aria-expanded={pasting} data-testid="paste-session">
           <ClipboardPaste className="size-3.5" /> Paste a session
         </Button>
         <FormatGuideLink />
         <span className="text-xs text-ink-faint">Or drop .txt session files on this page. A file named YYYY-MM-DD_Name.txt can go straight on the Calendar.</span>
       </div>
-      {pasting && <PasteBox thresholds={thresholds} onSaved={(text) => (setPasting(false), onNotice({ tone: 'good', text }))} />}
+      {pasting && <PasteBox placeholder={PASTE_PLACEHOLDER[sport ?? 'run']} thresholds={thresholds} onSaved={(text) => (setPasting(false), onNotice({ tone: 'good', text }))} />}
       {sessions && sessions.length === 0 && !pasting && (
-        <div className="mx-auto max-w-md py-12 text-center text-ink-faint">No runs, swims or other sessions yet. Paste one, or drop session files on this page. The Format guide shows how to write them.</div>
+        <div className="mx-auto max-w-md py-12 text-center text-ink-faint">
+          {query.trim() ? `No ${noun} match.` : `No ${noun} yet. ${sport && buildable(sport) ? `Build one, paste one,` : 'Paste one,'} or drop session files on this page. The Format guide shows how to write them.`}
+        </div>
       )}
       <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3" data-testid="session-grid">
         {(sessions ?? []).map((w) => (
@@ -68,7 +105,7 @@ export function SessionsPanel({ onNotice }: { onNotice: (n: { tone: 'good' | 'ba
   )
 }
 
-function SessionCard({ workout: w, thresholds, onOpen }: { workout: SessionWorkout; thresholds: SessionThresholds; onOpen: () => void }) {
+export function SessionCard({ workout: w, thresholds, onOpen }: { workout: SessionWorkout; thresholds: SessionThresholds; onOpen: () => void }) {
   const units = useSettings((s) => s.units)
   const { parsed, estimate } = useMemo(() => describeSession(w, thresholds), [w, thresholds])
   return (
@@ -87,7 +124,7 @@ function SessionCard({ workout: w, thresholds, onOpen }: { workout: SessionWorko
 }
 
 /** Paste a session and see it read, live, before saving it. */
-function PasteBox({ thresholds, onSaved }: { thresholds: SessionThresholds; onSaved: (message: string) => void }) {
+function PasteBox({ placeholder, thresholds, onSaved }: { placeholder: string; thresholds: SessionThresholds; onSaved: (message: string) => void }) {
   const units = useSettings((s) => s.units)
   const [text, setText] = useState('')
   const [date, setDate] = useState('')
@@ -100,7 +137,7 @@ function PasteBox({ thresholds, onSaved }: { thresholds: SessionThresholds; onSa
     if (day) {
       await planSessionWorkout(day, w)
       onSaved(`${w.name} saved and planned.`)
-    } else onSaved(`${w.name} saved to Run & swim.`)
+    } else onSaved(`${w.name} saved to ${SPORT_GROUP_LABEL[w.sport]}.`)
   }
   return (
     <div className="mb-5 grid gap-4 rounded-2xl border border-line bg-panel p-4 md:grid-cols-2" data-testid="paste-box">
@@ -108,7 +145,7 @@ function PasteBox({ thresholds, onSaved }: { thresholds: SessionThresholds; onSa
         <textarea
           value={text}
           onChange={(e) => setText(e.target.value)}
-          placeholder={PASTE_PLACEHOLDER}
+          placeholder={placeholder}
           spellCheck={false}
           className="no-drag h-72 w-full rounded-lg border border-line bg-panel-2 p-3 font-mono text-[13px] leading-snug text-ink placeholder:text-ink-faint focus:border-accent focus:outline-none"
           aria-label="Session text"
@@ -192,7 +229,7 @@ function SessionDialog({ workout: w, thresholds, onClose, onNotice }: { workout:
       footer={
         confirming ? (
           <div className="flex w-full flex-wrap items-center justify-between gap-2 text-sm">
-            <span>Delete it from Run & swim? Sessions already on the calendar stay.</span>
+            <span>Delete it from your {SESSIONS_NOUN[w.sport]}? Sessions already on the calendar stay.</span>
             <span className="flex gap-2">
               <Button size="sm" variant="ghost" onClick={() => setConfirming(false)}>
                 Cancel
@@ -210,6 +247,13 @@ function SessionDialog({ workout: w, thresholds, onClose, onNotice }: { workout:
             <Button variant="ghost" onClick={() => void navigator.clipboard?.writeText(w.text).catch(() => undefined)}>
               <Copy className="size-3.5" /> Copy text
             </Button>
+            {buildable(w.sport) && (
+              <Button variant="ghost" asChild>
+                <Link to="/builder" search={{ sport: w.sport, session: w.id }} data-testid="session-edit">
+                  <PencilLine className="size-3.5" /> Edit in builder
+                </Link>
+              </Button>
+            )}
           </>
         )
       }

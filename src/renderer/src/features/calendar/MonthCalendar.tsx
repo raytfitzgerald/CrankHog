@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { useNavigate } from '@tanstack/react-router'
 import { DndContext, KeyboardSensor, PointerSensor, useDraggable, useDroppable, useSensor, useSensors, type DragEndEvent } from '@dnd-kit/core'
-import { Bike, ChevronLeft, ChevronRight, CircleCheck, FlaskConical, Gauge, Mountain } from 'lucide-react'
+import { Bike, ChevronLeft, ChevronRight, CircleCheck, FlaskConical, Gauge, Mountain, Plus } from 'lucide-react'
 import type { RideSummary } from '@core/ride/types'
 import { formatSportDistance } from '@core/sport/format'
 import { activityGroup } from '@core/sport/group'
@@ -21,6 +21,7 @@ import { ActivityDialog } from './ActivityDialog'
 import { sportIcon } from './sport'
 import { SportIcon } from './SportIcon'
 import { calendarMonth, MARK_NAME, shiftMonth, type CalendarDay, type PlannedOnDay } from './calendar'
+import type { DayMode } from './DayDialog'
 import { hoursMinutes, type WorkoutPreview } from './preview'
 import { useCalendarData } from './use-calendar-data'
 import { MonthVolume, WeekVolume } from './VolumePane'
@@ -43,9 +44,10 @@ const PLANNED_CHIP: Record<PlannedOnDay['status'], string> = {
  * missed ones red. Each planned workout shows its length, its average
  * planned power and its shape. Beside each week, planned against completed volume. Drag
  * a planned workout to another day to move it, or click it to ride it, move
- * it or remove it.
+ * it or remove it. Click a day itself to put a workout on it (`onDay`), or its
+ * event or day off to change those.
  */
-export function MonthCalendar({ onDay }: { onDay?: (day: CalendarDay) => void }) {
+export function MonthCalendar({ onDay }: { onDay?: (day: CalendarDay, mode?: DayMode) => void }) {
   const [[year, month], setMonth] = useState<[number, number]>(() => {
     const d = new Date()
     return [d.getFullYear(), d.getMonth()]
@@ -167,7 +169,7 @@ function DayCell({
   onRide: (r: RideSummary) => void
   onPlanned: (p: PlannedOnDay) => void
   onActivity: (a: OtherActivity) => void
-  onDay?: (day: CalendarDay) => void
+  onDay?: (day: CalendarDay, mode?: DayMode) => void
 }) {
   const { setNodeRef, isOver } = useDroppable({ id: d.key })
   const plannedRides = new Set(d.plannedRideIds)
@@ -192,23 +194,40 @@ function DayCell({
         !d.inMonth && 'opacity-45',
         d.isToday && 'bg-accent/5 ring-2 ring-inset ring-accent',
         isOver && 'outline-2 -outline-offset-2 outline-accent',
+        onDay && 'cursor-pointer',
       )}
+      // a click on the day's free space picks a workout for it; the chips and buttons on it do their own thing
+      onClick={onDay && ((e) => !(e.target as Element).closest('button, a') && onDay(d))}
       data-testid={d.rides.length > 0 ? 'calendar-ride-day' : undefined}
       data-date={d.key}
       data-past={d.isPast || undefined}
       data-today={d.isToday || undefined}
     >
       <div className="mb-1 flex items-center justify-between">
-        <button
-          type="button"
-          onClick={() => onDay?.(d)}
-          disabled={!onDay}
-          className={cn('grid size-6 place-items-center rounded-full text-xs tabular', d.isToday ? 'bg-accent font-bold text-on-accent' : d.isPast ? 'text-ink-faint' : 'text-ink-dim', onDay && !d.isToday && 'hover:bg-panel-3')}
-          aria-label={`${DAY.format(d.date)}: add an event or a day off`}
-          data-testid="calendar-day-menu"
-        >
-          {d.day}
-        </button>
+        <span className="flex items-center gap-0.5">
+          <button
+            type="button"
+            onClick={() => onDay?.(d)}
+            disabled={!onDay}
+            className={cn('grid size-6 place-items-center rounded-full text-xs tabular', d.isToday ? 'bg-accent font-bold text-on-accent' : d.isPast ? 'text-ink-faint' : 'text-ink-dim', onDay && !d.isToday && 'hover:bg-panel-3')}
+            aria-label={`${DAY.format(d.date)}: add a workout, a session, an event or a day off`}
+            data-testid="calendar-day-menu"
+          >
+            {d.day}
+          </button>
+          {onDay && (
+            <button
+              type="button"
+              onClick={() => onDay(d)}
+              className="no-drag hidden size-5 place-items-center rounded text-ink-faint opacity-0 hover:bg-panel-3 hover:text-ink focus-visible:opacity-100 group-hover:opacity-100 md:grid"
+              aria-label={`Add a workout on ${DAY.format(d.date)}`}
+              title="Add a workout"
+              data-testid="calendar-day-add"
+            >
+              <Plus className="size-3.5" />
+            </button>
+          )}
+        </span>
         {d.tss > 0 && <span className="tabular text-[10px] text-ink-faint">{Math.round(d.tss)} TSS</span>}
       </div>
       {d.marks.length > 0 && (
@@ -217,7 +236,7 @@ function DayCell({
             <button
               key={mk.id}
               type="button"
-              onClick={() => onDay?.(d)}
+              onClick={() => onDay?.(d, 'mark')}
               className={cn('no-drag block w-full truncate rounded px-1.5 py-0.5 text-left text-[10px] font-semibold', mk.kind === 'event' ? 'bg-accent text-on-accent' : 'bg-panel-3 text-ink-dim')}
               data-testid="calendar-mark"
               data-kind={mk.kind}

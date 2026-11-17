@@ -1,15 +1,36 @@
 import { useEffect, useRef, useState } from 'react'
-import { useSearch } from '@tanstack/react-router'
+import { useNavigate, useSearch } from '@tanstack/react-router'
 import { PageHeader } from '../../ui/PageHeader'
+import { Segmented } from '../../ui/Segmented'
 import { BuilderEditor } from './BuilderEditor'
 import { openDoc, type OpenDoc } from './load'
+import { SessionBuilderPage } from './SessionBuilder'
+
+type Sport = 'bike' | 'run' | 'swim'
+const SPORTS = [
+  { value: 'bike' as const, label: 'Bike', hint: 'A trainer workout, in % of FTP' },
+  { value: 'run' as const, label: 'Run', hint: 'A run, by heart rate or pace' },
+  { value: 'swim' as const, label: 'Swim', hint: 'A swim, by pace or % of CSS' },
+]
+
+/** Bike, run or swim. Leaving a builder with changes asks first, as any navigation does. */
+function SportSwitch({ value }: { value: Sport }) {
+  const navigate = useNavigate()
+  return <Segmented ariaLabel="Sport" value={value} options={SPORTS} onChange={(s) => void navigate({ to: '/builder', search: s === 'bike' ? {} : { sport: s } })} className="mb-4" />
+}
+
+/** /builder: a bike workout (?id=… to open one), or with ?sport=run|swim a run or swim (&session=… to open one). */
+export function BuilderPage() {
+  const { id, sport, session } = useSearch({ from: '/builder' })
+  if (sport) return <SessionBuilderPage key={sport} sport={sport} session={session} sportSwitch={<SportSwitch value={sport} />} />
+  return <BikeBuilderPage id={id} />
+}
 
 /**
- * /builder and /builder?id=…: opens the workout for the URL (a new one
- * without an id; a copy for a read-only built-in) in a fresh editor.
+ * Opens the bike workout for the URL (a new one without an id; a copy for a
+ * read-only built-in) in a fresh editor.
  */
-export function BuilderPage() {
-  const { id } = useSearch({ from: '/builder' })
+function BikeBuilderPage({ id }: { id: string | undefined }) {
   const [doc, setDoc] = useState<OpenDoc | null>(null)
   // The stored workout the editor has open. A save updates the URL to its id,
   // and that must not reopen it (which would drop the undo history).
@@ -40,6 +61,7 @@ export function BuilderPage() {
       key={doc.key}
       doc={doc}
       urlId={id}
+      sportSwitch={<SportSwitch value="bike" />}
       onSaved={(savedId) => {
         openId.current = savedId
       }}
