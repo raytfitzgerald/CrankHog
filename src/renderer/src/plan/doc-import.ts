@@ -86,7 +86,7 @@ export function readTemplateDocument(doc: ExtractedDocument): ReadDocument {
 
 interface ReadyBase {
   item: ImportItem
-  /** Its day, or none: the plan's next ride day. */
+  /** Its day, or none: the plan's next ride day, or with a race, counted back from it. */
   date?: DateKey
   durationS: number | null
   warnings: string[]
@@ -194,7 +194,9 @@ const newItemId = (i: number) => `i${i.toString(36)}${crypto.randomUUID().slice(
 /**
  * Saves the checked sessions as a plan on the calendar: the event (if any),
  * the bike workouts filed in the plan, the run, swim and other sessions, and
- * every session on its day. If that fails part way, what it made is taken
+ * every session on its day. A plan with an event counts back from race day,
+ * so sessions with no day end on the ride day before it, and follow the race
+ * if it moves. If that fails part way, what it made is taken
  * back (never a workout the rider already had), so trying again doesn't leave
  * a second plan.
  */
@@ -206,7 +208,7 @@ export async function saveImport(ready: readonly ReadyItem[], opts: SaveImport):
   const madeSessions: string[] = []
   try {
     const rideDays = [...new Set(ready.filter((r) => r.date).map((r) => weekdayOf(r.date!)))].sort()
-    plan = await createPlan({ name: opts.name, source: 'files', startDate: opts.start, eventId: event?.id, ...(rideDays.length > 0 ? { rideDays } : {}) })
+    plan = await createPlan({ name: opts.name, source: 'files', startDate: opts.start, eventId: event?.id, ...(event ? { anchor: 'race' as const } : {}), ...(rideDays.length > 0 ? { rideDays } : {}) })
     const saved = new Set<string>()
     for (const r of ready) {
       if (saved.has(r.workout.id)) continue

@@ -339,7 +339,7 @@ function Review({
       </p>
       <ol className="max-h-64 space-y-1 overflow-y-auto" aria-label="Sessions to make">
         {prepared.ready.map((r, i) => (
-          <ReadyRow key={i} r={r} />
+          <ReadyRow key={i} r={r} race={!!race} />
         ))}
       </ol>
 
@@ -364,10 +364,10 @@ function Review({
   )
 }
 
-function ReadyRow({ r }: { r: ReadyItem }) {
+function ReadyRow({ r, race }: { r: ReadyItem; race: boolean }) {
   return (
     <li className="flex items-center gap-3 rounded-lg bg-panel-2 px-3 py-1.5 text-sm" data-testid="doc-import-ready-item">
-      <span className="w-28 shrink-0 tabular text-xs text-ink-dim">{r.date ? dayLabel(r.date) : 'Next ride day'}</span>
+      <span className="w-28 shrink-0 tabular text-xs text-ink-dim">{r.date ? dayLabel(r.date) : race ? 'Before race day' : 'Next ride day'}</span>
       <SportIcon sport={SPORT_GROUP[r.item.sport]} workout={r.kind === 'bike'} className="size-4 shrink-0 text-ink-dim" aria-label={r.item.sport} />
       <span className="min-w-0 flex-1">
         <span className="block truncate">{r.item.name}</span>

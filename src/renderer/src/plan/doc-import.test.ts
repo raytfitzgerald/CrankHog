@@ -7,6 +7,7 @@ import { dateKeyToMs } from '@core/workout/schedule'
 import type { CrankHogBridge } from '@shared/ipc/contract'
 import { db } from '../db/db'
 import { saveWorkout } from '../workouts/library'
+import { updateMark } from './day-marks-repo'
 import type { ExtractedDocument } from './doc-extract'
 import { PlanImportError, prepareImport, readTemplateDocument, readWithAi, saveImport } from './doc-import'
 
@@ -154,7 +155,7 @@ describe('saveImport', () => {
   it('saves a plan on the calendar with its event, workouts filed in it, and each session on its day', async () => {
     const { ready } = prepareImport(doc, { ...ctx, start: '2027-01-04' })
     const plan = await saveImport(ready, { name: 'Imported', start: '2027-01-04', event: { name: 'Gran fondo', date: '2027-05-02', priority: 'A' }, ftpW: 250 })
-    expect(plan).toMatchObject({ name: 'Imported', source: 'files', onCalendar: true, startDate: '2027-01-04', rideDays: [1, 2] })
+    expect(plan).toMatchObject({ name: 'Imported', source: 'files', onCalendar: true, anchor: 'race', rideDays: [1, 2] })
     expect(await db().dayMarks.toArray()).toEqual([expect.objectContaining({ id: plan.eventId, kind: 'event', name: 'Gran fondo', date: '2027-05-02', priority: 'A' })])
     // the same session twice is one workout, in the plan twice
     const workouts = await db().workouts.toArray()
@@ -177,8 +178,45 @@ describe('saveImport', () => {
       ['2027-01-05', 'Tempo'],
       ['2027-01-06', 'Easy run'],
       ['2027-01-12', 'Tempo'],
-      // the undated spin takes the plan's next free ride day (Tuesdays and Wednesdays, from the dated ones)
-      ['2027-01-13', 'Spin'],
+      // the undated spin counts back from the race: the last ride day before it (Tuesdays and Wednesdays, from the dated ones)
+      ['2027-04-28', 'Spin'],
+    ])
+  })
+
+  const undated: ImportDoc = {
+    items: [item({ name: 'Endurance', steps: '- 2h 65%' }), item({ sport: 'run', name: 'Easy run', steps: '- 40m Z2 HR' }), item({ name: 'Openers', steps: '- 30m 60%' })],
+    skipped: [],
+  }
+  const days = async () => (await db().schedule.toArray()).sort((a, b) => a.date.localeCompare(b.date)).map((e) => [e.date, e.name])
+
+  it('counts a plan with a race back from race day, and its sessions follow the race when it moves', async () => {
+    const { ready } = prepareImport(undated, { ...ctx, start: '2027-01-04', raceDate: '2027-03-07' })
+    const plan = await saveImport(ready, { name: 'Crit block', start: '2027-01-04', event: { name: 'Crit', date: '2027-03-07', priority: 'A' }, ftpW: 250 })
+    // the default ride days (Tue, Thu, Sat): the last session is the Saturday before the Sunday race, and the plan starts where that puts the first
+    expect(plan).toMatchObject({ anchor: 'race', eventId: expect.any(String), startDate: '2027-03-02' })
+    expect(await days()).toEqual([
+      ['2027-03-02', 'Endurance'],
+      ['2027-03-04', 'Easy run'],
+      ['2027-03-06', 'Openers'],
+    ])
+    await updateMark(plan.eventId!, { date: '2027-03-14' })
+    expect((await db().plans.get(plan.id))?.startDate).toBe('2027-03-09')
+    expect(await days()).toEqual([
+      ['2027-03-09', 'Endurance'],
+      ['2027-03-11', 'Easy run'],
+      ['2027-03-13', 'Openers'],
+    ])
+  })
+
+  it('runs a plan with no race on from the start the rider picked', async () => {
+    const { ready } = prepareImport(undated, { ...ctx, start: '2027-01-04' })
+    const plan = await saveImport(ready, { name: 'Base', start: '2027-01-04', ftpW: 250 })
+    expect(plan.anchor).toBeUndefined()
+    expect(plan.startDate).toBe('2027-01-04')
+    expect(await days()).toEqual([
+      ['2027-01-05', 'Endurance'],
+      ['2027-01-07', 'Easy run'],
+      ['2027-01-09', 'Openers'],
     ])
   })
 
