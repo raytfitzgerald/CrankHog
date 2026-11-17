@@ -108,8 +108,10 @@ test('a PDF plan: read here, sent only when the rider says so, reviewed, then pu
   expect(sent[0]!.system).toContain('Read it into sessions CrankHog can put on their calendar')
   expect(sent[0]!.user).toContain('<document>\nSpring classic plan\n\nWeek 1\nTue | Sweet spot 3x12 (90%)\nThu | Easy run 40 min\n</document>')
   expect(sent[0]!.user).toMatch(/^Today is \d{4}-\d{2}-\d{2}\.\nThe rider's training plan document, "Spring plan.pdf":/)
-  // Ollama gets a context window that holds the prompt and the answer, not its default few thousand tokens
-  expect(sent[0]!.options).toMatchObject({ num_ctx: 32_768, num_predict: 32_000 })
+  // Ollama gets a context window that holds the prompt and a long answer, not its default few thousand tokens
+  expect(sent[0]!.options).toMatchObject({ num_ctx: 16_384 })
+  expect(sent[0]!.options!.num_predict).toBeGreaterThan(12_000)
+  expect(sent[0]!.options!.num_predict).toBeLessThan(16_384)
 
   // the review: what will be made, what won't and why, before anything is saved
   await expect(page.getByTestId('doc-import-ready-item')).toHaveCount(2)

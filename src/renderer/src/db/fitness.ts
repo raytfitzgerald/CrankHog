@@ -1,7 +1,7 @@
 // Fitness data prep from stored rides and other sports. Simulated rides never
 // count. Fitness, fatigue, form and weekly load count every sport by default;
-// the power curve and FTP are rides only. What the AI is given asks for rides
-// only (sports: 'rides'): it gets locally recorded rides, nothing synced.
+// the power curve and FTP are rides only. The AI fitness overview asks for
+// rides only (sports: 'rides'); the coach chat gets every sport.
 import { computePmc, estimateFtp, mergeMmp, type PmcRow } from '@core/metrics'
 import type { RideSummary } from '@core/ride/types'
 import { dailyLoad } from '@core/sport/daily-load'

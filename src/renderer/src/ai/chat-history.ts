@@ -6,21 +6,20 @@ import type { ChatHandoff } from './handoff'
 /** A chat turn as stored. `shared` marks a context handoff, shown as a card rather than the raw prompt. */
 export interface ChatMessage extends AiMessage {
   shared?: ChatHandoff
-  /** What the rider typed, when the stored content also carries the training data. */
+  /** Older chats: what the rider typed, when the stored content also carried the training data. */
   asked?: string
 }
 
 export const MAX_KEPT = 40
 
 /**
- * The chat trimmed to `max` messages. The first rider message stays (it
- * carries the training data), followed by the newest messages from a coach
- * reply on, so rider and coach still alternate after it.
+ * The chat trimmed to its newest `max` messages, from a rider message on, so
+ * rider and coach still alternate. No older message has to stay: the latest
+ * one carries the training data.
  */
 export function trimChat(messages: readonly ChatMessage[], max = MAX_KEPT): ChatMessage[] {
   if (messages.length <= max) return [...messages]
-  const [first, ...rest] = messages
-  let tail = rest.slice(-(max - 1))
-  while (tail.length > 0 && tail[0]!.role === first!.role) tail = tail.slice(1)
-  return [first!, ...tail]
+  let tail = messages.slice(-max)
+  while (tail.length > 0 && tail[0]!.role !== 'user') tail = tail.slice(1)
+  return tail
 }

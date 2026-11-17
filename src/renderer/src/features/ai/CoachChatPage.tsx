@@ -3,7 +3,7 @@ import { Link } from '@tanstack/react-router'
 import { ChevronDown, Send, Square, Trash2 } from 'lucide-react'
 import type { AiMessage } from '@core/ai/types'
 import { PROFESSIONAL } from '@core/persona'
-import { coachVoiceNow, streamAi, trainingContext, type StreamHandle } from '../../ai/client'
+import { coachContext, coachVoiceNow, streamAi, type StreamHandle } from '../../ai/client'
 import { trimChat, type ChatMessage } from '../../ai/chat-history'
 import { handoffMessage, takeHandoff, type ChatHandoff } from '../../ai/handoff'
 import { PersonaAvatar } from '../../coach/PersonaAvatar'
@@ -24,19 +24,35 @@ const SUGGESTIONS = [
 const DATA_PREFIX = 'My training data (JSON):\n'
 const SPICE = ['gentle', 'cheeky', 'snarky', 'savage', 'feral']
 
-/** What the rider sees for their own message. Older chats stored only the content. */
+/** What the rider sees for their own message. Older chats stored the training data with it. */
 function shownText(m: ChatMessage): string {
   if (m.asked !== undefined) return m.asked
   return m.content.startsWith(DATA_PREFIX) ? (m.content.split('Question: ').pop() ?? '') : m.content
 }
 
-/** The messages as sent: the latest rider message leads with the coach's current voice settings. */
-function forAi(history: readonly ChatMessage[]): AiMessage[] {
-  const last = history.length - 1
-  return history.map((m, i) => ({ role: m.role, content: i === last && m.role === 'user' ? `${coachVoiceNow()}\n\n${m.content}` : m.content }))
+/** A message from an older chat without the training data it carried, which only the latest message brings now. */
+function withoutData(content: string): string {
+  if (!content.startsWith(DATA_PREFIX)) return content
+  const cut = content.indexOf('\n\n', DATA_PREFIX.length)
+  return cut < 0 ? content : content.slice(cut + 2)
 }
 
-/** Chat with the coach about your training (local rides only), in the persona picked in Settings. */
+/**
+ * The messages as sent. The latest rider message leads with the coach's
+ * current voice settings and `data`, everything CrankHog knows about the
+ * rider as of now; earlier messages go as written, so the coach always reads
+ * one up-to-date copy.
+ */
+function forAi(history: readonly ChatMessage[], data: string): AiMessage[] {
+  const last = history.length - 1
+  return history.map((m, i) => {
+    const content = withoutData(m.content)
+    if (i !== last || m.role !== 'user') return { role: m.role, content }
+    return { role: m.role, content: `${coachVoiceNow()}\n\n${DATA_PREFIX}${data}\n\n${m.shared ? content : `Question: ${content}`}` }
+  })
+}
+
+/** Chat with the coach about your training (everything kept in CrankHog), in the persona picked in Settings. */
 export function CoachChatPage() {
   const [messages, setMessages] = useState<ChatMessage[]>([])
   const [draft, setDraft] = useState('')
@@ -67,13 +83,19 @@ export function CoachChatPage() {
 
   const askOnce = async (prior: readonly ChatMessage[], turn: ChatMessage) => {
     setError(null)
-    // The first rider turn carries the training data; later turns keep it in history.
-    const first = prior.length === 0
-    const user: ChatMessage = first ? { ...turn, asked: turn.shared ? undefined : turn.content, content: `${DATA_PREFIX}${await trainingContext()}\n\n${turn.shared ? turn.content : `Question: ${turn.content}`}` } : turn
-    const history = [...prior, user]
+    const history = [...prior, turn]
     setMessages([...history, { role: 'assistant', content: '' }])
+    // read for every message, so a ride, a plan or a calendar change since the last one is in it
+    let data: string
+    try {
+      data = await coachContext()
+    } catch (e) {
+      setError(e instanceof Error ? e.message : String(e))
+      setMessages([...prior])
+      return
+    }
     let acc = ''
-    const h = streamAi('chat', forAi(history), (d) => {
+    const h = streamAi('chat', forAi(history, data), (d) => {
       acc += d
       setMessages([...history, { role: 'assistant', content: acc }])
     })
@@ -129,7 +151,7 @@ export function CoachChatPage() {
     <div className="mx-auto flex h-full max-w-4xl flex-col px-4 md:px-8 pb-6">
       <PageHeader
         title="Coach"
-        subtitle="Ask about your training. Only rides recorded in CrankHog are shared with your AI provider."
+        subtitle="Ask about your training, plans and calendar. What you keep in CrankHog is shared with your AI provider, never Strava data."
         actions={
           messages.length > 0 && (
             <Button size="sm" variant="ghost" onClick={() => void clear()}>

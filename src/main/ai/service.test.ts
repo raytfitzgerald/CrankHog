@@ -164,13 +164,13 @@ describe('AiService', () => {
     await expect(svc.complete('debrief', input)).rejects.toMatchObject({ code: 'circuit-open' })
   })
 
-  it('asks for a context window only for the purposes that need one', async () => {
+  it('asks for more room for the reply only for the purposes with long answers', async () => {
     const fake = new FakeProvider()
     fake.structuredOutputs = [{ planName: null, raceName: null, raceDate: null, startDate: null, countdown: null, items: [], skipped: [] }]
     const svc = new AiService(memoryStore(), () => fake)
     await svc.structured('plan-import', 'plan-import', input)
     await svc.complete('debrief', input)
-    expect(fake.calls.map((c) => c.req.contextTokens)).toEqual([32_768, undefined])
+    expect(fake.calls.map((c) => c.req.replyTokens)).toEqual([12_288, undefined])
   })
 
   it('rate-limits live lines to one every 20 s', async () => {

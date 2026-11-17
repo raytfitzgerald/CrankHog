@@ -22,7 +22,7 @@ A macOS Electron + React/TypeScript indoor-cycling trainer (ERG/SIM control, wor
 - Records are one per second of *moving* time. Pauses and laps take effect on slot boundaries.
 - Each ride snapshots FTP, weight and zones. Simulated or time-warped rides are flagged, and excluded from Strava, PMC and FTP auto-save.
 - FTMS first; the Wahoo proprietary protocol is only a fallback. Never drive two control protocols at once. Keep one GATT operation in flight per device.
-- AI never runs inside the ride tick. It gets only locally recorded data, never data pulled from Strava.
+- AI never runs inside the ride tick. It gets only data kept in CrankHog, never data pulled from Strava (intervals.icu never passes Strava activities on). The coach chat gets all of it, rides, other sports, plans and the calendar (`src/core/ai/athlete-context.ts`); the rider's name never leaves the Mac.
 - Personas: CrankHog is an adult app and the coaches may be as mean as they like, about anything (Ray's decision, November 2026). The one guardrail is self-harm (`src/core/persona/guardrails.ts`): no line, canned, user-made or AI-written, tells the rider to hurt or kill themselves, at any language setting. The distress switch still drops the act when the rider's heart rate looks wrong.
   - Coaches that parody real people are hidden in the iPhone build (`src/renderer/src/coach/available.ts`), for App Review.
   - New photo heads: Ray approves the exact files first. Credits go in `src/renderer/src/coach/toon/heads/ATTRIBUTION.md`.

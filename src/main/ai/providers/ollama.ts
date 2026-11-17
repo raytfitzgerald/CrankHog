@@ -7,6 +7,36 @@ import type { AiProvider, CallOpts, ProviderConfig } from '../provider'
 
 export const OLLAMA_DEFAULT_HOST = 'http://127.0.0.1:11434'
 
+/** The prompt in tokens, at about three characters a token (JSON's; prose has more), so the estimate errs high. */
+function promptTokens(req: Pick<AiRequest, 'system' | 'messages'>): number {
+  return Math.ceil((req.system.length + req.messages.reduce((n, m) => n + m.content.length, 0)) / 3)
+}
+
+/**
+ * The context window to ask Ollama for. Its default is a few thousand tokens
+ * and it silently cuts the front off anything longer: the system prompt, and
+ * the coach chat's training data with it. Room for the prompt and a reply
+ * (4,096 tokens, or the purpose's replyTokens for a long JSON answer), in
+ * powers of two so the model isn't reloaded for every size.
+ */
+export function contextWindow(req: Pick<AiRequest, 'system' | 'messages' | 'maxTokens' | 'replyTokens'>): number {
+  const need = promptTokens(req) + (req.replyTokens ?? Math.min(req.maxTokens ?? 4096, 4096))
+  let ctx = 8192
+  while (ctx < need && ctx < 65_536) ctx *= 2
+  return ctx
+}
+
+/**
+ * The window, and the most the reply may run to: what the call asks for
+ * (`fallback` when it doesn't say), but never more than the window has left
+ * after the prompt. A reply that won't fit then stops, rather than Ollama
+ * dropping the start of the prompt to make room for it.
+ */
+export function sizes(req: Pick<AiRequest, 'system' | 'messages' | 'maxTokens' | 'replyTokens'>, fallback: number): { num_ctx: number; num_predict: number } {
+  const num_ctx = contextWindow(req)
+  return { num_ctx, num_predict: Math.max(1024, Math.min(req.maxTokens ?? fallback, num_ctx - promptTokens(req))) }
+}
+
 export class OllamaProvider implements AiProvider {
   readonly id = 'ollama' as const
   private readonly host: string
@@ -32,7 +62,7 @@ export class OllamaProvider implements AiProvider {
   async complete(req: AiRequest, opts: CallOpts): Promise<AiResult> {
     const c = this.client()
     const r = await withAbort(c, opts.signal, () =>
-      c.chat({ model: opts.model, messages: this.messages(req), stream: false, options: { num_predict: req.maxTokens ?? 2048 } }),
+      c.chat({ model: opts.model, messages: this.messages(req), stream: false, options: sizes(req, 2048) }),
     )
     return { text: r.message.content, model: r.model, usage: { inputTokens: r.prompt_eval_count, outputTokens: r.eval_count } }
   }
@@ -40,7 +70,7 @@ export class OllamaProvider implements AiProvider {
   async stream(req: AiRequest, opts: CallOpts, onDelta: (text: string) => void): Promise<AiResult> {
     const c = this.client()
     const it = await withAbort(c, opts.signal, () =>
-      c.chat({ model: opts.model, messages: this.messages(req), stream: true, options: { num_predict: req.maxTokens ?? 4096 } }),
+      c.chat({ model: opts.model, messages: this.messages(req), stream: true, options: sizes(req, 4096) }),
     )
     const onAbort = () => it.abort()
     opts.signal.addEventListener('abort', onAbort, { once: true })
@@ -64,7 +94,7 @@ export class OllamaProvider implements AiProvider {
   async structured(req: AiRequest, schema: z.ZodType, _name: string, opts: CallOpts) {
     const c = this.client()
     const r = await withAbort(c, opts.signal, () =>
-      c.chat({ model: opts.model, messages: this.messages(req), stream: false, format: z.toJSONSchema(schema), options: { temperature: 0.4, ...sizes(req) } }),
+      c.chat({ model: opts.model, messages: this.messages(req), stream: false, format: z.toJSONSchema(schema), options: { temperature: 0.4, ...sizes(req, 8192) } }),
     )
     let value: unknown
     try {
@@ -74,16 +104,6 @@ export class OllamaProvider implements AiProvider {
     }
     return { value, raw: r.message.content, model: r.model }
   }
-}
-
-/**
- * Room for the answer, and a context window for the calls that need more than
- * Ollama's default of a few thousand tokens (which it fills by silently
- * dropping the start of the prompt). Others keep the model's own, so an
- * in-ride call never makes Ollama reload the model at a new size.
- */
-export function sizes(req: Pick<AiRequest, 'maxTokens' | 'contextTokens'>): { num_predict?: number; num_ctx?: number } {
-  return { ...(req.maxTokens ? { num_predict: req.maxTokens } : {}), ...(req.contextTokens ? { num_ctx: req.contextTokens } : {}) }
 }
 
 async function withAbort<T>(c: Ollama, signal: AbortSignal, fn: () => Promise<T>): Promise<T> {

@@ -64,8 +64,8 @@ export type ActivitySource = 'fit' | 'intervals' | 'manual'
 /**
  * An activity that isn't a ride in the history: a run, a swim, a squash game,
  * a gym session, or an outdoor ride synced from intervals.icu. A summary for
- * the calendar, weekly volume and fitness; never seen by the power curve,
- * FTP or the AI.
+ * the calendar, weekly volume, fitness and the coach chat; never seen by
+ * the power curve or FTP.
  */
 export interface OtherActivity {
   id: string

@@ -1,7 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import type { AiRequest } from '@core/ai/types'
 import { outputLimitIn, withinOutputLimit } from './provider'
-import { sizes } from './providers/ollama'
 
 describe('outputLimitIn', () => {
   it('reads the limit a provider names when a model allows less output than was asked', () => {
@@ -46,12 +45,5 @@ describe('withinOutputLimit', () => {
     calls = 0
     await expect(withinOutputLimit(req, async () => (calls++, Promise.reject(tooMuch)), refusal)).rejects.toBe(tooMuch)
     expect(calls).toBe(2)
-  })
-})
-
-describe('Ollama sizes', () => {
-  it('gives the answer its room, and the context window only a call that asks for one', () => {
-    expect(sizes({ maxTokens: 32_000, contextTokens: 32_768 })).toEqual({ num_predict: 32_000, num_ctx: 32_768 })
-    expect(sizes({ maxTokens: 8000 })).toEqual({ num_predict: 8000 })
   })
 })

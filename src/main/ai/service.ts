@@ -155,7 +155,7 @@ export class AiService {
     const model = this.modelFor(c.provider)
     if (!model) throw new AiError(`Choose a ${PROVIDER_NAME[c.provider]} model in Settings → AI`, 'not-configured')
     const d = PURPOSE_DEFAULTS[purpose]
-    const req: AiRequest = { system: input.system, messages: input.messages, maxTokens: d.maxTokens, effort: d.effort, ...(d.contextTokens ? { contextTokens: d.contextTokens } : {}) }
+    const req: AiRequest = { system: input.system, messages: input.messages, maxTokens: d.maxTokens, effort: d.effort, ...(d.replyTokens ? { replyTokens: d.replyTokens } : {}) }
     return { provider: this.provider(c.provider), model, req, opts: { signal: withTimeout(signal, d.timeoutMs), timeoutMs: d.timeoutMs } }
   }
 
