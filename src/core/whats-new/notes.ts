@@ -18,6 +18,16 @@ export interface WhatsNewEntry {
 
 export const WHATS_NEW: readonly WhatsNewEntry[] = [
   {
+    version: '1.2.0',
+    title: "Import a coach's plan from a document, and a coach chat that knows your plan.",
+    points: [
+      'Training plan, Add a training plan, Import a plan document: a spreadsheet, Word file, PDF or text. Your AI provider reads it into sessions, and you check them before they go on the calendar.',
+      "No AI? Download CrankHog's plan template, write a session a row, and it's read without AI.",
+      'The coach chat sees your plans, calendar, races, days off, runs and swims. Activities synced from intervals.icu now go to your AI provider too; Strava data never does.',
+      'Squash and gym sessions from a FIT file keep their full time: import an old one again to fix it. Google Calendar events show a session’s whole file.',
+    ],
+  },
+  {
     version: '1.1.0',
     title: 'Build your runs and swims, pick a workout from any day, and count a plan back from race day.',
     points: [
