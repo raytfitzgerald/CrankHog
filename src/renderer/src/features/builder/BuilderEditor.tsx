@@ -1,4 +1,4 @@
-import { useEffect, useEffectEvent, useMemo, useReducer, useState } from 'react'
+import { useEffect, useEffectEvent, useMemo, useReducer, useState, type ReactNode } from 'react'
 import { useBlocker, useNavigate } from '@tanstack/react-router'
 import { Bike, CheckCircle2, CircleDot, Copy, Download, Loader2, Save } from 'lucide-react'
 import { compileWorkout } from '@core/workout/compile'
@@ -59,10 +59,12 @@ export interface BuilderEditorProps {
   urlId: string | undefined
   /** Tells the page which workout is open now, so the URL change after a save doesn't reload it. */
   onSaved: (id: string) => void
+  /** Bike, run or swim: shown under the header. */
+  sportSwitch?: ReactNode
 }
 
 /** The workout builder for one opened document: header, stats, palette, canvas or text, inspector, actions. */
-export function BuilderEditor({ doc, urlId, onSaved }: BuilderEditorProps) {
+export function BuilderEditor({ doc, urlId, onSaved, sportSwitch }: BuilderEditorProps) {
   const [state, dispatch] = useReducer(editorReducer, doc.workout, (w) => initEditor(w))
   const [preview, setPreview] = useState<Workout | null>(null)
   const [dragging, setDragging] = useState(false)
@@ -207,6 +209,7 @@ export function BuilderEditor({ doc, urlId, onSaved }: BuilderEditorProps) {
         }
       />
 
+      {sportSwitch}
       {notice && <Notice notice={notice} onDismiss={() => setNotice(null)} />}
 
       <div className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_320px]">
@@ -316,7 +319,7 @@ export function BuilderEditor({ doc, urlId, onSaved }: BuilderEditorProps) {
   )
 }
 
-function SaveState({ dirty, stored }: { dirty: boolean; stored: boolean }) {
+export function SaveState({ dirty, stored }: { dirty: boolean; stored: boolean }) {
   if (dirty) {
     return (
       <span className="mr-1 flex items-center gap-1.5 text-xs text-ink-dim" data-testid="builder-dirty">

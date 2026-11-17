@@ -142,7 +142,7 @@ export function parseWorkoutFile(fileName: string, text: string): ImportResult {
   }
   if (ext === '.txt') {
     // a run, swim or other session has its own importer (workouts/session-import.ts)
-    if (isSessionFile(text)) throw new Error('This is a run, swim or other session (it has a sport line), not a bike workout. Import it on the Calendar or the Run & swim tab.')
+    if (isSessionFile(text)) throw new Error('This is a run, swim or other session (it has a sport line), not a bike workout. Import it on the Calendar, or on the Run or Swim tab of Workouts.')
     // plain text has no name of its own: the file's name is the workout's
     const r = parseIntervalsText(text, { name: fileName.replace(/\.[^.]+$/, '') })
     if (r.workout.segments.length === 0) throw new Error(r.errors[0] ? `Line ${r.errors[0].line}: ${r.errors[0].message}` : 'No workout steps found.')

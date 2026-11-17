@@ -8,7 +8,7 @@ import { ActivitySync } from './ActivitySync'
 import { GoogleCalendarLink } from './GoogleCalendarLink'
 import { IntervalsImport } from './IntervalsImport'
 import { MonthCalendar } from './MonthCalendar'
-import { DayDialog } from './DayDialog'
+import { DayDialog, type DayMode } from './DayDialog'
 import { importWorkoutFiles, SESSION_IMPORT_EXTENSIONS, type ImportLine } from '../../workouts/session-import'
 import { FormatGuideLink } from '../sessions/FormatGuide'
 import { ImportReport } from '../sessions/ImportReport'
@@ -19,7 +19,7 @@ export function CalendarPage() {
   const [notice, setNotice] = useState<{ tone: 'good' | 'bad'; text: string } | null>(null)
   const [busy, setBusy] = useState<string | null>(null)
   const [dragging, setDragging] = useState(false)
-  const [day, setDay] = useState<CalendarDay | null>(null)
+  const [day, setDay] = useState<{ day: CalendarDay; mode?: DayMode } | null>(null)
   const input = useRef<HTMLInputElement>(null)
   const sessionInput = useRef<HTMLInputElement>(null)
   const [report, setReport] = useState<ImportLine[] | null>(null)
@@ -70,7 +70,7 @@ export function CalendarPage() {
     >
       <PageHeader
         title="Calendar"
-        subtitle="Planned workouts, rides, runs, swims and everything else, a month at a time. Drag a planned workout to move it, or click a day's number to plan a session, log an activity, or add an event or a day off."
+        subtitle="Planned workouts, rides, runs, swims and everything else, a month at a time. Click a day to put a workout on it, plan a session, log an activity, or add an event or a day off. Drag a planned workout to move it."
         actions={
           <>
             {!__CRANKHOG_WEB__ && <GoogleCalendarLink onNotice={setNotice} />}
@@ -105,8 +105,8 @@ export function CalendarPage() {
         </div>
       )}
       {report && <ImportReport lines={report} onDismiss={() => setReport(null)} />}
-      <MonthCalendar onDay={setDay} />
-      {day && <DayDialog day={day} onClose={() => setDay(null)} />}
+      <MonthCalendar onDay={(d, mode) => setDay({ day: d, mode })} />
+      {day && <DayDialog day={day.day} mode={day.mode} onClose={() => setDay(null)} />}
     </div>
   )
 }

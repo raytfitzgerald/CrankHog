@@ -256,3 +256,45 @@ test('Browse workouts lists a plan like a folder: numbered in order, searched an
   await page.getByRole('radio', { name: 'Plans and calendar' }).click()
   await expect(page.getByTestId('plan-editor')).toBeVisible()
 })
+
+test('a click on a calendar day picks a workout for it, from the plan first, and it lands on that day', async () => {
+  const { page } = ctx
+  await page.getByRole('navigation', { name: 'Main' }).getByRole('link', { name: 'Calendar', exact: true }).click()
+  const tomorrow = new Date()
+  tomorrow.setDate(tomorrow.getDate() + 1)
+  const day = page.getByTestId('ride-calendar').locator(`[data-date="${tomorrow.getFullYear()}-${String(tomorrow.getMonth() + 1).padStart(2, '0')}-${String(tomorrow.getDate()).padStart(2, '0')}"]`)
+  // the day's free space, below its number
+  await day.click({ position: { x: 30, y: 80 } })
+  const picker = page.getByTestId('workout-picker')
+  await expect(picker.getByTestId('picker-tab-plan')).toHaveAttribute('aria-selected', 'true')
+  await expect(picker.getByLabel('Number 3 in your plan')).toBeVisible()
+  await picker.getByPlaceholder('Search workouts').fill('second')
+  await picker.getByTestId('workout-card').filter({ hasText: '02 Second' }).click()
+  await expect(page.getByRole('dialog')).toHaveCount(0)
+  await expect(day.getByTestId('calendar-planned').filter({ hasText: '02 Second' })).toBeVisible()
+})
+
+test('builds a run step by step, finds it under Run on Workouts, and opens it again in the builder', async () => {
+  const { page } = ctx
+  await page.getByRole('link', { name: 'Builder' }).click()
+  await page.getByRole('radio', { name: 'Run', exact: true }).click()
+  await expect(page.getByTestId('session-builder')).toBeVisible()
+  await page.getByTestId('session-builder-name').fill('E2E Tempo run')
+  // the main set three times, its effort 5 minutes in zone 3
+  await page.getByLabel('Section 2 repeats').fill('3')
+  await page.getByLabel('Section 2 step 1 length').fill('5')
+  await page.getByLabel('Section 2 step 1 zone').selectOption('3')
+  await expect(page.getByTestId('session-steps')).toContainText('5m Z3 HR')
+  await page.getByTestId('session-builder-save').click()
+  await expect(page.getByTestId('builder-clean')).toBeVisible()
+
+  await page.getByRole('link', { name: 'Workouts' }).click()
+  await page.getByRole('radio', { name: 'Run', exact: true }).click()
+  const card = page.getByTestId('session-card').filter({ hasText: 'E2E Tempo run' })
+  await expect(card).toBeVisible()
+  await card.click()
+  await page.getByTestId('session-edit').click()
+  await expect(page.getByTestId('session-builder-name')).toHaveValue('E2E Tempo run')
+  await expect(page.getByLabel('Section 2 repeats')).toHaveValue('3')
+  await expect(page.getByLabel('Section 2 step 1 zone')).toHaveValue('3')
+})

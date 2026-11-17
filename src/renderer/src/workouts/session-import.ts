@@ -3,6 +3,7 @@
 // and warning by line (docs/WORKOUT-FORMAT.md). Run, swim and other session
 // files are read by @core/multisport; bike files by the bike importers.
 import { sessionFromFile } from '@core/multisport/build'
+import type { SessionSport } from '@core/multisport/model'
 import { isSessionFile, type SessionMessage } from '@core/multisport/parse'
 import { parseDatedFileName } from '@core/workout/plan'
 import type { DateKey } from '@core/workout/schedule'
@@ -19,6 +20,8 @@ export interface ImportLine {
   /** What it's called once imported. */
   name?: string
   kind: 'session' | 'bike'
+  /** A session's sport, once it was read. */
+  sport?: SessionSport
   outcome: 'day' | 'library' | 'plan' | 'skipped'
   date?: DateKey
   planName?: string
@@ -44,7 +47,7 @@ export async function importWorkoutFiles(files: readonly { name: string; text: s
   for (const f of sorted) {
     if (isSessionFile(f.text)) {
       const r = sessionFromFile(f.name, f.text, thresholds, now)
-      const base = { file: f.name, kind: 'session' as const, name: r.parsed.name, errors: r.errors, warnings: r.warnings }
+      const base = { file: f.name, kind: 'session' as const, name: r.parsed.name, ...(r.parsed.header.sport ? { sport: r.parsed.header.sport } : {}), errors: r.errors, warnings: r.warnings }
       if (!r.workout) {
         lines.push({ ...base, outcome: 'skipped' })
         continue
