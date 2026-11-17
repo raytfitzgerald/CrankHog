@@ -4,14 +4,16 @@ import { ArrowDown, ArrowUp, CalendarCheck, CalendarX, FileUp, Plus, Search, Tra
 import { describeSession } from '@core/multisport/build'
 import type { SessionWorkout } from '@core/multisport/model'
 import { SPORT_GROUP_LABEL } from '@core/sport/group'
-import { isBlocking, layOutPlan, type PlanWarning, type TrainingPlan } from '@core/workout/plan'
+import { isBlocking, layOutPlan, layoutStart, raceStart, type PlanWarning, type TrainingPlan } from '@core/workout/plan'
 import { dateKey, dateKeyToMs, isDateKey } from '@core/workout/schedule'
 import { db } from '../../db/db'
 import { useFtp } from '../../db/use-athlete'
+import { addMark, updateMark } from '../../plan/day-marks-repo'
 import { addSessionToPlan, addToPlan, deletePlan, importIntoPlan, moveItem, putOnCalendar, resetPlanWorkout, takeOffCalendar, takeOutOfPlan, updatePlan } from '../../plan/plans-repo'
 import { Button } from '../../ui/Button'
 import { cn } from '../../ui/cn'
 import { Field, Input } from '../../ui/form'
+import { Segmented } from '../../ui/Segmented'
 import { formatDurationShort } from '../../ui/format'
 import { useNow } from '../../ui/useNow'
 import { IMPORT_EXTENSIONS, loadLibrary, plannedStatsOf, type LibraryEntry } from '../../workouts/library'
@@ -20,6 +22,10 @@ import { SportIcon } from '../calendar/SportIcon'
 import { listSessionWorkouts, sessionThresholds } from '../../workouts/sessions-repo'
 
 const WEEKDAYS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']
+const ANCHORS = [
+  { value: 'start' as const, label: 'Start date', hint: 'Pick the first day; the plan runs on from there' },
+  { value: 'race' as const, label: 'Race date', hint: 'Pick race day; the plan counts back so it ends the day before' },
+]
 const DAY = new Intl.DateTimeFormat(undefined, { weekday: 'short', day: 'numeric', month: 'short' })
 
 function warningText(w: PlanWarning): string {
@@ -56,18 +62,29 @@ export function PlanEditor({ plan, onDeleted, onNotice }: { plan: TrainingPlan; 
   const now = useNow()
 
   const event = plan.eventId ? marks?.find((m) => m.id === plan.eventId) : undefined
+  const anchor = plan.anchor ?? 'start'
+  const blocked = useMemo(() => new Set((marks ?? []).filter(isBlocking).map((m) => m.date)), [marks])
+  const start = layoutStart(plan, event?.date, blocked)
   const layout = useMemo(
     () =>
       layOutPlan({
         items: plan.items,
         rideDays: plan.rideDays,
-        startDate: plan.startDate,
+        startDate: start,
         today: dateKey(now),
-        blocked: new Set((marks ?? []).filter(isBlocking).map((m) => m.date)),
+        blocked,
         endDate: event?.date,
       }),
-    [plan, marks, event, now],
+    [plan, blocked, start, event, now],
   )
+  /** Race day: moves the plan's event, or makes one (an A race) when it has none. */
+  const setRaceDate = (date: string) =>
+    act(async () => {
+      if (event) return updateMark(event.id, { date })
+      const mark = await addMark({ date, kind: 'event', name: 'Race', priority: 'A' })
+      await updatePlan(plan.id, { eventId: mark.id, anchor: 'race' })
+    })
+  const counted = event && anchor === 'race' ? raceStart({ items: plan.items, rideDays: plan.rideDays, blocked, endDate: event.date }) : null
   const dateOf = new Map(layout.placements.map((p) => [p.index, p.date]))
   const total = plan.items.reduce((s, i) => {
     if (i.sport) return s + (sessionById.get(i.workoutId)?.estimate?.durationS ?? 0)
@@ -158,9 +175,32 @@ export function PlanEditor({ plan, onDeleted, onNotice }: { plan: TrainingPlan; 
             ))}
           </div>
         </Field>
-        <Field label="Starts">
-          <Input type="date" value={plan.startDate} onChange={(e) => isDateKey(e.target.value) && void act(() => updatePlan(plan.id, { startDate: e.target.value }))} className="max-w-48" aria-label="Plan start date" data-testid="plan-start" />
+        <Field label="Dates" hint={anchor === 'race' ? 'The plan counts back from race day, so its last workout is the ride day before it.' : 'The plan runs on from its first day.'}>
+          <Segmented ariaLabel="Plan dates" value={anchor} options={ANCHORS} onChange={(a) => void act(() => updatePlan(plan.id, { anchor: a }))} />
         </Field>
+        {anchor === 'start' ? (
+          <Field label="Starts">
+            <Input type="date" value={plan.startDate} onChange={(e) => isDateKey(e.target.value) && void act(() => updatePlan(plan.id, { startDate: e.target.value }))} className="max-w-48" aria-label="Plan start date" data-testid="plan-start" />
+          </Field>
+        ) : (
+          <Field
+            label="Race day"
+            hint={
+              !event
+                ? 'Pick race day, and the plan works back from it. It goes on the Calendar as an A event.'
+                : counted
+                  ? `It starts ${DAY.format(dateKeyToMs(counted))}.`
+                  : plan.rideDays.length === 0
+                    ? 'Pick the days you ride, so the plan can count back from race day.'
+                    : undefined
+            }
+          >
+            <div className="flex flex-wrap gap-2">
+              <Input type="date" value={event?.date ?? ''} onChange={(e) => isDateKey(e.target.value) && void setRaceDate(e.target.value)} className="max-w-48" aria-label="Race date" data-testid="plan-race-date" />
+              {event && <RaceName key={`${event.id}:${event.name ?? ''}`} name={event.name ?? ''} onCommit={(name) => void act(() => updateMark(event.id, { name }))} />}
+            </div>
+          </Field>
+        )}
       </div>
 
       {layout.warnings.length > 0 && (
@@ -257,6 +297,12 @@ export function PlanEditor({ plan, onDeleted, onNotice }: { plan: TrainingPlan; 
       </div>
     </section>
   )
+}
+
+/** The race's name, saved when you leave the field. */
+function RaceName({ name, onCommit }: { name: string; onCommit: (name: string) => void }) {
+  const [value, setValue] = useState(name)
+  return <Input value={value} onChange={(e) => setValue(e.target.value)} onBlur={() => value.trim() && value.trim() !== name && onCommit(value.trim())} placeholder="Race" aria-label="Race name" className="max-w-56" data-testid="plan-race-name" />
 }
 
 /** Search the library, bike workouts and run and swim sessions, and add one to the plan. */

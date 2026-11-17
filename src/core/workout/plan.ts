@@ -47,6 +47,12 @@ export interface TrainingPlan {
   onCalendar: boolean
   /** The event the plan builds to (a calendar day). */
   eventId?: string
+  /**
+   * What fixes the plan's dates: its start (the default), or its race, the
+   * event, when it counts back so its last workout is the ride day before
+   * (raceStart). A race-dated plan keeps startDate up to date with the race.
+   */
+  anchor?: 'start' | 'race'
   survey?: PlanSurvey
   source: 'files' | 'ai' | 'builtin' | 'manual'
   createdAt: number
@@ -112,6 +118,36 @@ export function weekdayOf(key: DateKey): number {
 export function nextMonday(now = Date.now()): DateKey {
   const today = dateKey(now)
   return addDays(today, (7 - weekdayOf(today)) % 7)
+}
+
+/**
+ * The latest start that still fits every workout without a day of its own on
+ * the ride days before `endDate` (the race), around the plan's dated workouts
+ * and days off: where layOutPlan, started there, ends the day before the race.
+ * Null when there are no ride days to count back over, or nothing to place
+ * (then the earliest dated workout, if any, is the start).
+ */
+export function raceStart(input: Pick<LayoutInput, 'items' | 'rideDays' | 'blocked'> & { endDate: DateKey }): DateKey | null {
+  const blocked = input.blocked ?? new Set<DateKey>()
+  const rideDays = new Set(input.rideDays)
+  // the days layOutPlan keeps for dated workouts, which undated ones go around
+  const fixed = new Set(input.items.filter((i) => i.date && !i.removed && i.movedTo === undefined && i.date < input.endDate && !blocked.has(i.date)).map((i) => i.date!))
+  // every undated workout takes a turn, moved or removed ones too, as in layOutPlan
+  const turns = input.items.filter((i) => !i.date).length
+  if (turns === 0) return [...fixed].sort()[0] ?? null
+  if (rideDays.size === 0) return null
+  let found = 0
+  for (let n = 1, day = addDays(input.endDate, -1); n <= MAX_PLAN_DAYS; n++, day = addDays(day, -1)) {
+    if (!rideDays.has(weekdayOf(day)) || fixed.has(day) || blocked.has(day)) continue
+    if (++found === turns) return day
+  }
+  return null
+}
+
+/** Where a plan's layout starts: its start date, or for a race-dated plan with its race on the calendar, counted back from the race. */
+export function layoutStart(plan: Pick<LayoutInput, 'items' | 'rideDays' | 'startDate'> & Pick<TrainingPlan, 'anchor'>, raceDate: DateKey | undefined, blocked?: ReadonlySet<DateKey>): DateKey {
+  if (plan.anchor !== 'race' || !raceDate) return plan.startDate
+  return raceStart({ items: plan.items, rideDays: plan.rideDays, blocked, endDate: raceDate }) ?? plan.startDate
 }
 
 /**

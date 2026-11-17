@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { layOutPlan, parseDatedFileName, weekdayOf } from './plan'
+import { layOutPlan, layoutStart, parseDatedFileName, raceStart, weekdayOf } from './plan'
 
 // 16 Nov 2026 is a Monday.
 const MON = '2026-11-16'
@@ -157,5 +157,53 @@ describe('parseDatedFileName', () => {
     expect(parseDatedFileName('2026-13-40_Nope.zwo')).toEqual({ date: null, rest: '2026-13-40_Nope' })
     expect(parseDatedFileName('2026-02-30_Nope.zwo')).toEqual({ date: null, rest: '2026-02-30_Nope' })
     expect(parseDatedFileName('01 Sweet spot.zwo')).toEqual({ date: null, rest: '01 Sweet spot' })
+  })
+})
+
+describe('raceStart', () => {
+  // 2026-12-06 is a Sunday; the plan rides Tue, Thu and Sat (1, 3, 5)
+  const race = '2026-12-06'
+  const undated = (n: number) => Array.from({ length: n }, (_, i) => ({ workoutId: `w${i}` }))
+  const lay = (items: Parameters<typeof raceStart>[0]['items'], start: string, blocked = new Set<string>()) =>
+    layOutPlan({ items, rideDays: [1, 3, 5], startDate: start, today: '2026-01-01', blocked, endDate: race })
+
+  it('counts back over the ride days, so the last workout is the ride day before the race', () => {
+    const start = raceStart({ items: undated(6), rideDays: [1, 3, 5], endDate: race })
+    // Sat 5, Thu 3, Tue 1 Dec, then Sat 28, Thu 26, Tue 24 Nov
+    expect(start).toBe('2026-11-24')
+    const l = lay(undated(6), start!)
+    expect(l.placements.map((p) => p.date)).toEqual(['2026-11-24', '2026-11-26', '2026-11-28', '2026-12-01', '2026-12-03', '2026-12-05'])
+    expect(l.warnings).toEqual([])
+  })
+
+  it('goes around days off and the plan’s own dated workouts, as the layout does', () => {
+    const items = [...undated(4), { workoutId: 'dated', date: '2026-12-03' }]
+    const blocked = new Set(['2026-12-05'])
+    const start = raceStart({ items, rideDays: [1, 3, 5], blocked, endDate: race })
+    // the 5th is a day off and the 3rd is taken: Tue 1 Dec, Sat 28, Thu 26, Tue 24 Nov
+    expect(start).toBe('2026-11-24')
+    const l = lay(items, start!, blocked)
+    expect(l.unplaced).toEqual([])
+    expect(l.placements.at(-1)!.date).toBe('2026-12-03')
+    expect(l.placements.filter((p) => p.workoutId !== 'dated').at(-1)!.date).toBe('2026-12-01')
+  })
+
+  it('keeps the turn of a workout moved or removed on the calendar, so the rest stay put', () => {
+    const items = [{ workoutId: 'a', removed: true as const }, ...undated(2)]
+    expect(raceStart({ items, rideDays: [1, 3, 5], endDate: race })).toBe('2026-12-01')
+  })
+
+  it('has nothing to count with no ride days, and starts at the first dated workout when nothing else needs a day', () => {
+    expect(raceStart({ items: undated(2), rideDays: [], endDate: race })).toBeNull()
+    expect(raceStart({ items: [{ workoutId: 'a', date: '2026-11-30' }, { workoutId: 'b', date: '2026-11-20' }], rideDays: [1], endDate: race })).toBe('2026-11-20')
+  })
+
+  it('starts a race-dated plan from its race, and any other from its start date', () => {
+    const plan = { items: undated(3), rideDays: [1, 3, 5], startDate: '2026-01-05' }
+    expect(layoutStart(plan, race)).toBe('2026-01-05')
+    expect(layoutStart({ ...plan, anchor: 'race' }, race)).toBe('2026-12-01')
+    // no race on the calendar (yet): its start date holds
+    expect(layoutStart({ ...plan, anchor: 'race' }, undefined)).toBe('2026-01-05')
+    expect(weekdayOf('2026-12-01')).toBe(1)
   })
 })

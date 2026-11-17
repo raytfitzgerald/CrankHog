@@ -7,7 +7,7 @@ The same guide is in the app: **Format guide**, next to every place you can impo
 ## Where you import
 
 - **Calendar, Import sessions** (or drop the files on the calendar). Each file goes straight onto its day. A file without a date isn't guessed at: it's listed in the report as having no date. Dated bike workouts (`.zwo`, `.mrc`, `.erg`, `.txt`) work here too, so a mixed week imports in one go.
-- **Workouts, Run & swim.** Files go to the library, to plan later with **Plan**. **Paste a session** reads what you type as you type it: the steps, the time, distance and load, and anything to fix.
+- **Workouts, Run or Swim.** Files go to the library, to plan later with **Plan**, or to open in the builder. **Paste a session** reads what you type as you type it: the steps, the time, distance and load, and anything to fix.
 - **Workouts, Training plan.** Files go into the open plan in file-name order, dated ones on their day.
 
 After every import, a report lists every file and where it went: on a day, in the library, in a plan, or skipped. Errors and warnings name the line. A file with errors is skipped whole, never half-imported; a file with only warnings is imported, and the warnings stay on the report.

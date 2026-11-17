@@ -6,7 +6,7 @@
 //
 // A workout of the rider's own in a plan is filed there (folder 'plan' and the
 // plan's id), for the library's "In a plan" badge and the builder's Folder.
-import { isBlocking, isSessionItem, layOutPlan, nextMonday, parseDatedFileName, type PlanItem, type TrainingPlan } from '@core/workout/plan'
+import { isBlocking, isSessionItem, layOutPlan, layoutStart, nextMonday, parseDatedFileName, type PlanItem, type TrainingPlan } from '@core/workout/plan'
 import { sessionFromFile } from '@core/multisport/build'
 import type { SessionThresholds } from '@core/multisport/estimate'
 import { isSessionFile } from '@core/multisport/parse'
@@ -49,11 +49,20 @@ export async function createPlan(init: Partial<Omit<TrainingPlan, 'id' | 'create
   return plan
 }
 
-/** Saves changes to a plan, and re-lays it if it is on the calendar. */
+/** A race-dated plan with its start counted back from the race as the calendar stands; any other plan as it is. */
+async function withRaceStart(plan: TrainingPlan): Promise<TrainingPlan> {
+  if (plan.anchor !== 'race' || !plan.eventId) return plan
+  const marks = await db().dayMarks.toArray()
+  const race = marks.find((m) => m.id === plan.eventId)
+  const startDate = layoutStart(plan, race?.date, new Set(marks.filter(isBlocking).map((m) => m.date)))
+  return startDate === plan.startDate ? plan : { ...plan, startDate }
+}
+
+/** Saves changes to a plan, and re-lays it if it is on the calendar. A race-dated plan's start follows its race. */
 export async function updatePlan(id: string, patch: Partial<Omit<TrainingPlan, 'id' | 'createdAt'>>): Promise<TrainingPlan> {
   const plan = await db().plans.get(id)
   if (!plan) throw new Error('That plan no longer exists.')
-  const next: TrainingPlan = { ...plan, ...patch, updatedAt: Date.now() }
+  const next: TrainingPlan = await withRaceStart({ ...plan, ...patch, updatedAt: Date.now() })
   await db().plans.put(next)
   if (next.onCalendar) await relay(next)
   return next
@@ -186,12 +195,13 @@ async function relay(plan: TrainingPlan): Promise<void> {
 
     const marks = await d.dayMarks.toArray()
     const event = plan.eventId ? marks.find((m) => m.id === plan.eventId) : undefined
+    const blocked = new Set(marks.filter(isBlocking).map((m) => m.date))
     const layout = layOutPlan({
       items: plan.items,
       rideDays: plan.rideDays,
-      startDate: plan.startDate,
+      startDate: layoutStart(plan, event?.date, blocked),
       today: dateKey(Date.now()),
-      blocked: new Set(marks.filter(isBlocking).map((m) => m.date)),
+      blocked,
       endDate: event?.date,
     })
     const names = await workoutNames(plan.items.filter((i) => !isSessionItem(i)).map((i) => i.workoutId))
@@ -226,9 +236,13 @@ async function relay(plan: TrainingPlan): Promise<void> {
   if (changes.moved.length + changes.removed.length > 0) void followPushed(changes)
 }
 
-/** Re-lays every plan on the calendar (after an event or a day off changes). */
+/** Re-lays every plan on the calendar (after an event or a day off changes). A race-dated plan's start follows its race. */
 export async function relayAllPlans(): Promise<void> {
-  for (const plan of await db().plans.toArray()) if (plan.onCalendar) await relay(plan)
+  for (const stored of await db().plans.toArray()) {
+    const plan = await withRaceStart(stored)
+    if (plan !== stored) await db().plans.put(plan)
+    if (plan.onCalendar) await relay(plan)
+  }
 }
 
 export interface PlanImportResult {

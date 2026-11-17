@@ -28,6 +28,23 @@ async function editor(planId: string) {
 }
 
 describe('PlanEditor', () => {
+  it('counts back from race day when the plan is dated by its race, and puts the race on the calendar', async () => {
+    const p = await createPlan({ name: 'Race plan', rideDays: [1], startDate: monday })
+    await addToPlan(p.id, 'builtin:endurance-60')
+    await addToPlan(p.id, 'builtin:sweet-spot-3x12')
+    const { refresh } = await editor(p.id)
+    await act(async () => fireEvent.click(screen.getByRole('radio', { name: 'Race date' })))
+    await refresh()
+    // a Monday three weeks on: the Tuesdays before it are 6 and 13 days earlier
+    const race = addDays(monday, 21)
+    await act(async () => fireEvent.change(screen.getByTestId('plan-race-date'), { target: { value: race } }))
+    await waitFor(async () => expect((await getPlan(p.id))?.eventId).toBeDefined())
+    await refresh()
+    await waitFor(() => expect(screen.getAllByTestId('plan-item-date').map((e) => e.textContent)).toEqual([short(addDays(race, -13)), short(addDays(race, -6))]))
+    expect(await getPlan(p.id)).toMatchObject({ anchor: 'race', startDate: addDays(race, -13) })
+    expect(await db().dayMarks.toArray()).toEqual([expect.objectContaining({ date: race, kind: 'event', name: 'Race', priority: 'A' })])
+  })
+
   it('shows the day each workout lands on, following the ride days', async () => {
     const p = await createPlan({ name: 'Base 1', rideDays: [1], startDate: monday })
     await addToPlan(p.id, 'builtin:endurance-60')
