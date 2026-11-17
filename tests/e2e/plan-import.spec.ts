@@ -14,7 +14,7 @@ let ctx: Launched
 let server: Server
 let host = ''
 /** Every request the fake provider got: its system prompt and the rider's message. */
-const sent: { system: string; user: string }[] = []
+const sent: { system: string; user: string; options?: Record<string, unknown> }[] = []
 let reply: unknown = null
 
 const pad = (n: number) => String(n).padStart(2, '0')
@@ -34,8 +34,8 @@ test.beforeAll(async () => {
     req.on('end', () => {
       res.setHeader('content-type', 'application/json')
       if (req.url === '/api/chat') {
-        const j = JSON.parse(body) as { model: string; messages: { role: string; content: string }[] }
-        sent.push({ system: j.messages[0]!.content, user: j.messages.at(-1)!.content })
+        const j = JSON.parse(body) as { model: string; messages: { role: string; content: string }[]; options?: Record<string, unknown> }
+        sent.push({ system: j.messages[0]!.content, user: j.messages.at(-1)!.content, options: j.options })
         res.end(JSON.stringify({ model: j.model, created_at: new Date().toISOString(), message: { role: 'assistant', content: JSON.stringify(reply) }, done: true, done_reason: 'stop' }))
       } else if (req.url === '/api/tags') res.end(JSON.stringify({ models: [{ name: 'fake-planner' }] }))
       else {
@@ -75,6 +75,7 @@ test('a PDF plan: read here, sent only when the rider says so, reviewed, then pu
     raceName: 'Spring classic',
     raceDate: race,
     startDate: null,
+    countdown: null,
     items: [
       item(1, 1, 'bike', 'Sweet spot 3x12', 'Warmup\n- 10m ramp 50-75%\nMain set 3x\n- 12m 90%\n- 5m 55%\nCooldown\n- 10m 50%'),
       item(1, 3, 'run', 'Easy run', '- 40m Z2 HR'),
@@ -107,6 +108,8 @@ test('a PDF plan: read here, sent only when the rider says so, reviewed, then pu
   expect(sent[0]!.system).toContain('Read it into sessions CrankHog can put on their calendar')
   expect(sent[0]!.user).toContain('<document>\nSpring classic plan\n\nWeek 1\nTue | Sweet spot 3x12 (90%)\nThu | Easy run 40 min\n</document>')
   expect(sent[0]!.user).toMatch(/^Today is \d{4}-\d{2}-\d{2}\.\nThe rider's training plan document, "Spring plan.pdf":/)
+  // Ollama gets a context window that holds the prompt and the answer, not its default few thousand tokens
+  expect(sent[0]!.options).toMatchObject({ num_ctx: 32_768, num_predict: 32_000 })
 
   // the review: what will be made, what won't and why, before anything is saved
   await expect(page.getByTestId('doc-import-ready-item')).toHaveCount(2)
@@ -130,7 +133,7 @@ test('a PDF plan: read here, sent only when the rider says so, reviewed, then pu
 
 test('a Word plan reaches the provider with its table rows intact', async () => {
   const { page } = ctx
-  reply = { planName: null, raceName: null, raceDate: null, startDate: null, items: [item(1, 2, 'swim', 'CSS 10x100', 'Main set 10x\n- 100mtr 1:40/100m Pace\n- 15s rest')], skipped: [] }
+  reply = { planName: null, raceName: null, raceDate: null, startDate: null, countdown: null, items: [item(1, 2, 'swim', 'CSS 10x100', 'Main set 10x\n- 100mtr 1:40/100m Pace\n- 15s rest')], skipped: [] }
   const docx = makeDocx(['Winter swim block', 'Week 1', [['Day', 'Session'], ['Wed', 'CSS 10x100 & drills']]])
   await toDocumentStep(page)
   await page.getByTestId('doc-import-file').setInputFiles({ name: 'Swim block.docx', mimeType: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document', buffer: Buffer.from(docx) })

@@ -56,7 +56,8 @@ async function read(ext: string, file: File): Promise<Omit<ExtractedDocument, 'f
   switch (ext) {
     case '.csv':
     case '.tsv': {
-      const rows = parseCsv(await file.text())
+      // a .csv may be ; or tab separated (sniffed); a .tsv always is tab separated
+      const rows = parseCsv(await file.text(), ext === '.tsv' ? '\t' : undefined)
       return { kind: 'csv', text: rowsToText(rows), rows }
     }
     case '.md':
@@ -71,6 +72,16 @@ async function read(ext: string, file: File): Promise<Omit<ExtractedDocument, 'f
   }
 }
 
+/**
+ * A number format that writes a date: one with a day or a year in it. A time
+ * or a duration ("h:mm", "[h]:mm") is a date format to SheetJS too, but has
+ * neither, and its cell (1:30, 25:30) is no day. Quoted text, [colour] and
+ * [$-locale] sections and escaped characters aren't part of the pattern.
+ */
+export function isDayFormat(format: string, isDate: (f: string) => boolean): boolean {
+  return isDate(format) && /[dy]/i.test(format.replace(/"[^"]*"|\[[^\]]*\]|\\./g, ''))
+}
+
 /** Every sheet of a workbook, a row a line, each under its name; and the rows of the sheet the template can read (else the first). */
 export async function sheetText(data: ArrayBuffer): Promise<{ text: string; rows: string[][] }> {
   const XLSX = await import('xlsx')
@@ -81,8 +92,8 @@ export async function sheetText(data: ArrayBuffer): Promise<{ text: string; rows
     const rows = grid.map((row) =>
       Array.from(row ?? [], (cell) => {
         if (!cell) return ''
-        // a date's own format ("1/4/27") is the locale's: write it as YYYY-MM-DD, from the serial (no time zone in it)
-        if (cell.t === 'n' && cell.z !== undefined && XLSX.SSF.is_date(cell.z)) return XLSX.SSF.format('yyyy-mm-dd', cell.v as number)
+        // a date's own format ("1/4/27") is the locale's: write it as YYYY-MM-DD, from the serial (no time zone in it); a time or a duration stays as shown
+        if (cell.t === 'n' && typeof cell.z === 'string' && isDayFormat(cell.z, (f) => XLSX.SSF.is_date(f))) return XLSX.SSF.format('yyyy-mm-dd', cell.v as number)
         return cell.w ?? (cell.v === undefined || cell.v === null ? '' : String(cell.v))
       }),
     )

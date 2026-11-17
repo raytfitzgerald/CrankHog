@@ -248,8 +248,9 @@ export function parseDatedFileName(fileName: string): { date: DateKey | null; re
   return { date: m[1]!, rest: m[2]! }
 }
 
-function isRealDay(key: string): boolean {
-  if (!isDateKey(key)) return false
+/** A real calendar day as YYYY-MM-DD (not 2027-02-30). */
+export function isRealDay(key: string | null | undefined): key is DateKey {
+  if (!key || !isDateKey(key)) return false
   const [y, mo, d] = key.split('-').map(Number) as [number, number, number]
   const date = new Date(y, mo - 1, d)
   return date.getFullYear() === y && date.getMonth() === mo - 1 && date.getDate() === d

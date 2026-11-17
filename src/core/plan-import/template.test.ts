@@ -72,8 +72,37 @@ describe('readTemplate', () => {
     expect(doc.items.map((i) => [i.name, i.sport])).toEqual([['Easy', 'run']])
     expect(problems).toEqual([
       { where: 'Row 2', reason: 'Erg: sport "rowing" isn\'t bike, run, swim or other.' },
-      { where: 'Row 3', reason: 'Tempo: the date "2027-02-30" isn\'t a day written YYYY-MM-DD.' },
+      { where: 'Row 3', reason: 'Tempo: the date "2027-02-30" isn\'t a real day.' },
       { where: 'Row 4', reason: 'it has no name.' },
+    ])
+  })
+
+  it('reads the dates a spreadsheet app writes when it saves the template again, when they’re clear', () => {
+    const read = (dates: string[], opts = {}) => {
+      const { doc, problems } = readTemplate([['date', 'name', 'steps'], ...dates.map((d) => [d, 'Ride', '- 1h 65%'])], opts)
+      return [doc.items.map((i) => i.date), problems.map((p) => p.reason)]
+    }
+    // the year first is always year, month, day
+    expect(read(['2027/1/4', '2027.01.05'])).toEqual([['2027-01-04', '2027-01-05'], []])
+    // a day past the 12th says which way the column runs, for the dates that could be either
+    expect(read(['1/4/2027', '1/13/27'])).toEqual([['2027-01-04', '2027-01-13'], []])
+    expect(read(['4.1.2027', '13.1.2027'])).toEqual([['2027-01-04', '2027-01-13'], []])
+    // when the column doesn't say, the computer's own date order does
+    expect(read(['1/4/2027', '2/2/2027'], { dayFirst: false })).toEqual([['2027-01-04', '2027-02-02'], []])
+    expect(read(['1/4/2027'], { dayFirst: true })).toEqual([['2027-04-01'], []])
+    // and without it, a date that could be either is a problem, with how to write it
+    expect(read(['1/4/2027', '2/2/2027'])).toEqual([['2027-02-02'], ['Ride: the date "1/4/2027" could be 2027-01-04 or 2027-04-01. Write it as YYYY-MM-DD.']])
+  })
+
+  it('says how to write a date it can’t read', () => {
+    const { problems } = readTemplate([
+      ['date', 'name', 'steps'],
+      ['Jan 4', 'Ride', '- 1h 65%'],
+      ['2/30/2027', 'Ride', '- 1h 65%'],
+    ])
+    expect(problems.map((p) => p.reason)).toEqual([
+      'Ride: the date "Jan 4" isn\'t one CrankHog can read. Write dates as YYYY-MM-DD, such as 2027-01-04. If a spreadsheet app changed them, set the date column to text and type them again.',
+      'Ride: the date "2/30/2027" isn\'t a real day.',
     ])
   })
 

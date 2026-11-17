@@ -5,17 +5,17 @@
 // it goes and that nothing else goes with it.
 import { useEffect, useMemo, useRef, useState, type DragEvent } from 'react'
 import { Download, FileText, Loader2, Upload } from 'lucide-react'
-import { defaultStart, isRealDate, mondayOf } from '@core/plan-import/model'
+import { defaultStart, mondayOf } from '@core/plan-import/model'
 import { chunkDocument } from '@core/plan-import/chunk'
 import { isPlanTemplate, TEMPLATE_CSV, TEMPLATE_FILE_NAME } from '@core/plan-import/template'
 import type { SessionThresholds } from '@core/multisport/estimate'
-import type { DayMark } from '@core/workout/plan'
+import { isRealDay, type DayMark } from '@core/workout/plan'
 import { dateKey, dateKeyToMs, type DateKey } from '@core/workout/schedule'
 import type { InvokeRes } from '@shared/ipc/contract'
 import { useFtp } from '../../db/use-athlete'
 import { bridge } from '../../platform/bridge'
 import { DocumentReadError, extractDocument, PLAN_DOCUMENT_EXTENSIONS, type ExtractedDocument } from '../../plan/doc-extract'
-import { prepareImport, readTemplateDocument, readWithAi, saveImport, type ImportProblem, type ReadDocument, type ReadyItem } from '../../plan/doc-import'
+import { eventOn, PARALLEL_PARTS, prepareImport, readTemplateDocument, readWithAi, saveImport, type ImportProblem, type ReadDocument, type ReadyItem } from '../../plan/doc-import'
 import { Button } from '../../ui/Button'
 import { cn } from '../../ui/cn'
 import { Field, Input, Switch } from '../../ui/form'
@@ -28,7 +28,7 @@ type Event = { name: string; date: DateKey; priority: NonNullable<DayMark['prior
 type Phase =
   | { at: 'pick' }
   | { at: 'loaded'; file: ExtractedDocument }
-  | { at: 'reading'; file: ExtractedDocument; part: number; parts: number }
+  | { at: 'reading'; file: ExtractedDocument; read: number; parts: number }
   | { at: 'review'; file: ExtractedDocument; read: ReadDocument }
 
 type AiStatus = InvokeRes<'ai.status'>
@@ -47,6 +47,12 @@ async function saveTemplate() {
 }
 
 const dayLabel = (d: DateKey) => formatDate(dateKeyToMs(d))
+
+/** Whether this computer writes a short date day first (1/4/2027 is 1 April), as a spreadsheet app re-saving the template does. */
+function dayFirst(): boolean {
+  const parts = new Intl.DateTimeFormat(undefined, { day: 'numeric', month: 'numeric', year: 'numeric' }).formatToParts(new Date(2027, 0, 4))
+  return parts.findIndex((p) => p.type === 'day') < parts.findIndex((p) => p.type === 'month')
+}
 const SPORT_GROUP = { bike: 'ride', run: 'run', swim: 'swim', other: 'other' } as const
 
 export function DocumentImport({
@@ -85,7 +91,8 @@ export function DocumentImport({
     }
   }, [])
 
-  const aiReady = !!ai && ai.configured && ai.provider !== null && !ai.breakerOpen
+  // a plan import stays out of the in-ride breaker, so an open one doesn't stop it
+  const aiReady = !!ai && ai.configured && ai.provider !== null
 
   const pick = async (file: File | undefined) => {
     if (!file) return
@@ -105,10 +112,14 @@ export function DocumentImport({
   const readIt = async (file: ExtractedDocument, via: 'ai' | 'template') => {
     const token = ++run.current
     setError(null)
-    if (via === 'template') return setPhase({ at: 'review', file, read: readTemplateDocument(file) })
-    setPhase({ at: 'reading', file, part: 1, parts: chunkDocument(file.text).chunks.length })
+    if (via === 'template') return setPhase({ at: 'review', file, read: readTemplateDocument(file, { dayFirst: dayFirst() }) })
+    setPhase({ at: 'reading', file, read: 0, parts: chunkDocument(file.text).chunks.length })
     try {
-      const read = await readWithAi(file, { onProgress: (part, parts) => token === run.current && setPhase({ at: 'reading', file, part, parts }) })
+      const read = await readWithAi(file, {
+        onProgress: (done, parts) => token === run.current && setPhase({ at: 'reading', file, read: done, parts }),
+        // Ollama answers one request at a time, and a queued part's timeout would run while it waits
+        parallel: ai?.provider === 'ollama' ? 1 : PARALLEL_PARTS,
+      })
       if (token === run.current) setPhase({ at: 'review', file, read })
     } catch (e) {
       if (token !== run.current) return
@@ -177,7 +188,7 @@ export function DocumentImport({
         <div className="flex items-start gap-3 py-8 text-sm text-ink-dim" role="status" data-testid="doc-import-progress">
           <Loader2 className="mt-0.5 size-4 shrink-0 animate-spin" />
           <span>
-            {phase.parts > 1 ? `Reading part ${phase.part} of ${phase.parts}…` : 'Reading your plan…'} {ai ? destination(ai) : 'Your AI provider'} is turning it into sessions; a long plan takes a few minutes.
+            {phase.parts > 1 ? `Read ${phase.read} of ${phase.parts} parts…` : 'Reading your plan…'} {ai ? destination(ai) : 'Your AI provider'} is turning it into sessions; a long plan takes a few minutes.
           </span>
         </div>
       )}
@@ -204,7 +215,7 @@ export function DocumentImport({
 function TemplateHelp() {
   return (
     <div className="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-line px-3 py-2 text-xs text-ink-dim">
-      <span>No AI? Write the plan in CrankHog’s template, a session a row (date, sport, name, steps), and it’s read without AI.</span>
+      <span>No AI? Write the plan in CrankHog’s template, a session a row (date as YYYY-MM-DD, sport, name, steps), and it’s read without AI.</span>
       <Button size="sm" onClick={() => void saveTemplate()} data-testid="doc-import-template-download">
         <Download className="size-3.5" /> Download the template
       </Button>
@@ -278,8 +289,23 @@ function Review({
   const docRace = doc.race && doc.race.date > today ? doc.race : undefined
   const [name, setName] = useState(() => planName.trim() || doc.name || file.fileName.replace(/\.[^.]+$/, ''))
   const [addRace, setAddRace] = useState(true)
+  // the document's race may be on the calendar already: the plan builds to that one
+  const [onCalendar, setOnCalendar] = useState<DayMark | undefined>()
+  const hasEvent = !!event
+  useEffect(() => {
+    let live = true
+    if (!hasEvent && docRace)
+      void eventOn(docRace.date, docRace.name)
+        .then((m) => live && setOnCalendar(m))
+        .catch(() => undefined)
+    return () => {
+      live = false
+    }
+  }, [hasEvent, docRace])
   const race: Event | undefined = event ?? (docRace && addRace ? { ...docRace, priority: 'A' } : undefined)
-  const [start, setStart] = useState(() => defaultStart(doc, event?.date ?? docRace?.date))
+  // counted from the race until the rider picks a day: switching the race off or on moves it
+  const [pickedStart, setPickedStart] = useState<DateKey | null>(null)
+  const start = pickedStart ?? defaultStart(doc, race?.date, now)
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const prepared = useMemo(() => prepareImport(doc, { start, raceDate: race?.date, ftpW, thresholds, now }), [doc, start, race?.date, ftpW, thresholds, now])
@@ -315,7 +341,7 @@ function Review({
           <Input
             type="date"
             value={start}
-            onChange={(e) => isRealDate(e.target.value) && setStart(mondayOf(e.target.value))}
+            onChange={(e) => isRealDay(e.target.value) && setPickedStart(mondayOf(e.target.value))}
             className="max-w-48"
             aria-label="Week 1 starts"
             data-testid="doc-import-start"
@@ -327,7 +353,13 @@ function Review({
           Builds to {event.name}, {dayLabel(event.date)}.
         </p>
       ) : (
-        docRace && <Switch checked={addRace} onChange={setAddRace} label={`Put ${docRace.name} on the calendar as an A race, ${dayLabel(docRace.date)}`} />
+        docRace && (
+          <Switch
+            checked={addRace}
+            onChange={setAddRace}
+            label={onCalendar ? `Build to ${onCalendar.name ?? docRace.name}, already on your calendar, ${dayLabel(docRace.date)}` : `Put ${docRace.name} on the calendar as an A race, ${dayLabel(docRace.date)}`}
+          />
+        )
       )}
 
       <p className="text-sm" data-testid="doc-import-summary">

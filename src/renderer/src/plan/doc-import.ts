@@ -9,7 +9,7 @@ import type { SessionThresholds } from '@core/multisport/estimate'
 import type { SessionWorkout } from '@core/multisport/model'
 import { chunkDocument, planImportInput } from '@core/plan-import/chunk'
 import { fromAiOutput, mergeDocs, placeItems, whereOf, type ImportDoc, type ImportItem } from '@core/plan-import/model'
-import { readTemplate } from '@core/plan-import/template'
+import { readTemplate, type TemplateOptions } from '@core/plan-import/template'
 import { contentId } from '@core/workout/ids'
 import type { Workout } from '@core/workout/model'
 import { weekdayOf, type DayMark, type PlanItem, type TrainingPlan } from '@core/workout/plan'
@@ -44,43 +44,74 @@ export interface ReadDocument {
   problems: ImportProblem[]
 }
 
+/** Parts read at once: a long plan reads in a third of the time, without crowding the provider's rate limit. */
+export const PARALLEL_PARTS = 3
+
+/** Errors every later part would get too (no key, a key refused, the provider not there): no more parts are sent. */
+const STOPS = new Set(['not-configured', 'auth', 'network', 'circuit-open'])
+
 /**
  * The document's sessions, read by the rider's AI provider a part at a time
- * (@core/plan-import/chunk). A part that fails is reported and the others
- * kept; when every part fails, throws PlanImportError with the reason.
+ * (@core/plan-import/chunk), `parallel` parts at once, in the document's
+ * order whatever order they come back in. A part that fails is reported and
+ * the others kept; after an error every later part would get too, no more
+ * are sent. When every part fails, throws PlanImportError with the reason.
+ * `onProgress` says how many parts are read, as each one is.
  */
-export async function readWithAi(doc: ExtractedDocument, opts: { onProgress?: (part: number, parts: number) => void; now?: number } = {}): Promise<ReadDocument> {
+export async function readWithAi(doc: ExtractedDocument, opts: { onProgress?: (read: number, parts: number) => void; now?: number; parallel?: number } = {}): Promise<ReadDocument> {
   const { context, chunks } = chunkDocument(doc.text)
   const today = dateKey(opts.now ?? Date.now())
-  const parts: ImportDoc[] = []
-  const problems: ImportProblem[] = []
-  for (const [i, chunk] of chunks.entries()) {
-    opts.onProgress?.(i + 1, chunks.length)
-    const where = chunks.length === 1 ? doc.fileName : `Part ${i + 1} of ${chunks.length}${chunk.weeks ? ` (weeks ${chunk.weeks[0]}-${chunk.weeks[1]})` : ''}`
-    const input = planImportInput({ fileName: doc.fileName, today, chunk, part: i + 1, parts: chunks.length, context })
+  const results: ({ doc: ImportDoc } | { problem: ImportProblem } | undefined)[] = chunks.map(() => undefined)
+  let next = 0
+  let read = 0
+  let stop: string | null = null
+  const partName = (i: number) => {
+    const chunk = chunks[i]!
+    return chunks.length === 1 ? doc.fileName : `Part ${i + 1} of ${chunks.length}${chunk.weeks ? ` (weeks ${chunk.weeks[0]}-${chunk.weeks[1]})` : ''}`
+  }
+  const readPart = async (i: number) => {
+    const input = planImportInput({ fileName: doc.fileName, today, chunk: chunks[i]!, part: i + 1, parts: chunks.length, context })
     const res = await bridge()
       .invoke('ai.structured', { purpose: 'plan-import', input })
-      .catch((e: unknown) => ({ ok: false as const, error: e instanceof Error ? e.message : String(e), value: undefined }))
+      .catch((e: unknown) => ({ ok: false as const, error: e instanceof Error ? e.message : String(e), code: undefined, value: undefined }))
     if (!res.ok) {
-      problems.push({ where, reason: res.error ?? 'The AI could not read it.' })
-      continue
+      const reason = res.error ?? 'The AI could not read it.'
+      if (res.code && STOPS.has(res.code)) stop ??= reason
+      return { problem: { where: partName(i), reason } }
     }
     const parsed = PlanImportSchema.safeParse(res.value)
-    if (!parsed.success) {
-      problems.push({ where, reason: "The AI's answer didn't make sense, so it was not used." })
-      continue
-    }
-    parts.push(fromAiOutput(parsed.data))
+    if (!parsed.success) return { problem: { where: partName(i), reason: "The AI's answer didn't make sense, so it was not used." } }
+    return { doc: fromAiOutput(parsed.data) }
   }
-  if (parts.length === 0) throw new PlanImportError(problems.length === 1 ? problems[0]!.reason : `The AI couldn't read any part of it: ${problems[0]?.reason ?? ''}`)
-  const merged = mergeDocs(parts)
+  const worker = async () => {
+    while (stop === null && next < chunks.length) {
+      const i = next++
+      results[i] = await readPart(i)
+      opts.onProgress?.(++read, chunks.length)
+    }
+  }
+  opts.onProgress?.(0, chunks.length)
+  await Promise.all(Array.from({ length: Math.max(1, Math.min(opts.parallel ?? PARALLEL_PARTS, chunks.length)) }, worker))
+
+  const parts: ImportDoc[] = []
+  const problems: ImportProblem[] = []
+  results.forEach((r, i) => {
+    if (!r) problems.push({ where: partName(i), reason: `Not sent: ${stop ?? 'reading stopped.'}` })
+    else if ('doc' in r) parts.push(r.doc)
+    else problems.push(r.problem)
+  })
+  if (parts.length === 0) {
+    const reasons = problems.filter((p) => !p.reason.startsWith('Not sent: '))
+    throw new PlanImportError(chunks.length === 1 || stop ? (stop ?? problems[0]!.reason) : `The AI couldn't read any part of it: ${reasons[0]?.reason ?? ''}`)
+  }
+  const merged = mergeDocs(parts, context)
   if (merged.items.length === 0 && problems.length === 0) throw new PlanImportError(`The AI found no sessions in ${doc.fileName}.${merged.skipped[0] ? ` ${merged.skipped[0].reason}` : ''}`)
   return { doc: merged, problems }
 }
 
 /** The document read as CrankHog's plan template (no AI). */
-export function readTemplateDocument(doc: ExtractedDocument): ReadDocument {
-  const { doc: read, problems } = readTemplate(doc.rows ?? [])
+export function readTemplateDocument(doc: ExtractedDocument, opts: TemplateOptions = {}): ReadDocument {
+  const { doc: read, problems } = readTemplate(doc.rows ?? [], opts)
   return { doc: { ...read, name: doc.fileName.replace(/\.[^.]+$/, '') }, problems: problems.map((p) => ({ where: p.where, reason: p.reason })) }
 }
 
@@ -184,7 +215,7 @@ export interface SaveImport {
   name: string
   /** The plan's first Monday. */
   start: DateKey
-  /** The event the plan builds to: put on the calendar with the plan. */
+  /** The event the plan builds to: put on the calendar with the plan, or the event already there that day. */
   event?: { name: string; date: DateKey; priority: NonNullable<DayMark['priority']> }
   ftpW: number
 }
@@ -202,7 +233,8 @@ const newItemId = (i: number) => `i${i.toString(36)}${crypto.randomUUID().slice(
  */
 export async function saveImport(ready: readonly ReadyItem[], opts: SaveImport): Promise<TrainingPlan> {
   if (ready.length === 0) throw new PlanImportError('There is nothing to save.')
-  const event = opts.event ? await addMark({ date: opts.event.date, kind: 'event', name: opts.event.name, priority: opts.event.priority }) : undefined
+  const existing = opts.event ? await eventOn(opts.event.date, opts.event.name) : undefined
+  const event = existing ?? (opts.event ? await addMark({ date: opts.event.date, kind: 'event', name: opts.event.name, priority: opts.event.priority }) : undefined)
   let plan: TrainingPlan | undefined
   const madeBikes: string[] = []
   const madeSessions: string[] = []
@@ -225,9 +257,16 @@ export async function saveImport(ready: readonly ReadyItem[], opts: SaveImport):
     await updatePlan(plan.id, { items })
     return await putOnCalendar(plan.id)
   } catch (e) {
-    await undoSave(plan, event, madeBikes, madeSessions).catch(() => undefined)
+    await undoSave(plan, existing ? undefined : event, madeBikes, madeSessions).catch(() => undefined)
     throw e
   }
+}
+
+/** The event already on the calendar that day, if any: the one of that name, else the most important. A plan for it builds to it rather than to a copy. */
+export async function eventOn(date: DateKey, name?: string): Promise<DayMark | undefined> {
+  const events = (await db().dayMarks.where('date').equals(date).toArray()).filter((m) => m.kind === 'event')
+  const rank = (m: DayMark) => (name && m.name?.trim().toLowerCase() === name.trim().toLowerCase() ? 0 : 1) * 10 + ['A', 'B', 'C'].indexOf(m.priority ?? 'C')
+  return events.sort((a, b) => rank(a) - rank(b))[0]
 }
 
 async function undoSave(plan: TrainingPlan | undefined, event: DayMark | undefined, bikes: readonly string[], sessions: readonly string[]): Promise<void> {

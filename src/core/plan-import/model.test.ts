@@ -1,19 +1,20 @@
 import { describe, expect, it } from 'vitest'
 import type { PlanImportOutput } from '../ai/schemas'
+import { isRealDay } from '../workout/plan'
 import { dateKeyToMs } from '../workout/schedule'
-import { defaultStart, fromAiOutput, isRealDate, mergeDocs, mondayOf, placeItems, type ImportItem } from './model'
+import { defaultStart, fromAiOutput, MAX_PART_ITEMS, mergeDocs, mondayOf, placeItems, type ImportDoc, type ImportItem } from './model'
 
 type AiItem = PlanImportOutput['items'][number]
 const aiItem = (patch: Partial<AiItem>): AiItem => ({ date: null, week: null, weekday: null, sport: 'bike', name: 'Ride', steps: '- 1h 65%', minutes: null, effort: null, notes: null, ...patch })
-const out = (patch: Partial<PlanImportOutput>): PlanImportOutput => ({ planName: null, raceName: null, raceDate: null, startDate: null, items: [], skipped: [], ...patch })
+const out = (patch: Partial<PlanImportOutput>): PlanImportOutput => ({ planName: null, raceName: null, raceDate: null, startDate: null, countdown: null, items: [], skipped: [], ...patch })
 const item = (patch: Partial<ImportItem>): ImportItem => ({ where: '', sport: 'bike', name: 'Ride', steps: '- 1h 65%', ...patch })
 
-describe('isRealDate and mondayOf', () => {
+describe('isRealDay and mondayOf', () => {
   it('knows a real day from a malformed or impossible one', () => {
-    expect(isRealDate('2027-01-04')).toBe(true)
-    expect(isRealDate('2027-02-30')).toBe(false)
-    expect(isRealDate('4/1/2027')).toBe(false)
-    expect(isRealDate(null)).toBe(false)
+    expect(isRealDay('2027-01-04')).toBe(true)
+    expect(isRealDay('2027-02-30')).toBe(false)
+    expect(isRealDay('4/1/2027')).toBe(false)
+    expect(isRealDay(null)).toBe(false)
   })
 
   it('finds the Monday of a day’s week', () => {
@@ -53,16 +54,46 @@ describe('fromAiOutput', () => {
     })
   })
 
-  it('drops days that aren’t real and weeks out of range, keeping the session', () => {
+  it('drops days that aren’t real and weeks out of range, keeping the session, and the document’s own week numbers', () => {
     const doc = fromAiOutput(out({ raceDate: '2027-02-30', startDate: 'soon', items: [aiItem({ date: '2027-13-01' }), aiItem({ week: 0, weekday: 2 }), aiItem({ week: 500 }), aiItem({ date: 'Tuesday', week: 4, weekday: 1 })] }))
     expect(doc.race).toBeUndefined()
     expect(doc.startDate).toBeUndefined()
     expect(doc.items.map((i) => [i.date, i.week, i.weekday, i.where])).toEqual([
       [undefined, undefined, undefined, 'No day given'],
-      [undefined, undefined, undefined, 'No day given'],
+      // week 0 is the document's; mergeDocs makes it the plan's week 1
+      [undefined, 0, 2, 'Week 0, Wed'],
       [undefined, undefined, undefined, 'No day given'],
       [undefined, 4, 1, 'Week 4, Tue'],
     ])
+  })
+
+  it('checks each session’s sport, weekday and effort itself, so one odd value costs only that value', () => {
+    const doc = fromAiOutput(
+      out({
+        countdown: true,
+        items: [
+          aiItem({ sport: 'Cycling', week: 2, weekday: 7 }),
+          aiItem({ sport: 'rowing', week: 2.5, weekday: 1 }),
+          aiItem({ sport: 'RUN', week: 3, weekday: 1.5, effort: 'Hard', steps: '' }),
+          aiItem({ sport: 'swim', effort: 'tempo', steps: '', name: 'x'.repeat(200) }),
+        ],
+      }),
+    )
+    expect(doc.countdown).toBe(true)
+    expect(doc.items.map((i) => [i.sport, i.week, i.weekday, i.effort])).toEqual([
+      ['bike', 2, undefined, undefined],
+      ['other', undefined, undefined, undefined],
+      ['run', 3, undefined, 'hard'],
+      ['swim', undefined, undefined, undefined],
+    ])
+    expect(doc.items[3]!.name).toHaveLength(80)
+  })
+
+  it('keeps at most a part’s worth of sessions, and says so', () => {
+    const doc = fromAiOutput(out({ items: Array.from({ length: MAX_PART_ITEMS + 3 }, () => aiItem({})), skipped: Array.from({ length: 150 }, (_, i) => ({ text: `t${i}`, reason: 'r' })) }))
+    expect(doc.items).toHaveLength(MAX_PART_ITEMS)
+    expect(doc.skipped).toHaveLength(101)
+    expect(doc.skipped.at(-1)).toEqual({ text: '3 more sessions in one part', reason: expect.stringMatching(/^A part holds at most 400 sessions/) })
   })
 
   it('calls a race with a date but no name "Race"', () => {
@@ -71,15 +102,68 @@ describe('fromAiOutput', () => {
 })
 
 describe('mergeDocs', () => {
-  it('takes the first name, race and start any part has, and every session once, in order', () => {
-    const a = { items: [item({ week: 1, weekday: 1, name: 'A' }), item({ week: 1, weekday: 3, name: 'B' })], skipped: [{ text: 'x', reason: 'y' }] }
-    const b = { name: 'Plan', race: { name: 'Race', date: '2027-04-03' }, items: [item({ week: 1, weekday: 3, name: 'B' }), item({ week: 2, weekday: 1, name: 'C' })], skipped: [] }
-    const c = { name: 'Other name', items: [item({ week: 3, weekday: 1, name: 'D' })], skipped: [{ text: 'z', reason: 'w' }] }
-    const merged = mergeDocs([a, b, c])
+  const doc = (items: ImportItem[], more: Partial<ImportDoc> = {}): ImportDoc => ({ items, skipped: [], ...more })
+
+  it('takes the first name, race and start any part has, and drops a later part’s second read of a session from the document’s start', () => {
+    const a = doc([item({ week: 1, weekday: 1, name: 'A' }), item({ week: 1, weekday: 3, name: 'B' })], { skipped: [{ text: 'x', reason: 'y' }] })
+    const b = doc([item({ week: 1, weekday: 3, name: 'B' }), item({ week: 2, weekday: 1, name: 'C' })], { name: 'Plan', race: { name: 'Race', date: '2027-04-03' } })
+    const c = doc([item({ week: 3, weekday: 1, name: 'D' })], { name: 'Other name', skipped: [{ text: 'z', reason: 'w' }] })
+    const merged = mergeDocs([a, b, c], 'Plan. Key session: b, on the Wednesday of week 1.')
     expect(merged.name).toBe('Plan')
     expect(merged.race).toEqual({ name: 'Race', date: '2027-04-03' })
     expect(merged.items.map((i) => i.name)).toEqual(['A', 'B', 'C', 'D'])
     expect(merged.skipped).toHaveLength(2)
+  })
+
+  it('keeps sessions a part repeats: three easy runs in a week, a list with no days, an AM/PM double', () => {
+    const run = item({ sport: 'run', name: 'Easy run', steps: '- 40m Z2 HR' })
+    const merged = mergeDocs([
+      doc([
+        { ...run, week: 2 },
+        { ...run, week: 2 },
+        { ...run, week: 2 },
+        item({ name: 'Spin' }),
+        item({ name: 'Spin' }),
+        { ...run, date: '2027-01-05' },
+        { ...run, date: '2027-01-05' },
+      ]),
+    ])
+    expect(merged.items.map((i) => [i.name, i.week, i.date])).toEqual([
+      ['Easy run', 2, undefined],
+      ['Easy run', 2, undefined],
+      ['Easy run', 2, undefined],
+      ['Spin', undefined, undefined],
+      ['Spin', undefined, undefined],
+      ['Easy run', undefined, '2027-01-05'],
+      ['Easy run', undefined, '2027-01-05'],
+    ])
+  })
+
+  it('keeps a later part’s repeats of the first part’s sessions unless the document’s start names them, and then only as often as the first part has them', () => {
+    // a list of sessions with no weeks or days, long enough for two parts
+    const first = doc([item({ name: 'Spin' }), item({ name: 'Tempo' }), item({ name: 'Spin' })])
+    const later = doc([item({ name: 'Spin' }), item({ name: 'Tempo' }), item({ name: 'Spin' }), item({ name: 'Spin' })])
+    expect(mergeDocs([first, later], 'My 100 sessions').items.map((i) => i.name)).toEqual(['Spin', 'Tempo', 'Spin', 'Spin', 'Tempo', 'Spin', 'Spin'])
+    // the start names Spin: the later part's first two are the second read of the first part's two
+    expect(mergeDocs([first, later], 'Every week: two SPIN sessions').items.map((i) => i.name)).toEqual(['Spin', 'Tempo', 'Spin', 'Tempo', 'Spin'])
+  })
+
+  it('makes the weeks the plan’s, 1 = its first: up a week from 0, and turned round when they count down', () => {
+    const at = (week: number) => item({ week, weekday: 1 })
+    const weeks = (parts: ImportDoc[]) => mergeDocs(parts).items.map((i) => [i.week, i.where])
+    expect(weeks([doc([{ ...at(0), where: 'Week 0, Tue' }, at(1)]), doc([at(3)])])).toEqual([
+      [1, 'Week 0, Tue'],
+      [2, ''],
+      [4, ''],
+    ])
+    expect(weeks([doc([at(2), at(3)])])).toEqual([
+      [2, ''],
+      [3, ''],
+    ])
+    // 16 weeks out … 1 week out, most parts saying so
+    const countdown = [doc([at(16), at(15)], { countdown: true }), doc([at(8)], { countdown: true }), doc([at(1)], { countdown: false })]
+    expect(weeks(countdown).map(([w]) => w)).toEqual([1, 2, 9, 16])
+    expect(weeks([doc([at(3)], { countdown: true }), doc([at(1)], { countdown: false })]).map(([w]) => w)).toEqual([3, 1])
   })
 })
 

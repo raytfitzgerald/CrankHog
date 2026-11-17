@@ -87,9 +87,10 @@ The rider has a training plan in a document or spreadsheet: a coach's plan, a bo
 Rules:
 - One item per session the document plans. Leave out rest days and days off. The race itself is not an item: give it as raceName and raceDate. Never invent a session the document doesn't have, and keep its order.
 - Sport: bike for any cycling (indoor or out), run, swim, or other (strength, yoga, mobility, a brick's transition, anything else). A brick (bike then run) is two items on the same day.
-- Day: when the document dates a session, give date (YYYY-MM-DD; use today's date in the user message to choose the year of a date written without one) and leave week and weekday null. Otherwise give week as the document numbers it (1 = its first week) and weekday (0 = Monday … 6 = Sunday). When the document gives the week but not the day, choose sensible days in that week: long sessions at the weekend, hard days apart. When it gives neither, leave all three null.
+- Day: when the document dates a session, give date (YYYY-MM-DD; use today's date in the user message to choose the year of a date written without one) and leave week and weekday null. Otherwise give week, the number the document gives that week, as it is: from 0 or 1, or counting down to the race ("16 weeks out" is 16); and weekday (0 = Monday … 6 = Sunday). Set countdown true when the weeks count down to the race, false when they count up from the plan's start, null when there are no week numbers; CrankHog puts them in order. When the document gives the week but not the day, choose sensible days in that week: long sessions at the weekend, hard days apart. When it gives neither, leave all three null.
 - name: short and plain, as the document names the session ("Sweet spot 3x12", "Long run", "CSS 10x100"), at most 60 characters.
 - notes: the document's own words about the session that steps can't hold (how it should feel, fuelling, technique cues), in one or two sentences; null when there are none.
+- sport is one of bike, run, swim, other; effort one of easy, moderate, hard, max.
 - planName, raceName, raceDate (YYYY-MM-DD), startDate (YYYY-MM-DD, the plan's first day): from the document, null when it doesn't say.
 - skipped: anything that looks like a session but can't be read as one, with the reason ("no length given"). Leave headings, explanations and rest days out of it.
 

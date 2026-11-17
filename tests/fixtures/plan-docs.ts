@@ -47,8 +47,10 @@ export function makePdf(runs: readonly { x: number; y: number; text: string }[])
 }
 
 /** An .xlsx workbook: sheets of rows; a Date cell is written as a date. */
-export function makeXlsx(sheets: Record<string, readonly (readonly (string | number | Date)[])[]>): Uint8Array {
+/** A spreadsheet; a cell given as { v, z } is a number with that format, such as a duration { v: 0.0625, z: 'h:mm' }. */
+export function makeXlsx(sheets: Record<string, readonly (readonly (string | number | Date | { v: number; z: string })[])[]>): Uint8Array {
   const wb = XLSX.utils.book_new()
-  for (const [name, rows] of Object.entries(sheets)) XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(rows.map((r) => [...r]), { cellDates: true }), name)
+  const cell = (c: string | number | Date | { v: number; z: string }) => (typeof c === 'object' && !(c instanceof Date) ? { t: 'n', ...c } : c)
+  for (const [name, rows] of Object.entries(sheets)) XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(rows.map((r) => r.map(cell)), { cellDates: true }), name)
   return new Uint8Array(XLSX.write(wb, { type: 'array', bookType: 'xlsx' }) as ArrayBuffer)
 }

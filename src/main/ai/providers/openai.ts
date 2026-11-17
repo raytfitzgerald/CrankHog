@@ -4,7 +4,9 @@ import OpenAI from 'openai'
 import { zodTextFormat } from 'openai/helpers/zod'
 import type { z } from 'zod'
 import { AiError, type AiRequest, type AiResult } from '@core/ai/types'
-import type { AiProvider, CallOpts, ProviderConfig } from '../provider'
+import { withinOutputLimit, type AiProvider, type CallOpts, type ProviderConfig } from '../provider'
+
+const refusal = (e: unknown) => (e instanceof OpenAI.BadRequestError ? e.message : null)
 
 /** An OpenAI-compatible service: who it is, where it lives, and which of its models can chat. */
 export interface OpenAiFlavor {
@@ -57,7 +59,7 @@ export class OpenAiProvider implements AiProvider {
 
   async complete(req: AiRequest, opts: CallOpts): Promise<AiResult> {
     try {
-      const r = await this.client.responses.create({ ...this.body(req, opts.model), stream: false }, { signal: opts.signal, timeout: opts.timeoutMs })
+      const r = await withinOutputLimit(req, (q) => this.client.responses.create({ ...this.body(q, opts.model), stream: false }, { signal: opts.signal, timeout: opts.timeoutMs }), refusal)
       return { text: r.output_text, model: r.model, usage: { inputTokens: r.usage?.input_tokens, outputTokens: r.usage?.output_tokens } }
     } catch (e) {
       throw mapError(e, this.flavor.name)
@@ -87,9 +89,10 @@ export class OpenAiProvider implements AiProvider {
 
   async structured(req: AiRequest, schema: z.ZodType, schemaName: string, opts: CallOpts) {
     try {
-      const r = await this.client.responses.parse(
-        { ...this.body(req, opts.model), text: { format: zodTextFormat(schema, schemaName) } },
-        { signal: opts.signal, timeout: opts.timeoutMs },
+      const r = await withinOutputLimit(
+        req,
+        (q) => this.client.responses.parse({ ...this.body(q, opts.model), text: { format: zodTextFormat(schema, schemaName) } }, { signal: opts.signal, timeout: opts.timeoutMs }),
+        refusal,
       )
       return { value: r.output_parsed, raw: r.output_text, model: r.model }
     } catch (e) {

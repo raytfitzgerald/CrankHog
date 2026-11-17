@@ -1,27 +1,19 @@
 // The plan template: a spreadsheet (CSV or .xlsx) with a session a row, read
 // without AI. Columns, in any order, by their header:
-//   date   YYYY-MM-DD                      or  week (1, 2 …) and day (Mon … Sun, or 1-7)
+//   date   YYYY-MM-DD (or a spreadsheet's   or  week (1, 2 …) and day (Mon … Sun, or 1-7)
+//          own 1/4/2027, when it's clear)
 //   sport  bike, run, swim or other (bike when left out)
 //   name   what the session is called
 //   steps  bike: intervals.icu text; run, swim, other: session steps
 //          (docs/WORKOUT-FORMAT.md). A line a step: a line break in the
 //          cell, or a semicolon.
 //   notes  optional
-import { isRealDate, MAX_IMPORT_WEEKS, whereOf, type ImportDoc, type ImportItem, type ImportSport } from './model'
+import { isRealDay } from '../workout/plan'
+import type { DateKey } from '../workout/schedule'
+import { MAX_IMPORT_WEEKS, sportFrom, whereOf, type ImportDoc, type ImportItem } from './model'
 
 const COLUMNS = ['date', 'week', 'day', 'sport', 'name', 'steps', 'notes'] as const
 type Column = (typeof COLUMNS)[number]
-
-const SPORTS: Record<string, ImportSport> = {
-  bike: 'bike',
-  ride: 'bike',
-  cycling: 'bike',
-  run: 'run',
-  running: 'run',
-  swim: 'swim',
-  swimming: 'swim',
-  other: 'other',
-}
 
 const DAYS = ['mon', 'tue', 'wed', 'thu', 'fri', 'sat', 'sun']
 
@@ -85,6 +77,62 @@ function dayOf(cell: string): number | null {
   return i >= 0 ? i : null
 }
 
+const pad = (n: number) => String(n).padStart(2, '0')
+const isoOf = (y: number, m: number, d: number) => `${y}-${pad(m)}-${pad(d)}`
+
+/** "1/4/2027", "04.01.27", "1-4-2027": two short numbers and a year, in an order the cell doesn't say. */
+const SHORT_DATE = /^(\d{1,2})[/.-](\d{1,2})[/.-](\d{4}|\d{2})$/
+/** "2027/1/4", "2027.01.04": the year first is always year, month, day. */
+const YEAR_FIRST = /^(\d{4})[/.-](\d{1,2})[/.-](\d{1,2})$/
+
+const UNREADABLE = 'Write dates as YYYY-MM-DD, such as 2027-01-04. If a spreadsheet app changed them, set the date column to text and type them again.'
+
+/**
+ * The date column's own word on its short dates: day first when one of them
+ * can only be ("13/1/2027"), month first likewise ("1/13/2027"), else null.
+ */
+function columnOrder(cells: readonly string[]): boolean | null {
+  let dayFirst = false
+  let monthFirst = false
+  for (const c of cells) {
+    const m = SHORT_DATE.exec(c)
+    if (!m) continue
+    if (Number(m[1]) > 12) dayFirst = true
+    if (Number(m[2]) > 12) monthFirst = true
+  }
+  return dayFirst === monthFirst ? null : dayFirst
+}
+
+/** A date cell as a day, or why it isn't one. `dayFirst` settles a short date that could be either. */
+function dateOf(cell: string, dayFirst: boolean | null): DateKey | { reason: string } {
+  if (isRealDay(cell)) return cell
+  const y = YEAR_FIRST.exec(cell)
+  if (y) {
+    const day = isoOf(Number(y[1]), Number(y[2]), Number(y[3]))
+    return isRealDay(day) ? day : { reason: `the date "${cell}" isn't a real day.` }
+  }
+  const m = SHORT_DATE.exec(cell)
+  if (!m) return { reason: `the date "${cell}" isn't one CrankHog can read. ${UNREADABLE}` }
+  const [a, b] = [Number(m[1]), Number(m[2])]
+  const year = m[3]!.length === 2 ? 2000 + Number(m[3]) : Number(m[3])
+  const asDayFirst = isoOf(year, b, a)
+  const asMonthFirst = isoOf(year, a, b)
+  const real = [isRealDay(asDayFirst) ? asDayFirst : null, isRealDay(asMonthFirst) ? asMonthFirst : null]
+  if (!real[0] && !real[1]) return { reason: `the date "${cell}" isn't a real day.` }
+  if (!real[0] || !real[1] || real[0] === real[1]) return (real[0] ?? real[1])!
+  if (dayFirst === null) return { reason: `the date "${cell}" could be ${asMonthFirst} or ${asDayFirst}. Write it as YYYY-MM-DD.` }
+  return dayFirst ? asDayFirst : asMonthFirst
+}
+
+export interface TemplateOptions {
+  /**
+   * Whether this computer writes a short date day first (1/4/2027 is 1 April),
+   * as a spreadsheet app re-saving the template does. Used only for a date
+   * the column itself leaves open; without it, such a date is a problem.
+   */
+  dayFirst?: boolean
+}
+
 export interface TemplateRead {
   doc: ImportDoc
   /** Rows that couldn't become a session, and why. */
@@ -92,19 +140,20 @@ export interface TemplateRead {
 }
 
 /** Reads the template's rows (the header first). Never throws: a bad row is a problem, the rest still read. */
-export function readTemplate(rows: readonly (readonly string[])[]): TemplateRead {
+export function readTemplate(rows: readonly (readonly string[])[], opts: TemplateOptions = {}): TemplateRead {
   const at = templateColumns(rows)
   if (!at) return { doc: { items: [], skipped: [] }, problems: [{ where: 'Row 1', reason: 'The first row needs the columns name, steps, and date (or week and day).' }] }
   const cell = (row: readonly string[], c: Column) => (at[c] !== undefined ? (row[at[c]!] ?? '').trim() : '')
   const items: ImportItem[] = []
   const problems: TemplateRead['problems'] = []
+  const dayFirst = columnOrder(rows.slice(1).map((r) => cell(r, 'date'))) ?? opts.dayFirst ?? null
   rows.slice(1).forEach((row, i) => {
     const where = `Row ${i + 2}`
     if (row.every((c) => c.trim() === '')) return
     const name = cell(row, 'name')
     const fail = (reason: string) => problems.push({ where, reason: name ? `${name}: ${reason}` : reason })
-    const sportCell = cell(row, 'sport').toLowerCase()
-    const sport = sportCell === '' ? 'bike' : SPORTS[sportCell]
+    const sportCell = cell(row, 'sport')
+    const sport = sportCell === '' ? 'bike' : sportFrom(sportCell)
     if (!sport) return fail(`sport "${cell(row, 'sport')}" isn't bike, run, swim or other.`)
     if (!name) return fail('it has no name.')
     const dateCell = cell(row, 'date')
@@ -112,8 +161,9 @@ export function readTemplate(rows: readonly (readonly string[])[]): TemplateRead
     const dayCell = cell(row, 'day')
     let when: Pick<ImportItem, 'date' | 'week' | 'weekday'> = {}
     if (dateCell) {
-      if (!isRealDate(dateCell)) return fail(`the date "${dateCell}" isn't a day written YYYY-MM-DD.`)
-      when = { date: dateCell }
+      const date = dateOf(dateCell, dayFirst)
+      if (typeof date !== 'string') return fail(date.reason)
+      when = { date }
     } else if (weekCell) {
       const week = Number(weekCell)
       if (!Number.isInteger(week) || week < 1 || week > MAX_IMPORT_WEEKS) return fail(`the week "${weekCell}" isn't a number from 1 to ${MAX_IMPORT_WEEKS}.`)

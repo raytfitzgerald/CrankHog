@@ -64,7 +64,7 @@ export class OllamaProvider implements AiProvider {
   async structured(req: AiRequest, schema: z.ZodType, _name: string, opts: CallOpts) {
     const c = this.client()
     const r = await withAbort(c, opts.signal, () =>
-      c.chat({ model: opts.model, messages: this.messages(req), stream: false, format: z.toJSONSchema(schema), options: { temperature: 0.4 } }),
+      c.chat({ model: opts.model, messages: this.messages(req), stream: false, format: z.toJSONSchema(schema), options: { temperature: 0.4, ...sizes(req) } }),
     )
     let value: unknown
     try {
@@ -74,6 +74,16 @@ export class OllamaProvider implements AiProvider {
     }
     return { value, raw: r.message.content, model: r.model }
   }
+}
+
+/**
+ * Room for the answer, and a context window for the calls that need more than
+ * Ollama's default of a few thousand tokens (which it fills by silently
+ * dropping the start of the prompt). Others keep the model's own, so an
+ * in-ride call never makes Ollama reload the model at a new size.
+ */
+export function sizes(req: Pick<AiRequest, 'maxTokens' | 'contextTokens'>): { num_predict?: number; num_ctx?: number } {
+  return { ...(req.maxTokens ? { num_predict: req.maxTokens } : {}), ...(req.contextTokens ? { num_ctx: req.contextTokens } : {}) }
 }
 
 async function withAbort<T>(c: Ollama, signal: AbortSignal, fn: () => Promise<T>): Promise<T> {

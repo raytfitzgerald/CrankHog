@@ -50,6 +50,7 @@ class FakeProvider implements AiProvider {
   }
   async structured(req: AiRequest, _schema: z.ZodType, _name: string, opts: CallOpts) {
     this.calls.push({ req, opts })
+    if (this.failWith) throw this.failWith
     const v = this.structuredOutputs.shift()
     return { value: v, raw: JSON.stringify(v), model: opts.model }
   }
@@ -141,6 +142,35 @@ describe('AiService', () => {
     now += 6 * 60_000
     fake.failWith = null
     await expect(svc.complete('debrief', input)).resolves.toMatchObject({ text: 'Pedal, you coward.' })
+  })
+
+  it('keeps a plan import out of the breaker: its failures don’t pause in-ride lines, and an open breaker doesn’t stop it', async () => {
+    const fake = new FakeProvider()
+    fake.failWith = new AiError('boom', 'provider')
+    let now = 0
+    const svc = new AiService(memoryStore(), () => fake, () => now)
+    for (let i = 0; i < 5; i++) await expect(svc.structured('plan-import', 'plan-import', input)).rejects.toMatchObject({ code: 'provider' })
+    expect(svc.status().breakerOpen).toBe(false)
+    fake.failWith = null
+    now += 30_000
+    await expect(svc.complete('live-line', input)).resolves.toMatchObject({ text: 'Pedal, you coward.' })
+    // three in-ride failures open it; a plan import still goes to the provider
+    fake.failWith = new AiError('boom', 'provider')
+    for (let i = 0; i < 3; i++) await expect(svc.complete('debrief', input)).rejects.toMatchObject({ code: 'provider' })
+    expect(svc.status().breakerOpen).toBe(true)
+    fake.failWith = null
+    fake.structuredOutputs = [{ planName: null, raceName: null, raceDate: null, startDate: null, countdown: null, items: [], skipped: [] }]
+    await expect(svc.structured('plan-import', 'plan-import', input)).resolves.toMatchObject({ value: { items: [] } })
+    await expect(svc.complete('debrief', input)).rejects.toMatchObject({ code: 'circuit-open' })
+  })
+
+  it('asks for a context window only for the purposes that need one', async () => {
+    const fake = new FakeProvider()
+    fake.structuredOutputs = [{ planName: null, raceName: null, raceDate: null, startDate: null, countdown: null, items: [], skipped: [] }]
+    const svc = new AiService(memoryStore(), () => fake)
+    await svc.structured('plan-import', 'plan-import', input)
+    await svc.complete('debrief', input)
+    expect(fake.calls.map((c) => c.req.contextTokens)).toEqual([32_768, undefined])
   })
 
   it('rate-limits live lines to one every 20 s', async () => {

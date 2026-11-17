@@ -26,6 +26,7 @@ const planDoc = {
   raceName: null,
   raceDate: '2027-04-03',
   startDate: null,
+  countdown: null,
   items: [{ date: null, week: 1, weekday: 1, sport: 'run', name: 'Easy run', steps: '- 40m Z2 HR', minutes: null, effort: null, notes: null }],
   skipped: [],
 }
@@ -36,14 +37,22 @@ describe('PlanImportSchema', () => {
     expect(AI_SCHEMAS['plan-import']).toBe(PlanImportSchema)
   })
 
-  it('takes days and weeks it can’t use as they come: CrankHog checks each session itself', () => {
-    const odd = { ...planDoc, raceDate: 'next spring', items: [{ ...planDoc.items[0]!, date: 'Tuesday', week: 400 }] }
+  it('takes values it can’t use as they come, so one odd session never fails a part: CrankHog checks each session itself', () => {
+    const odd = {
+      ...planDoc,
+      planName: 'x'.repeat(500),
+      raceDate: 'next spring',
+      items: [
+        { ...planDoc.items[0]!, date: 'Tuesday', week: 400 },
+        { ...planDoc.items[0]!, sport: 'rowing', weekday: 7, effort: 'tempo', name: 'x'.repeat(500), steps: '- 1m\n'.repeat(2000) },
+        ...Array.from({ length: 450 }, () => planDoc.items[0]!),
+      ],
+      skipped: Array.from({ length: 150 }, () => ({ text: 'x', reason: 'y' })),
+    }
     expect(PlanImportSchema.safeParse(odd).success).toBe(true)
   })
 
   it.each([
-    ['a sport CrankHog doesn’t have', { ...planDoc, items: [{ ...planDoc.items[0]!, sport: 'rowing' }] }],
-    ['a weekday past Sunday', { ...planDoc, items: [{ ...planDoc.items[0]!, weekday: 7 }] }],
     ['a field left out rather than null', { ...planDoc, items: [{ ...planDoc.items[0]!, notes: undefined }] }],
     ['no skipped list', { ...planDoc, skipped: undefined }],
   ])('rejects %s', (_label, value) => {

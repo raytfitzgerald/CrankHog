@@ -8,7 +8,9 @@ import Anthropic from '@anthropic-ai/sdk'
 import { betaZodOutputFormat } from '@anthropic-ai/sdk/helpers/beta/zod'
 import type { z } from 'zod'
 import { AiError, type AiRequest, type AiResult } from '@core/ai/types'
-import type { AiProvider, CallOpts, ProviderConfig } from '../provider'
+import { withinOutputLimit, type AiProvider, type CallOpts, type ProviderConfig } from '../provider'
+
+const refusal = (e: unknown) => (e instanceof Anthropic.BadRequestError ? e.message : null)
 
 const BETAS = ['server-side-fallback-2026-07-01']
 
@@ -41,10 +43,7 @@ export class AnthropicProvider implements AiProvider {
 
   async complete(req: AiRequest, opts: CallOpts): Promise<AiResult> {
     try {
-      const res = await this.client.beta.messages.create(
-        { ...this.params(req, opts.model), stream: false },
-        { signal: opts.signal, timeout: opts.timeoutMs },
-      )
+      const res = await withinOutputLimit(req, (q) => this.client.beta.messages.create({ ...this.params(q, opts.model), stream: false }, { signal: opts.signal, timeout: opts.timeoutMs }), refusal)
       if (res.stop_reason === 'refusal') throw new AiError('The model declined this request', 'refusal')
       return { text: textOf(res.content), model: res.model, usage: usageOf(res.usage) }
     } catch (e) {
@@ -66,10 +65,13 @@ export class AnthropicProvider implements AiProvider {
 
   async structured(req: AiRequest, schema: z.ZodType, _name: string, opts: CallOpts) {
     try {
-      const p = this.params(req, opts.model)
-      const res = await this.client.beta.messages.parse(
-        { ...p, output_config: { ...p.output_config, format: betaZodOutputFormat(schema) } },
-        { signal: opts.signal, timeout: opts.timeoutMs },
+      const res = await withinOutputLimit(
+        req,
+        (q) => {
+          const p = this.params(q, opts.model)
+          return this.client.beta.messages.parse({ ...p, output_config: { ...p.output_config, format: betaZodOutputFormat(schema) } }, { signal: opts.signal, timeout: opts.timeoutMs })
+        },
+        refusal,
       )
       if (res.stop_reason === 'refusal') throw new AiError('The model declined this request', 'refusal')
       if (res.stop_reason === 'max_tokens') throw new AiError('The response was cut off (max tokens)', 'invalid-output')

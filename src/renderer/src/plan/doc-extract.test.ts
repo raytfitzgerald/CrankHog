@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { TEMPLATE_CSV } from '@core/plan-import/template'
 import { makeDocx, makeXlsx } from '../../../../tests/fixtures/plan-docs'
-import { DocumentReadError, docxText, extractDocument, sheetText } from './doc-extract'
+import { DocumentReadError, docxText, extractDocument, isDayFormat, sheetText } from './doc-extract'
 
 const file = (name: string, content: string | Uint8Array) => new File([typeof content === 'string' ? content : content.slice()], name)
 const buffer = (u: Uint8Array) => u.slice().buffer
@@ -47,6 +47,30 @@ describe('extractDocument', () => {
       ['2027-01-05', 'run', 'Easy run', '- 40m Z2 HR'],
     ])
     expect(doc.text).toBe('## Notes\nCoach notes\nFuel every ride\n\n## Plan\ndate | sport | name | steps\n2027-01-04 | bike | Endurance | - 1h 65%\n2027-01-05 | run | Easy run | - 40m Z2 HR')
+  })
+
+  it('keeps a time or a duration as the sheet shows it, next to a date', async () => {
+    const xlsx = makeXlsx({ Plan: [['Date', 'Duration', 'Session'], [new Date(2027, 0, 4), { v: 0.0625, z: 'h:mm' }, 'Endurance'], [new Date(2027, 0, 5), { v: 1.0625, z: '[h]:mm' }, 'Long ride']] })
+    const doc = await extractDocument(file('plan.xlsx', xlsx))
+    expect(doc.rows).toEqual([
+      ['Date', 'Duration', 'Session'],
+      ['2027-01-04', '1:30', 'Endurance'],
+      ['2027-01-05', '25:30', 'Long ride'],
+    ])
+  })
+
+  it('tells a date format from a time’s or a duration’s', () => {
+    const isDate = (f: string) => /[dmyhs]/i.test(f.replace(/"[^"]*"|\[[^\]]*\]/g, ''))
+    expect(['yyyy-mm-dd', 'm/d/yy', 'd-mmm', '[$-409]dddd, mmmm d, yyyy', 'yyyy-mm-dd h:mm'].map((f) => isDayFormat(f, isDate))).toEqual([true, true, true, true, true])
+    expect(['h:mm', '[h]:mm:ss', 'mm:ss', '[$-409]h:mm AM/PM', 'h "hours"'].map((f) => isDayFormat(f, isDate))).toEqual([false, false, false, false, false])
+  })
+
+  it('reads a .tsv by its tabs, commas and all', async () => {
+    const doc = await extractDocument(file('plan.tsv', 'Week\tSession\n1\tSweet spot, 3x12; then spin\n'))
+    expect(doc.rows).toEqual([
+      ['Week', 'Session'],
+      ['1', 'Sweet spot, 3x12; then spin'],
+    ])
   })
 
   it('says why it can’t read a file', async () => {

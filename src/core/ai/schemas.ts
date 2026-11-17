@@ -87,36 +87,33 @@ export const PlanSkeletonSchema = z.object({
 export type PlanSkeletonOutput = z.infer<typeof PlanSkeletonSchema>
 
 /**
- * A plan document read into sessions (src/core/plan-import). Each item's
- * day, steps and limits are checked by CrankHog afterwards, one by one, so
- * one odd item is reported in the review rather than failing the part; the
- * schema only fixes the shape. Optional values are null, not left out, which
- * every provider's strict mode accepts.
+ * A plan document read into sessions (src/core/plan-import). The schema only
+ * fixes the shape: no enums, ranges or lengths, which would fail a whole part
+ * over one odd session. CrankHog checks each session's sport, day, weekday
+ * and steps itself (fromAiOutput, then its importers), and reports or drops
+ * the one that's wrong. Optional values are null, not left out, which every
+ * provider's strict mode accepts.
  */
 export const PlanImportSchema = z.object({
-  planName: z.string().max(120).nullable().describe("The plan's name, as the document gives it"),
-  raceName: z.string().max(120).nullable().describe('The race or event the plan builds to'),
-  raceDate: z.string().max(40).nullable().describe('The race day, YYYY-MM-DD'),
-  startDate: z.string().max(40).nullable().describe("The plan's first day, YYYY-MM-DD, when the document gives it"),
-  items: z
-    .array(
-      z.object({
-        date: z.string().max(40).nullable().describe('YYYY-MM-DD, when the document dates the session'),
-        week: z.number().int().nullable().describe("The document's week number, 1 = the first week"),
-        weekday: z.number().int().min(0).max(6).nullable().describe('0 = Monday … 6 = Sunday'),
-        sport: z.enum(['bike', 'run', 'swim', 'other']),
-        name: z.string().max(120),
-        steps: z.string().max(6000).describe('Bike: intervals.icu workout text. Run, swim, other: CrankHog session steps. Empty for a session given only by its length'),
-        minutes: z.number().nullable().describe("A session with no steps: how long it lasts"),
-        effort: z.enum(['easy', 'moderate', 'hard', 'max']).nullable().describe('A session with no steps: how hard'),
-        notes: z.string().max(600).nullable(),
-      }),
-    )
-    .max(400),
-  skipped: z
-    .array(z.object({ text: z.string().max(300), reason: z.string().max(300) }))
-    .max(100)
-    .describe('What in the document could not be read as a session, and why'),
+  planName: z.string().nullable().describe("The plan's name, as the document gives it"),
+  raceName: z.string().nullable().describe('The race or event the plan builds to'),
+  raceDate: z.string().nullable().describe('The race day, YYYY-MM-DD'),
+  startDate: z.string().nullable().describe("The plan's first day, YYYY-MM-DD, when the document gives it"),
+  countdown: z.boolean().nullable().describe('True when the document numbers its weeks down to the race (16 weeks out … 1 week out), false when up from its first, null when it has no week numbers'),
+  items: z.array(
+    z.object({
+      date: z.string().nullable().describe('YYYY-MM-DD, when the document dates the session'),
+      week: z.number().nullable().describe("The document's own week number for the session"),
+      weekday: z.number().nullable().describe('0 = Monday … 6 = Sunday'),
+      sport: z.string().describe('bike, run, swim or other'),
+      name: z.string(),
+      steps: z.string().describe('Bike: intervals.icu workout text. Run, swim, other: CrankHog session steps. Empty for a session given only by its length'),
+      minutes: z.number().nullable().describe('A session with no steps: how long it lasts'),
+      effort: z.string().nullable().describe('A session with no steps: how hard, easy, moderate, hard or max'),
+      notes: z.string().nullable(),
+    }),
+  ),
+  skipped: z.array(z.object({ text: z.string(), reason: z.string() })).describe('What in the document could not be read as a session, and why'),
 })
 export type PlanImportOutput = z.infer<typeof PlanImportSchema>
 

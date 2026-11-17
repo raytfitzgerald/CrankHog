@@ -1,15 +1,15 @@
 import 'fake-indexeddb/auto'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import type { PlanImportOutput } from '@core/ai/schemas'
-import { CHUNK_MAX } from '@core/plan-import/chunk'
+import { CHUNK_MAX, chunkDocument } from '@core/plan-import/chunk'
 import type { ImportDoc, ImportItem } from '@core/plan-import/model'
 import { dateKeyToMs } from '@core/workout/schedule'
 import type { CrankHogBridge } from '@shared/ipc/contract'
 import { db } from '../db/db'
 import { saveWorkout } from '../workouts/library'
-import { updateMark } from './day-marks-repo'
+import { addMark, updateMark } from './day-marks-repo'
 import type { ExtractedDocument } from './doc-extract'
-import { PlanImportError, prepareImport, readTemplateDocument, readWithAi, saveImport } from './doc-import'
+import { PARALLEL_PARTS, PlanImportError, prepareImport, readTemplateDocument, readWithAi, saveImport } from './doc-import'
 
 const invoke = vi.fn()
 beforeEach(async () => {
@@ -21,7 +21,7 @@ beforeEach(async () => {
 
 type AiItem = PlanImportOutput['items'][number]
 const aiItem = (patch: Partial<AiItem>): AiItem => ({ date: null, week: null, weekday: null, sport: 'bike', name: 'Ride', steps: '- 1h 65%', minutes: null, effort: null, notes: null, ...patch })
-const answer = (patch: Partial<PlanImportOutput>) => ({ ok: true, value: { planName: null, raceName: null, raceDate: null, startDate: null, items: [], skipped: [], ...patch } })
+const answer = (patch: Partial<PlanImportOutput>) => ({ ok: true, value: { planName: null, raceName: null, raceDate: null, startDate: null, countdown: null, items: [], skipped: [], ...patch } })
 const textDoc = (text: string, fileName = 'plan.md'): ExtractedDocument => ({ fileName, kind: 'text', text })
 const item = (patch: Partial<ImportItem>): ImportItem => ({ where: 'Week 1', sport: 'bike', name: 'Ride', steps: '- 1h 65%', ...patch })
 const ctx = { ftpW: 250, thresholds: {}, now: dateKeyToMs('2026-11-16') }
@@ -41,22 +41,23 @@ describe('readWithAi', () => {
     expect(doc).toMatchObject({ name: 'Base block', race: { name: 'Gran fondo', date: '2027-05-02' }, items: [{ week: 1, weekday: 1, name: 'Tempo', where: 'Week 1, Tue' }] })
   })
 
+  const weeks = Array.from({ length: 12 }, (_, w) => `Week ${w + 1}\n${'Tue: sweet spot 3x12 at 90 %. Sat: long ride 3h easy. '.repeat(60)}`)
+  const longDoc = textDoc(['12-week gran fondo plan. Power is % of FTP.', ...weeks].join('\n\n'), 'Long plan.pdf')
+  const partOf = (input: string) => Number(/^Part (\d+) of/m.exec(input)![1])
+  const weekOf = (input: string) => Number(/<document>[\s\S]*?Week (\d+)/.exec(input)![1])
+
   it('reads a long document a part at a time, says how far it is, and keeps the parts that worked', async () => {
-    const weeks = Array.from({ length: 12 }, (_, w) => `Week ${w + 1}\n${'Tue: sweet spot 3x12 at 90 %. Sat: long ride 3h easy. '.repeat(60)}`)
-    const doc = textDoc(['12-week gran fondo plan. Power is % of FTP.', ...weeks].join('\n\n'), 'Long plan.pdf')
-    let call = 0
     invoke.mockImplementation(async (_c: string, req: { input: string }) => {
-      call++
-      if (call === 2) return { ok: false, error: 'Anthropic rate limit reached; try again shortly' }
-      if (call === 3) return { ok: true, value: { weeks: 'nonsense' } }
-      const week = Number(/<document>[\s\S]*?Week (\d+)/.exec(req.input)![1])
+      if (partOf(req.input) === 2) return { ok: false, error: 'Anthropic rate limit reached; try again shortly', code: 'rate-limited' }
+      if (partOf(req.input) === 3) return { ok: true, value: { weeks: 'nonsense' } }
+      const week = weekOf(req.input)
       return answer({ items: [aiItem({ week, weekday: 1, name: `Week ${week} sweet spot`, steps: '- 1h 90%' })] })
     })
     const progress: [number, number][] = []
-    const { doc: read, problems } = await readWithAi(doc, { onProgress: (p, n) => progress.push([p, n]) })
+    const { doc: read, problems } = await readWithAi(longDoc, { onProgress: (p, n) => progress.push([p, n]) })
     const parts = invoke.mock.calls.length
     expect(parts).toBeGreaterThan(3)
-    expect(progress).toEqual(Array.from({ length: parts }, (_, i) => [i + 1, parts]))
+    expect(progress).toEqual(Array.from({ length: parts + 1 }, (_, i) => [i, parts]))
     for (const [, req] of invoke.mock.calls) expect(req.input.length).toBeLessThanOrEqual(CHUNK_MAX + 3000)
     // parts after the first carry the start of the document, as context only
     expect(invoke.mock.calls[1]![1].input).toContain('<context>\n12-week gran fondo plan. Power is % of FTP.\n</context>')
@@ -66,9 +67,64 @@ describe('readWithAi', () => {
     expect(read.items.length).toBe(parts - 2)
   })
 
+  it('reads three parts at once, and keeps the document’s order whatever order they come back in', async () => {
+    let inFlight = 0
+    let most = 0
+    invoke.mockImplementation(async (_c: string, req: { input: string }) => {
+      most = Math.max(most, ++inFlight)
+      // the later a part, the sooner it answers
+      await new Promise((r) => setTimeout(r, 40 - 3 * partOf(req.input)))
+      inFlight--
+      const week = weekOf(req.input)
+      return answer({ items: [aiItem({ week, weekday: 1, name: `Part ${partOf(req.input)}`, steps: '- 1h 90%' })] })
+    })
+    const progress: number[] = []
+    const { doc } = await readWithAi(longDoc, { onProgress: (n) => progress.push(n) })
+    const parts = invoke.mock.calls.length
+    expect(most).toBe(PARALLEL_PARTS)
+    expect(doc.items.map((i) => i.name)).toEqual(Array.from({ length: parts }, (_, i) => `Part ${i + 1}`))
+    expect(progress).toEqual(Array.from({ length: parts + 1 }, (_, i) => i))
+    // one at a time when asked (Ollama)
+    invoke.mockClear()
+    most = 0
+    await readWithAi(longDoc, { parallel: 1 })
+    expect(most).toBe(1)
+  })
+
+  it('sends no more parts after an error every part would get, and says which weren’t sent', async () => {
+    invoke.mockImplementation(async (_c: string, req: { input: string }) => {
+      if (partOf(req.input) === 2) return { ok: false, error: 'OpenAI rejected the API key', code: 'auth' }
+      await new Promise((r) => setTimeout(r, 10))
+      return answer({ items: [aiItem({ week: weekOf(req.input), weekday: 1, name: `Part ${partOf(req.input)}` })] })
+    })
+    const { doc, problems } = await readWithAi(longDoc)
+    const parts = chunkDocument(longDoc.text).chunks.length
+    // the three already sent finish; none after them is sent
+    expect(invoke).toHaveBeenCalledTimes(3)
+    expect(doc.items.map((i) => i.name)).toEqual(['Part 1', 'Part 3'])
+    expect(problems[0]).toEqual({ where: expect.stringMatching(/^Part 2 of/), reason: 'OpenAI rejected the API key' })
+    expect(problems.slice(1).map((p) => p.reason)).toEqual(Array.from({ length: parts - 3 }, () => 'Not sent: OpenAI rejected the API key'))
+  })
+
+  it('keeps the sessions a part repeats, and drops a later part’s second read of the document’s start', async () => {
+    const doc = textDoc(['Base plan. Every week: Spin on Monday.', ...weeks].join('\n\n'))
+    invoke.mockImplementation(async (_c: string, req: { input: string }) => {
+      const spin = aiItem({ week: 1, weekday: 0, name: 'Spin', steps: '- 45m 60%' })
+      const run = aiItem({ week: weekOf(req.input), sport: 'run', name: 'Easy run', steps: '- 40m Z2 HR' })
+      // every part reads the context's Spin; each has three easy runs in its week
+      return answer({ items: [spin, run, run, run] })
+    })
+    const { doc: read } = await readWithAi(doc)
+    const parts = invoke.mock.calls.length
+    expect(parts).toBeGreaterThan(1)
+    expect(read.items.filter((i) => i.name === 'Spin')).toHaveLength(1)
+    expect(read.items.filter((i) => i.name === 'Easy run')).toHaveLength(3 * parts)
+  })
+
   it('throws when nothing could be read, with the reason', async () => {
     invoke.mockResolvedValue({ ok: false, error: 'Anthropic rejected the API key', code: 'auth' })
     await expect(readWithAi(textDoc('Week 1\nride'))).rejects.toThrow(new PlanImportError('Anthropic rejected the API key'))
+    await expect(readWithAi(longDoc)).rejects.toThrow(new PlanImportError('Anthropic rejected the API key'))
     invoke.mockRejectedValue(new Error('Invalid request for "ai.structured"'))
     await expect(readWithAi(textDoc('Week 1\nride'))).rejects.toThrow(/Invalid request/)
     invoke.mockResolvedValue(answer({ skipped: [{ text: 'Chapter 1', reason: 'This reads as a book chapter, with no sessions.' }] }))
@@ -138,6 +194,12 @@ describe('readTemplateDocument', () => {
     expect(read.name).toBe('Spring block')
     expect(read.items.map((i) => i.name)).toEqual(['Tempo'])
     expect(problems).toEqual([{ where: 'Row 3', reason: 'Bad: the week "x" isn\'t a number from 1 to 104.' }])
+  })
+
+  it('reads a short date the way this computer writes them', () => {
+    const doc: ExtractedDocument = { fileName: 'Re-saved.csv', kind: 'csv', text: '', rows: [['date', 'name', 'steps'], ['1/4/2027', 'Tempo', '- 1h 75%']] }
+    expect(readTemplateDocument(doc, { dayFirst: false }).doc.items[0]!.date).toBe('2027-01-04')
+    expect(readTemplateDocument(doc, { dayFirst: true }).doc.items[0]!.date).toBe('2027-04-01')
   })
 })
 
@@ -231,6 +293,18 @@ describe('saveImport', () => {
     await expect(saveImport(broken, { name: 'P', start: '2027-01-04', event: { name: 'Race', date: '2027-05-02', priority: 'A' }, ftpW: 250 })).rejects.toThrow(/read-only/)
     expect([await db().plans.count(), await db().dayMarks.count(), await db().sessionWorkouts.count(), await db().schedule.count()]).toEqual([0, 0, 0, 0])
     expect((await db().workouts.toArray()).map((w) => w.id)).toEqual([mine.id])
+  })
+
+  it('builds to the event already on the calendar that day rather than adding a copy, and leaves it there when the save fails', async () => {
+    const mine = await addMark({ date: '2027-05-02', kind: 'event', name: 'gran fondo', priority: 'B' })
+    await addMark({ date: '2027-05-02', kind: 'event', name: 'Club ride', priority: 'A' })
+    const { ready } = prepareImport(undated, { ...ctx, start: '2027-01-04' })
+    const plan = await saveImport(ready, { name: 'P', start: '2027-01-04', event: { name: 'Gran fondo', date: '2027-05-02', priority: 'A' }, ftpW: 250 })
+    expect(plan.eventId).toBe(mine.id)
+    expect(await db().dayMarks.count()).toBe(2)
+    const broken = [...ready, { ...ready[0]!, workout: { ...ready[0]!.workout, id: 'builtin:x', source: 'builtin' } } as (typeof ready)[number]]
+    await expect(saveImport(broken, { name: 'Q', start: '2027-01-04', event: { name: 'Gran fondo', date: '2027-05-02', priority: 'A' }, ftpW: 250 })).rejects.toThrow(/read-only/)
+    expect(await db().dayMarks.get(mine.id)).toBeDefined()
   })
 
   it('refuses to save nothing', async () => {

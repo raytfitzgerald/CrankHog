@@ -2,7 +2,8 @@
 //  * picks the configured provider/model; keys come from the SecretStore
 //  * every call has a timeout (AbortSignal.any with the caller's signal)
 //  * structured outputs are re-validated with zod, with one repair turn
-//  * a circuit breaker stops hammering a failing provider mid-ride
+//  * a circuit breaker stops hammering a failing provider mid-ride (calls the
+//    rider starts and watches outside a ride, like importing a plan, stay out of it)
 //  * in-ride "live-line" calls are single-flight and rate-limited
 import type { z } from 'zod'
 import { AI_SCHEMAS, type AiSchemaId } from '@core/ai/schemas'
@@ -27,6 +28,13 @@ export interface AiConfigStore {
 export type ProviderFactory = (id: AiProviderId, cfg: ProviderConfig) => AiProvider
 
 const PROVIDER_NAME: Record<AiProviderId, string> = { anthropic: 'Anthropic', openai: 'OpenAI', grok: 'xAI (Grok)', ollama: 'Ollama' }
+
+/**
+ * Purposes outside the breaker: the rider starts them and sees each failure,
+ * part by part. Their failures don't pause in-ride lines, and an open breaker
+ * doesn't stop them.
+ */
+const OUTSIDE_BREAKER: ReadonlySet<AiPurpose> = new Set(['plan-import'])
 
 const BREAKER_THRESHOLD = 3
 const BREAKER_COOLDOWN_MS = 5 * 60_000
@@ -80,7 +88,7 @@ export class AiService {
   async complete(purpose: AiPurpose, input: { system: string; messages: AiMessage[] }, signal?: AbortSignal): Promise<AiResult> {
     const release = this.enterLive(purpose)
     try {
-      return await this.guard(() => {
+      return await this.guard(purpose, () => {
         const { provider, model, req, opts } = this.prepare(purpose, input, signal)
         return provider.complete(req, { model, ...opts })
       })
@@ -90,7 +98,7 @@ export class AiService {
   }
 
   async stream(purpose: AiPurpose, input: { system: string; messages: AiMessage[] }, onDelta: (t: string) => void, signal?: AbortSignal): Promise<AiResult> {
-    return this.guard(() => {
+    return this.guard(purpose, () => {
       const { provider, model, req, opts } = this.prepare(purpose, input, signal)
       return provider.stream(req, { model, ...opts }, onDelta)
     })
@@ -107,7 +115,7 @@ export class AiService {
     signal?: AbortSignal,
   ): Promise<{ value: z.infer<(typeof AI_SCHEMAS)[Id]>; model: string }> {
     const schema = AI_SCHEMAS[schemaId] as z.ZodType
-    return this.guard(async () => {
+    return this.guard(purpose, async () => {
       const { provider, model, req, opts } = this.prepare(purpose, input, signal)
       const first = await provider.structured(req, schema, schemaId.replace(/-/g, '_'), { model, ...opts })
       const ok = schema.safeParse(first.value)
@@ -147,19 +155,20 @@ export class AiService {
     const model = this.modelFor(c.provider)
     if (!model) throw new AiError(`Choose a ${PROVIDER_NAME[c.provider]} model in Settings → AI`, 'not-configured')
     const d = PURPOSE_DEFAULTS[purpose]
-    const req: AiRequest = { system: input.system, messages: input.messages, maxTokens: d.maxTokens, effort: d.effort }
+    const req: AiRequest = { system: input.system, messages: input.messages, maxTokens: d.maxTokens, effort: d.effort, ...(d.contextTokens ? { contextTokens: d.contextTokens } : {}) }
     return { provider: this.provider(c.provider), model, req, opts: { signal: withTimeout(signal, d.timeoutMs), timeoutMs: d.timeoutMs } }
   }
 
-  private async guard<T>(fn: () => Promise<T>): Promise<T> {
-    if (this.now() < this.openUntil) throw new AiError('AI is paused after repeated errors; using offline lines for a few minutes', 'circuit-open')
+  private async guard<T>(purpose: AiPurpose, fn: () => Promise<T>): Promise<T> {
+    const breaker = !OUTSIDE_BREAKER.has(purpose)
+    if (breaker && this.now() < this.openUntil) throw new AiError('AI is paused after repeated errors; using offline lines for a few minutes', 'circuit-open')
     try {
       const out = await fn()
-      this.failures = 0
+      if (breaker) this.failures = 0
       return out
     } catch (e) {
       const err = e instanceof AiError ? e : new AiError(e instanceof Error ? e.message : String(e), 'provider')
-      if (err.code !== 'cancelled' && err.code !== 'not-configured' && err.code !== 'refusal') {
+      if (breaker && err.code !== 'cancelled' && err.code !== 'not-configured' && err.code !== 'refusal') {
         this.failures++
         if (this.failures >= BREAKER_THRESHOLD) this.openUntil = this.now() + BREAKER_COOLDOWN_MS
       }
