@@ -337,7 +337,7 @@ export const invoke = {
     res: AiResultSchema,
   },
   'ai.structured': {
-    req: z.object({ purpose: z.enum(['workout', 'quip-pack', 'ride-title', 'training-plan']), input: z.string().max(40_000) }),
+    req: z.object({ purpose: z.enum(['workout', 'quip-pack', 'ride-title', 'training-plan', 'plan-import']), input: z.string().max(40_000) }),
     res: z.object({ ok: z.boolean(), value: z.unknown().optional(), model: z.string().optional(), error: z.string().optional(), code: z.string().optional() }),
   },
   'ai.stream.start': {

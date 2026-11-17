@@ -86,9 +86,44 @@ export const PlanSkeletonSchema = z.object({
 })
 export type PlanSkeletonOutput = z.infer<typeof PlanSkeletonSchema>
 
+/**
+ * A plan document read into sessions (src/core/plan-import). Each item's
+ * day, steps and limits are checked by CrankHog afterwards, one by one, so
+ * one odd item is reported in the review rather than failing the part; the
+ * schema only fixes the shape. Optional values are null, not left out, which
+ * every provider's strict mode accepts.
+ */
+export const PlanImportSchema = z.object({
+  planName: z.string().max(120).nullable().describe("The plan's name, as the document gives it"),
+  raceName: z.string().max(120).nullable().describe('The race or event the plan builds to'),
+  raceDate: z.string().max(40).nullable().describe('The race day, YYYY-MM-DD'),
+  startDate: z.string().max(40).nullable().describe("The plan's first day, YYYY-MM-DD, when the document gives it"),
+  items: z
+    .array(
+      z.object({
+        date: z.string().max(40).nullable().describe('YYYY-MM-DD, when the document dates the session'),
+        week: z.number().int().nullable().describe("The document's week number, 1 = the first week"),
+        weekday: z.number().int().min(0).max(6).nullable().describe('0 = Monday … 6 = Sunday'),
+        sport: z.enum(['bike', 'run', 'swim', 'other']),
+        name: z.string().max(120),
+        steps: z.string().max(6000).describe('Bike: intervals.icu workout text. Run, swim, other: CrankHog session steps. Empty for a session given only by its length'),
+        minutes: z.number().nullable().describe("A session with no steps: how long it lasts"),
+        effort: z.enum(['easy', 'moderate', 'hard', 'max']).nullable().describe('A session with no steps: how hard'),
+        notes: z.string().max(600).nullable(),
+      }),
+    )
+    .max(400),
+  skipped: z
+    .array(z.object({ text: z.string().max(300), reason: z.string().max(300) }))
+    .max(100)
+    .describe('What in the document could not be read as a session, and why'),
+})
+export type PlanImportOutput = z.infer<typeof PlanImportSchema>
+
 export const AI_SCHEMAS = {
   workout: GeneratedWorkoutSchema,
   'training-plan': PlanSkeletonSchema,
+  'plan-import': PlanImportSchema,
   'quip-pack': QuipPackSchema,
   'ride-title': RideTitleSchema,
 } as const

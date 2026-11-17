@@ -17,6 +17,12 @@ const ALLOWED = new Set([
 ])
 // Weak, file-level copyleft: fine to ship unmodified in an MIT app, but flag it.
 const REVIEW = new Set(['MPL-2.0'])
+// Packages whose package.json names no exact license, read from their LICENSE
+// file by hand. Pinned to the version read, so an upgrade is checked again.
+const READ_BY_HAND = new Map([
+  // mammoth → lop → duck: package.json says "BSD"; LICENSE is the 2-clause text
+  ['duck@0.1.12', 'BSD-2-Clause'],
+])
 
 const tree = JSON.parse(execFileSync('npm', ['ls', '--omit=dev', '--all', '--json', '--long'], { encoding: 'utf8', maxBuffer: 64 << 20 }))
 const seen = new Map()
@@ -34,7 +40,7 @@ function walk(deps, parentPath) {
       // optional dependency that isn't installed on this platform
       continue
     }
-    seen.set(key, license)
+    seen.set(key, READ_BY_HAND.get(key) ?? license)
     walk(info.dependencies, dir)
   }
 }

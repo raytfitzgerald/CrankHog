@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { AI_SCHEMAS, PlanSkeletonSchema } from './schemas'
+import { AI_SCHEMAS, PlanImportSchema, PlanSkeletonSchema } from './schemas'
 
 const ok = { weeks: [{ phase: 'base', sessions: [{ day: 1, type: 'sweet-spot', minutes: 75, intent: 'Sweet spot 3x15' }] }] }
 
@@ -18,5 +18,35 @@ describe('PlanSkeletonSchema', () => {
     ['eight sessions in a week', { weeks: [{ phase: 'build', sessions: Array.from({ length: 8 }, () => ok.weeks[0]!.sessions[0]) }] }],
   ])('rejects %s', (_label, value) => {
     expect(PlanSkeletonSchema.safeParse(value).success).toBe(false)
+  })
+})
+
+const planDoc = {
+  planName: '70.3 plan',
+  raceName: null,
+  raceDate: '2027-04-03',
+  startDate: null,
+  items: [{ date: null, week: 1, weekday: 1, sport: 'run', name: 'Easy run', steps: '- 40m Z2 HR', minutes: null, effort: null, notes: null }],
+  skipped: [],
+}
+
+describe('PlanImportSchema', () => {
+  it('accepts a plan document read into sessions, and is the plan-import purpose’s schema', () => {
+    expect(PlanImportSchema.parse(planDoc)).toEqual(planDoc)
+    expect(AI_SCHEMAS['plan-import']).toBe(PlanImportSchema)
+  })
+
+  it('takes days and weeks it can’t use as they come: CrankHog checks each session itself', () => {
+    const odd = { ...planDoc, raceDate: 'next spring', items: [{ ...planDoc.items[0]!, date: 'Tuesday', week: 400 }] }
+    expect(PlanImportSchema.safeParse(odd).success).toBe(true)
+  })
+
+  it.each([
+    ['a sport CrankHog doesn’t have', { ...planDoc, items: [{ ...planDoc.items[0]!, sport: 'rowing' }] }],
+    ['a weekday past Sunday', { ...planDoc, items: [{ ...planDoc.items[0]!, weekday: 7 }] }],
+    ['a field left out rather than null', { ...planDoc, items: [{ ...planDoc.items[0]!, notes: undefined }] }],
+    ['no skipped list', { ...planDoc, skipped: undefined }],
+  ])('rejects %s', (_label, value) => {
+    expect(PlanImportSchema.safeParse(value).success).toBe(false)
   })
 })

@@ -80,6 +80,35 @@ Session types: endurance, tempo, sweet-spot, threshold, vo2max, anaerobic, recov
 
 Return JSON only, matching the schema.`
 
+export const PLAN_IMPORT_SYSTEM = `${PRODUCT}
+
+The rider has a training plan in a document or spreadsheet: a coach's plan, a book's, their own. Read it into sessions CrankHog can put on their calendar. The user message has the document's text, extracted from the file: a table's rows come one a line, cells separated by " | ". A long document comes in parts; read only the part inside <document>, and use <context> only to understand it.
+
+Rules:
+- One item per session the document plans. Leave out rest days and days off. The race itself is not an item: give it as raceName and raceDate. Never invent a session the document doesn't have, and keep its order.
+- Sport: bike for any cycling (indoor or out), run, swim, or other (strength, yoga, mobility, a brick's transition, anything else). A brick (bike then run) is two items on the same day.
+- Day: when the document dates a session, give date (YYYY-MM-DD; use today's date in the user message to choose the year of a date written without one) and leave week and weekday null. Otherwise give week as the document numbers it (1 = its first week) and weekday (0 = Monday … 6 = Sunday). When the document gives the week but not the day, choose sensible days in that week: long sessions at the weekend, hard days apart. When it gives neither, leave all three null.
+- name: short and plain, as the document names the session ("Sweet spot 3x12", "Long run", "CSS 10x100"), at most 60 characters.
+- notes: the document's own words about the session that steps can't hold (how it should feel, fuelling, technique cues), in one or two sentences; null when there are none.
+- planName, raceName, raceDate (YYYY-MM-DD), startDate (YYYY-MM-DD, the plan's first day): from the document, null when it doesn't say.
+- skipped: anything that looks like a session but can't be read as one, with the reason ("no length given"). Leave headings, explanations and rest days out of it.
+
+Bike steps are intervals.icu workout text, one step a line:
+  - 10m ramp 50-75%        a ramp (write warmup or cooldown in place of ramp for those)
+  - 8m 95%                 power as % of FTP; or a range 88-94%, a power zone Z1-Z7, or watts 220w
+  - 5m 90% 95rpm           with a cadence
+  - 30s max                all-out
+  - 20m freeride           ERG off, rider's choice
+A line ending in a count, like "Main set 4x" or "4x", repeats the step lines under it, up to the next title or blank line. Any other line is a section title. Times: 30s, 10m, 1h, 1h30m (m is minutes). Bike steps have only power targets: write heart-rate zones, RPE or feel as the matching power (easy/Z1-Z2 HR 55-70 %, tempo 76-87 %, sweet spot 88-94 %, threshold 95-105 %, VO2 max 106-120 %), and a ride given only as time and feel as one step ("- 2h 65%"). Open with a warm-up and end with a cool-down only when the document has them.
+
+Run, swim and other steps are CrankHog session steps, one step a line: "- ", a length, at most one target, then any words.
+  Lengths: time 30s, 10m, 1h, 1h20m (m is always minutes); distance 400mtr (metres), 1km, 1.5km, 1mi, 100y (yards).
+  Targets: pace 4:30/km Pace, 7:15/mi Pace, 1:45/100m Pace, a range 4:20-4:40/km Pace; percent of threshold pace 95% Pace; pace zone Z3 Pace; heart rate Z2 HR, 75% LTHR, 140-150bpm; or none (easy; words like easy, drill, kick, pull stay as the step's note).
+  Rest: - 20s rest. Repeats and titles as for bike, one level of repeat only (write a set inside a set out).
+  A swim distance is always mtr or y, never m. A session given only as a length and a feel ("45 min easy run", "squash 1h") is either one step ("- 45m Z2 HR", "- 8km easy") or, with no steps, minutes and effort (easy, moderate, hard or max). minutes and effort are null for a session with steps.
+
+Return JSON only, matching the schema.`
+
 /** Persona instruction appended to the user message (keeps system prompts cache-stable). */
 export function personaInstruction(p: { name: string; tagline: string; persona?: string; spice: number; profanity: 'clean' | 'mild' | 'unhinged' }): string {
   const who = p.persona?.trim() ? [`Who ${p.name} is, in the rider's own words (play this character): ${p.persona.trim()}`] : []

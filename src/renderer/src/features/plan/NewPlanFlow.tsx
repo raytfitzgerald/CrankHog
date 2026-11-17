@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { useLiveQuery } from 'dexie-react-hooks'
-import { Bot, FileUp, Hammer, Loader2, Sparkles, Wand2 } from 'lucide-react'
+import { Bot, FileSpreadsheet, FileUp, Hammer, Loader2, Sparkles, Wand2 } from 'lucide-react'
 import { nextMonday, type DayMark, type EventFocus, type PlanGoal, type PlanSurvey } from '@core/workout/plan'
 import { planWeeks, type Phase } from '@core/workout/plan-builder'
 import { addDays, dateKey, isDateKey } from '@core/workout/schedule'
@@ -16,9 +16,10 @@ import { Field, Input, Select, Slider } from '../../ui/form'
 import { formatDurationShort } from '../../ui/format'
 import { Segmented, type SegmentedOption } from '../../ui/Segmented'
 import { describeWorkout, IMPORT_EXTENSIONS, loadLibrary, plannedStatsOf } from '../../workouts/library'
+import { DocumentImport } from './DocumentImport'
 import { planImportNotice } from './import-notice'
 
-type Step = 'event' | 'fill' | 'survey' | 'builder' | 'review'
+type Step = 'event' | 'fill' | 'survey' | 'builder' | 'review' | 'document'
 const WEEKDAYS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']
 const PHASE: Record<Phase, string> = { base: 'Base', build: 'Build', specialty: 'Specialty', taper: 'Taper', recovery: 'Recovery' }
 const GOALS: SegmentedOption<PlanGoal>[] = [
@@ -40,8 +41,9 @@ const PRIORITY: SegmentedOption<NonNullable<DayMark['priority']>>[] = [
 
 /**
  * Add a training plan, step by step: the target event and its date, then
- * your own workout files, a plan built for you from a short survey (by AI,
- * or by CrankHog's own rules), or an empty plan to fill by hand.
+ * your own workout files, a plan document read into sessions (by AI, or the
+ * template without), a plan built for you from a short survey (by AI, or by
+ * CrankHog's own rules), or an empty plan to fill by hand.
  */
 export function NewPlanFlow({ onClose, onCreated }: { onClose: () => void; onCreated: (planId: string, notice?: { tone: 'good' | 'bad'; text: string }) => void }) {
   const [step, setStep] = useState<Step>('event')
@@ -168,7 +170,7 @@ export function NewPlanFlow({ onClose, onCreated }: { onClose: () => void; onCre
             <Field label="Plan name">
               <Input value={name} onChange={(e) => setName(e.target.value)} placeholder="Base 1" aria-label="Plan name" data-testid="new-plan-name" />
             </Field>
-            <div className="grid gap-2 sm:grid-cols-3">
+            <div className="grid gap-2 sm:grid-cols-2">
               <input
                 ref={fileInput}
                 type="file"
@@ -183,6 +185,7 @@ export function NewPlanFlow({ onClose, onCreated }: { onClose: () => void; onCre
                 data-testid="new-plan-files"
               />
               <Choice icon={FileUp} title="Import your workout files" text=".zwo, .mrc, .erg or .txt. Files named YYYY-MM-DD_name go on that day." onClick={() => fileInput.current?.click()} disabled={busy} testId="new-plan-import" />
+              <Choice icon={FileSpreadsheet} title="Import a plan document" text="A coach’s plan as a spreadsheet, Word, PDF or text file, read by your AI provider. Or CrankHog’s template, without AI." onClick={() => setStep('document')} disabled={busy} testId="new-plan-document" />
               <Choice icon={Wand2} title="Build a plan for me" text="Answer a few questions and get a week-by-week plan." onClick={() => setStep('survey')} disabled={busy} testId="new-plan-build" />
               <Choice icon={Hammer} title="Start empty" text="Pick workouts from your library." onClick={() => void createSimple()} disabled={busy} testId="new-plan-empty" />
             </div>
@@ -251,6 +254,8 @@ export function NewPlanFlow({ onClose, onCreated }: { onClose: () => void; onCre
           </div>
         )}
 
+        {step === 'document' && <DocumentImport event={event} planName={name} onBack={() => setStep('fill')} onCreated={onCreated} />}
+
         {step === 'review' && (draft ? <Review draft={draft} name={name} onName={setName} /> : !error && <div className="flex items-center gap-2 py-10 text-sm text-ink-dim"><Loader2 className="size-4 animate-spin" /> Building your plan…</div>)}
 
         {error && (
@@ -264,7 +269,8 @@ export function NewPlanFlow({ onClose, onCreated }: { onClose: () => void; onCre
           </div>
         )}
 
-        <div className="flex justify-between gap-2 border-t border-line pt-4">
+        {/* the document import has its own buttons */}
+        <div className={cn('flex justify-between gap-2 border-t border-line pt-4', step === 'document' && 'hidden')}>
           <Button variant="ghost" onClick={() => (step === 'event' ? onClose() : setStep(BACK[step]))} disabled={busy}>
             {step === 'event' ? 'Cancel' : 'Back'}
           </Button>
@@ -295,8 +301,9 @@ const DESCRIPTION: Record<Step, string> = {
   survey: 'A few questions, so the plan fits your week.',
   builder: 'Who builds it?',
   review: 'Your plan, week by week.',
+  document: 'Your plan, from a document or spreadsheet.',
 }
-const BACK: Record<Exclude<Step, 'event'>, Step> = { fill: 'event', survey: 'fill', builder: 'survey', review: 'builder' }
+const BACK: Record<Exclude<Step, 'event'>, Step> = { fill: 'event', survey: 'fill', builder: 'survey', review: 'builder', document: 'fill' }
 
 function Choice({ icon: Icon, title, text, onClick, disabled, testId }: { icon: typeof Bot; title: string; text: string; onClick: () => void; disabled?: boolean; testId: string }) {
   return (
