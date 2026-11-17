@@ -1,13 +1,21 @@
 // Renderer-side AI helpers. All calls go through main (keys never live here).
 import { coachVoice } from '@core/coach'
+import { athleteContext, type ContextPlanned, type ContextWorkout } from '@core/ai/athlete-context'
 import type { AiMessage } from '@core/ai/types'
 import type { FitnessFacts } from '@core/metrics'
-import type { RideSummary } from '@core/ride/types'
-import { isoDay, pmcSeries, powerCurve, realRides, weeklyLoad } from '../db/fitness'
-import { currentFtp, ftpHistory } from '../db/athlete-repo'
+import { dailyLoad } from '@core/sport/daily-load'
+import { activityLoad } from '@core/sport/load'
+import { distanceUnit, weightUnit } from '@core/units'
+import { toIntervalsText } from '@core/workout/io/intervals-text'
+import { addDays, dateKey, isBikeWorkout, type ScheduledWorkout } from '@core/workout/schedule'
+import { isoDay, otherActivities, pmcSeries, powerCurve, realRides, weeklyLoad } from '../db/fitness'
+import { currentFtp, currentProfile, DEFAULT_FTP_W, ftpHistory } from '../db/athlete-repo'
+import { db } from '../db/db'
 import { bridge } from '../platform/bridge'
 import { coachPack, customCoach } from '../coach/custom'
 import { settingsStore } from '../stores/settings'
+import { describeWorkout, getWorkout, loadLibrary, plannedStatsOf } from '../workouts/library'
+import { listSessionWorkouts, plannedFrom, sessionSteps, sessionThresholds } from '../workouts/sessions-repo'
 
 /** The [Coach settings] block for the rider's coach as set right now (persona, spice, language). */
 export function coachVoiceNow(): string {
@@ -65,45 +73,73 @@ export function streamAi(purpose: 'debrief' | 'chat' | 'fitness-summary', messag
 
 const r1 = (v: number | null | undefined) => (v === null || v === undefined ? null : Math.round(v * 10) / 10)
 
-/** Compact, model-friendly summary of one ride (all numbers computed by CrankHog). */
-export function rideFacts(r: RideSummary) {
-  return {
-    date: new Date(r.startedAt).toISOString().slice(0, 10),
-    name: r.name,
-    kind: r.kind,
-    movingMin: Math.round(r.movingS / 60),
-    np: r.np,
-    avgPower: r.avgPower,
-    if: r.intensityFactor,
-    tss: r1(r.tss),
-    kj: Math.round(r.kj),
-    avgHr: r.avgHr,
-    maxHr: r.maxHr,
-    avgCadence: r.avgCadence,
-    decouplingPct: r1(r.decouplingPct),
-    ef: r.ef,
-    vi: r.vi,
-    ftpAtRide: r.athlete.ftpW,
-    zonesMin: r.powerZonesS.map((s) => Math.round(s / 60)),
-    best: Object.fromEntries(r.mmp.filter((p) => [5, 60, 300, 1200, 3600].includes(p.durationS)).map((p) => [`${p.durationS}s`, p.watts])),
-    laps: r.laps.slice(0, 30).map((l) => ({ label: l.label, s: l.durationS, avgW: l.avgPower, targetW: l.targetW, hr: l.avgHr, rpm: l.avgCadence })),
-    rpe: r.rpe,
-    notes: r.notes?.slice(0, 400),
-  }
+/**
+ * Everything the coach chat is given about the rider, read fresh for each
+ * message: see src/core/ai/athlete-context.ts for what it holds. Every
+ * stored ride, other sport, plan and calendar entry; never Strava data.
+ */
+export async function coachContext(now = Date.now()): Promise<string> {
+  const settings = settingsStore.getState()
+  const [ftps, profile, curve, weeks, rides, activities, plans, schedule, marks, sessions, thresholds] = await Promise.all([
+    ftpHistory(),
+    currentProfile(now),
+    powerCurve(),
+    weeklyLoad(6),
+    realRides(0),
+    otherActivities(0),
+    db().plans.toArray(),
+    db().schedule.toArray(),
+    db().dayMarks.toArray(),
+    listSessionWorkouts(),
+    sessionThresholds(),
+  ])
+  const ftpW = [...ftps].reverse().find((f) => f.date <= now)?.ftpW ?? DEFAULT_FTP_W
+  const from = addDays(dateKey(now), -28)
+  const planned = new Map<string, ContextPlanned>()
+  for (const e of schedule) if (e.date >= from) planned.set(e.id, await plannedFacts(e, ftpW))
+  const library = await loadLibrary(ftpW)
+  const workouts: ContextWorkout[] = [
+    ...library
+      .filter((e) => e.favorite || (!e.builtin && e.folder === 'custom'))
+      .map((e) => {
+        const stats = plannedStatsOf(e.workout, e.stats)
+        return { name: e.workout.name, sport: 'ride' as const, durationS: stats.durationS, load: stats.tss, tags: e.workout.tags, favorite: e.favorite }
+      }),
+    ...sessions.map((w) => {
+      const p = plannedFrom(w, thresholds)
+      return { name: w.name, sport: w.sport, durationS: p.durationS ?? null, load: p.load ?? null, distanceM: p.distanceM ?? null, tags: w.tags, favorite: false }
+    }),
+  ]
+  return athleteContext({
+    now,
+    units: { distance: distanceUnit(settings.units), weight: weightUnit(settings.weightUnit) },
+    profile,
+    ftpHistory: ftps,
+    eftpW: curve.eftp.ftpW ? Math.round(curve.eftp.ftpW) : null,
+    bestPower: { last90: curve.last90, last365: curve.last365 },
+    weeks,
+    rides,
+    activities,
+    loadHistory: dailyLoad({ rides, activities: activities.map((a) => ({ startedAt: a.startedAt, load: activityLoad(a) })) }),
+    plans,
+    schedule,
+    planned,
+    marks,
+    workouts,
+  })
 }
 
-/** Recent training context for the coach (locally recorded rides only, never Strava data). */
-export async function trainingContext(): Promise<string> {
-  const [rides, pmc, curve, ftp] = await Promise.all([realRides(Date.now() - 42 * 86_400_000), pmcSeries(42, { sports: 'rides' }), powerCurve(), ftpHistory()])
-  const now = pmc.at(-1)
-  return JSON.stringify({
-    today: new Date().toISOString().slice(0, 10),
-    ftpHistory: ftp.slice(-8).map((f) => ({ date: new Date(f.date).toISOString().slice(0, 10), ftpW: f.ftpW, source: f.source })),
-    load: now ? { ctl: r1(now.ctl), atl: r1(now.atl), tsb: r1(now.tsb) } : null,
-    eftp: curve.eftp.ftpW ? Math.round(curve.eftp.ftpW) : null,
-    best90d: Object.fromEntries(curve.last90.filter((p) => [5, 60, 300, 1200, 3600].includes(p.durationS)).map((p) => [`${p.durationS}s`, Math.round(p.watts)])),
-    rides: rides.slice(-20).map(rideFacts),
-  })
+/** A calendar entry's length and load at `ftpW`, and its steps: a bike workout's as intervals.icu text, a session's as planned. */
+async function plannedFacts(e: ScheduledWorkout, ftpW: number): Promise<ContextPlanned> {
+  if (isBikeWorkout(e)) {
+    const w = e.workout ?? (e.workoutId ? await getWorkout(e.workoutId) : null)
+    if (!w) return { durationS: null, load: null, distanceM: null }
+    const stats = plannedStatsOf(w, describeWorkout(w, ftpW).stats)
+    return { durationS: stats.durationS, load: stats.tss, distanceM: null, steps: toIntervalsText(w), notes: w.description }
+  }
+  const s = e.session
+  if (!s) return { durationS: null, load: null, distanceM: null }
+  return { durationS: s.durationS ?? null, load: s.load ?? null, distanceM: s.distanceM ?? null, steps: (await sessionSteps(e.name, s)) ?? undefined, notes: s.notes }
 }
 
 /** The numbers behind the Fitness page's overview (locally recorded, non-simulated rides only). */

@@ -7,6 +7,21 @@ import type { AiProvider, CallOpts, ProviderConfig } from '../provider'
 
 export const OLLAMA_DEFAULT_HOST = 'http://127.0.0.1:11434'
 
+/**
+ * The context window to ask Ollama for. Its default is a few thousand tokens
+ * and it silently cuts the front off anything longer: the system prompt, and
+ * the coach chat's training data with it. Room for the prompt (about three
+ * characters a token, for JSON) and a reply, in powers of two so the model
+ * isn't reloaded for every size.
+ */
+export function contextWindow(req: AiRequest): number {
+  const chars = req.system.length + req.messages.reduce((n, m) => n + m.content.length, 0)
+  const need = Math.ceil(chars / 3) + Math.min(req.maxTokens ?? 4096, 4096)
+  let ctx = 8192
+  while (ctx < need && ctx < 65_536) ctx *= 2
+  return ctx
+}
+
 export class OllamaProvider implements AiProvider {
   readonly id = 'ollama' as const
   private readonly host: string
@@ -32,7 +47,7 @@ export class OllamaProvider implements AiProvider {
   async complete(req: AiRequest, opts: CallOpts): Promise<AiResult> {
     const c = this.client()
     const r = await withAbort(c, opts.signal, () =>
-      c.chat({ model: opts.model, messages: this.messages(req), stream: false, options: { num_predict: req.maxTokens ?? 2048 } }),
+      c.chat({ model: opts.model, messages: this.messages(req), stream: false, options: { num_predict: req.maxTokens ?? 2048, num_ctx: contextWindow(req) } }),
     )
     return { text: r.message.content, model: r.model, usage: { inputTokens: r.prompt_eval_count, outputTokens: r.eval_count } }
   }
@@ -40,7 +55,7 @@ export class OllamaProvider implements AiProvider {
   async stream(req: AiRequest, opts: CallOpts, onDelta: (text: string) => void): Promise<AiResult> {
     const c = this.client()
     const it = await withAbort(c, opts.signal, () =>
-      c.chat({ model: opts.model, messages: this.messages(req), stream: true, options: { num_predict: req.maxTokens ?? 4096 } }),
+      c.chat({ model: opts.model, messages: this.messages(req), stream: true, options: { num_predict: req.maxTokens ?? 4096, num_ctx: contextWindow(req) } }),
     )
     const onAbort = () => it.abort()
     opts.signal.addEventListener('abort', onAbort, { once: true })
@@ -64,7 +79,7 @@ export class OllamaProvider implements AiProvider {
   async structured(req: AiRequest, schema: z.ZodType, _name: string, opts: CallOpts) {
     const c = this.client()
     const r = await withAbort(c, opts.signal, () =>
-      c.chat({ model: opts.model, messages: this.messages(req), stream: false, format: z.toJSONSchema(schema), options: { temperature: 0.4 } }),
+      c.chat({ model: opts.model, messages: this.messages(req), stream: false, format: z.toJSONSchema(schema), options: { temperature: 0.4, num_ctx: contextWindow(req) } }),
     )
     let value: unknown
     try {

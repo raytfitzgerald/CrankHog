@@ -8,14 +8,13 @@ import { mirrorEvent, type MirrorSource } from '@core/calendar-mirror/event-text
 import { mirrorWindowStart, type MirrorEvent } from '@core/calendar-mirror/mirror'
 import type { GoogleStatus } from '@shared/ipc/contract'
 import type { UnitSystem } from '@core/units'
-import { parseSession } from '@core/multisport/parse'
-import { dateKey, entrySport, isBikeWorkout, type DateKey, type PlannedSession, type ScheduledWorkout } from '@core/workout/schedule'
+import { dateKey, entrySport, isBikeWorkout, type DateKey, type ScheduledWorkout } from '@core/workout/schedule'
 import { currentFtp, DEFAULT_FTP_W } from '../db/athlete-repo'
 import { db } from '../db/db'
 import { bridge } from '../platform/bridge'
 import { settingsStore } from '../stores/settings'
 import { describeWorkout, getWorkout, plannedStatsOf } from '../workouts/library'
-import { getSessionWorkout } from '../workouts/sessions-repo'
+import { sessionSteps } from '../workouts/sessions-repo'
 
 export interface MirrorSnapshot {
   windowStart: DateKey
@@ -48,6 +47,7 @@ async function sourceOf(e: ScheduledWorkout, ftpW: number): Promise<MirrorSource
   }
   const s = e.session
   if (!s) return base
+  const steps = await sessionSteps(e.name, s)
   return {
     ...base,
     ...(s.label ? { label: s.label } : {}),
@@ -56,17 +56,8 @@ async function sourceOf(e: ScheduledWorkout, ftpW: number): Promise<MirrorSource
     load: s.load ?? null,
     ...(s.effort ? { effort: s.effort } : {}),
     ...(s.notes ? { notes: s.notes } : {}),
-    ...((await stepsOf(e.name, s)) ?? {}),
+    ...(steps ? { steps } : {}),
   }
-}
-
-/** A session's steps: the text planned with it, else its library workout's (which also keeps the event in step with edits there). */
-async function stepsOf(name: string, s: PlannedSession): Promise<{ steps: string } | null> {
-  if (s.text?.trim()) return { steps: s.text }
-  if (!s.sessionWorkoutId) return null
-  const w = await getSessionWorkout(s.sessionWorkoutId)
-  const body = w ? parseSession(name, w.text).body : ''
-  return body ? { steps: body } : null
 }
 
 /**
