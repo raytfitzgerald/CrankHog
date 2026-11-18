@@ -61,11 +61,11 @@ export function ChangesCard({ card }: { card: Extract<ChatCard, { kind: 'changes
       {lines ? (
         <ul className="mt-2 space-y-1" aria-label="Changes">
           {lines.map((l, i) => (
-            <li key={i} className="flex gap-2" data-testid="coach-change-line">
+            <li key={i} className="flex gap-2">
               <span aria-hidden className="text-ink-faint">
                 ·
               </span>
-              <span>{l}</span>
+              <span data-testid="coach-change-line">{l}</span>
             </li>
           ))}
         </ul>

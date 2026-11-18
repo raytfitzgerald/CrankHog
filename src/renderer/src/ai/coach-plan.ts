@@ -50,6 +50,12 @@ function put(r: DraftRecord, save = true): void {
   if (save) void persist()
 }
 
+/** Changes a draft still kept: one forgotten (a new chat) while it was being written stays forgotten. */
+function update(id: string, patch: Partial<DraftRecord>, save = true): void {
+  const r = store.getState().drafts[id]
+  if (r) put({ ...r, ...patch }, save)
+}
+
 let writes: Promise<unknown> = Promise.resolve()
 function persist(): Promise<unknown> {
   // one write at a time, each with the latest state
@@ -70,7 +76,7 @@ export async function loadDrafts(): Promise<void> {
 
 /** Forgets every draft (a new chat). */
 export async function clearDrafts(): Promise<void> {
-  store.setState({ drafts: {} })
+  store.setState({ drafts: {}, loaded: false })
   await db().kv.delete(KV_KEY)
 }
 
@@ -245,7 +251,7 @@ export function startDraft(raw: unknown, now = Date.now()): { id: string } | { e
   put(base, true)
   void (async () => {
     try {
-      const job: Job = { today, brief, span, athlete: await athleteFacts(), onProgress: (done, total, what) => put({ ...store.getState().drafts[id]!, progress: { done, total, what } }, false) }
+      const job: Job = { today, brief, span, athlete: await athleteFacts(), onProgress: (done, total, what) => update(id, { progress: { done, total, what } }, false) }
       const total = 1 + blocksOf(range(span.weeks)).length
       job.onProgress(0, total, 'Outlining the plan')
       const outline = await structured('plan-outline', outlineInput({ today, brief, span, athlete: job.athlete }), (v) => outlineOf(v, span.weeks))
@@ -254,9 +260,9 @@ export function startDraft(raw: unknown, now = Date.now()): { id: string } | { e
       const items = await repair(job, written.items)
       if (items.length === 0) throw new DraftError(written.problems[0]?.reason ?? 'The AI wrote no sessions.')
       const draft: PlanDraft = { id, version: 1, brief, span, outline, items, problems: written.problems, notes, createdAt: Date.now() }
-      put({ ...base, status: 'ready', progress: undefined, draft })
+      update(id, { status: 'ready', progress: undefined, draft })
     } catch (e) {
-      put({ ...base, status: 'failed', progress: undefined, error: e instanceof Error ? e.message : String(e) })
+      update(id, { status: 'failed', progress: undefined, error: e instanceof Error ? e.message : String(e) })
     }
   })()
   return { id }
@@ -287,7 +293,7 @@ export function startRevision(raw: unknown, now = Date.now()): { id: string } | 
   put(base, true)
   void (async () => {
     try {
-      const job: Job = { today, brief, span, athlete: await athleteFacts(), onProgress: (done, total, what) => put({ ...store.getState().drafts[id]!, progress: { done, total, what } }, false) }
+      const job: Job = { today, brief, span, athlete: await athleteFacts(), onProgress: (done, total, what) => update(id, { progress: { done, total, what } }, false) }
       const sameSpan = span.start === old.span.start && span.weeks === old.span.weeks
       const reshaped = !sameSpan || reshapes(old.brief, brief)
       job.onProgress(0, 2, 'Revising the outline')
@@ -302,11 +308,11 @@ export function startRevision(raw: unknown, now = Date.now()): { id: string } | 
       const items = await repair(job, written.items)
       if (items.length === 0) throw new DraftError(written.problems[0]?.reason ?? 'The AI wrote no sessions.')
       const draft: PlanDraft = { id, version: base.version, brief, span, outline, items, problems: written.problems, notes, createdAt: Date.now() }
-      const prior = store.getState().drafts[was.id]
-      if (prior?.status === 'ready') put({ ...prior, status: 'superseded', draft: undefined }, false)
-      put({ ...base, status: 'ready', progress: undefined, draft })
+      if (!store.getState().drafts[id]) return
+      if (store.getState().drafts[was.id]?.status === 'ready') update(was.id, { status: 'superseded', draft: undefined }, false)
+      update(id, { status: 'ready', progress: undefined, draft })
     } catch (e) {
-      put({ ...base, status: 'failed', progress: undefined, error: e instanceof Error ? e.message : String(e) })
+      update(id, { status: 'failed', progress: undefined, error: e instanceof Error ? e.message : String(e) })
     }
   })()
   return { id }

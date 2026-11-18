@@ -124,6 +124,8 @@ It's a data-obsessed indoor cycling trainer for macOS, and [for your phone](#on-
   - **Build a plan for me.** A few questions (hours a week, the days you ride, your long-ride day, raise FTP, build endurance, or the event, whether all-round, climbing, time trial or criterium), then a week-by-week plan: base, build, specialty and a taper into your event, with a recovery week every fourth week and a ramp test to start. CrankHog builds it from its own workouts, or your AI plans the weeks and writes any workout the library is missing.
   - **Start empty** and pick workouts from your library.
 
+  Or ask the coach for one in the chat, for any sport, triathlon included: see **Coach chat** below.
+
   A plan is its workouts in order, the days you ride and its dates: a start date, or a race date it counts back from, so its last workout is the ride day before the race. Put it on the calendar, and every change re-lays it; workouts you've ridden stay where they were.
 - **A builder like zwofactory.com**, with blocks you can grab:
   - drag a block's edge to change its duration, or its top to change its power;
@@ -156,6 +158,8 @@ It's a data-obsessed indoor cycling trainer for macOS, and [for your phone](#on-
 - **Mute** from the ride screen, or press `C`. Safety prompts still come through.
 - **Voice.** Lines are spoken with a macOS voice, and the music is lowered while the coach talks.
 - **Coach chat.** With an AI provider on, ask your coach about your training and they answer in character, at your spice and profanity levels.
+  - **Ask for changes.** "Move Tuesday's ride to Thursday", "make me a 45-minute workout that hurts", "I'm sick till Friday", "log squash, 1 h, hard", "my FTP is 262 now", "I'm wrecked, lighten next week". The coach proposes, and you get a plain card: what changes, and the calendar before and after. Nothing happens until you press **Apply**, and **Undo** puts it all back. A workout the coach makes lands in Custom workouts (runs and swims with your sessions), with **Open in the builder**.
+  - **Ask for a plan.** "Make me a plan for a full Ironman in 36 weeks." The coach asks about you first: your volume per sport, hours a week, which days and how long, long ride and long run days, pool, injuries, other races, time away. It skips what CrankHog already knows. Then it drafts the plan for you to review: phases with recovery weeks, hours a week of each sport, key sessions, and every session week by week, steps and all. Say what to change ("less swimming", "long ride on Sunday", "I'm away weeks 12 to 13") and it revises. Accept it and every session goes on its day, bike workouts as ERG workouts, the race as an A event, and the plan counts back from the race if it moves. Later changes ("lighten next week") come as cards to apply.
 - **One rule.** No coach ever tells you to hurt yourself. Everything else is fair game, so pick the spice and the language with care. If your heart rate looks wrong, or you stop suddenly in a hard effort, every coach turns supportive.
 
 **Your history**
