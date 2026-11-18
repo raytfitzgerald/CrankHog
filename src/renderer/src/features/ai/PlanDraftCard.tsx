@@ -252,7 +252,9 @@ function SportHours({ prepared, weeks }: { prepared: PreparedImport; weeks: numb
       const per = new Map<number, number>()
       for (const x of prepared.ready) if (x.item.sport === s && x.item.week !== undefined) per.set(x.item.week, (per.get(x.item.week) ?? 0) + (x.durationS ?? 0))
       const total = [...per.values()].reduce((a, b) => a + b, 0)
-      return { s, total, most: Math.max(0, ...per.values()), count: prepared.ready.filter((x) => x.item.sport === s).length }
+      // a session CrankHog can't time (a swim by distance with no CSS set) has no length, which isn't none
+      const timed = prepared.ready.some((x) => x.item.sport === s && x.durationS)
+      return { s, total, timed, most: Math.max(0, ...per.values()), count: prepared.ready.filter((x) => x.item.sport === s).length }
     })
     .filter((x) => x.count > 0)
   return (
@@ -273,8 +275,8 @@ function SportHours({ prepared, weeks }: { prepared: PreparedImport; weeks: numb
               {SPORT_NAME[x.s]}
             </td>
             <td>{x.count}</td>
-            <td>{hours(x.total / weeks)}</td>
-            <td>{hours(x.most)}</td>
+            <td>{x.timed ? hours(x.total / weeks) : '—'}</td>
+            <td>{x.timed ? hours(x.most) : '—'}</td>
           </tr>
         ))}
       </tbody>
