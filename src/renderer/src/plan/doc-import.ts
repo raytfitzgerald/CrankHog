@@ -187,6 +187,11 @@ function checkSession(item: ImportItem, ctx: CheckContext): Omit<ReadySession, '
   return { kind: 'session', workout: r.workout, durationS: r.estimate?.durationS ?? null, warnings: r.warnings.map(say) }
 }
 
+/** One session through CrankHog's importers: the workout or session it makes, or why it can't be made. */
+export function checkItem(item: ImportItem, ctx: CheckContext): Omit<ReadyBike, 'item' | 'date'> | Omit<ReadySession, 'item' | 'date'> | string {
+  return item.sport === 'bike' ? checkBike(item, ctx.ftpW) : checkSession(item, ctx)
+}
+
 /**
  * Every session checked and dated: dated by the document, or by its week and
  * weekday counted from `start` (a Monday). A session on or after race day is
@@ -201,7 +206,7 @@ export function prepareImport(doc: ImportDoc, opts: CheckContext & { start: Date
     const date = dates[i]
     const where = item.where || whereOf(item)
     if (!item.name) return failed.push({ where, reason: 'It has no name.' })
-    const checked = item.sport === 'bike' ? checkBike(item, opts.ftpW) : checkSession(item, opts)
+    const checked = checkItem(item, opts)
     if (typeof checked === 'string') return failed.push({ where, name: item.name, reason: checked })
     if (opts.raceDate && date && date >= opts.raceDate) return leftOut.push({ where, name: item.name, reason: date === opts.raceDate ? 'On race day: the race is on your calendar.' : 'After race day.' })
     ready.push({ ...checked, item, ...(date ? { date } : {}) } as ReadyItem)
@@ -222,6 +227,27 @@ export interface SaveImport {
 
 const newItemId = (i: number) => `i${i.toString(36)}${crypto.randomUUID().slice(0, 6)}`
 
+/** What a save made, so it can be taken back: the plan, the event if it was new, and the workouts and sessions that weren't in the library before. */
+export interface ImportMade {
+  planId: string
+  eventId?: string
+  bikes: string[]
+  sessions: string[]
+}
+
+/** saveImport, and what it made, for an Undo. */
+export async function saveImportUndoable(ready: readonly ReadyItem[], opts: SaveImport): Promise<{ plan: TrainingPlan; made: ImportMade }> {
+  let made: ImportMade | undefined
+  const plan = await saveImport(ready, opts, (m) => (made = m))
+  return { plan, made: made! }
+}
+
+/** Takes back what a save made: the plan (with its calendar entries not yet done), the new event, and the new workouts. */
+export async function undoImport(made: ImportMade): Promise<void> {
+  const event = made.eventId ? await db().dayMarks.get(made.eventId) : undefined
+  await undoSave(await db().plans.get(made.planId), event, made.bikes, made.sessions)
+}
+
 /**
  * Saves the checked sessions as a plan on the calendar: the event (if any),
  * the bike workouts filed in the plan, the run, swim and other sessions, and
@@ -231,7 +257,7 @@ const newItemId = (i: number) => `i${i.toString(36)}${crypto.randomUUID().slice(
  * back (never a workout the rider already had), so trying again doesn't leave
  * a second plan.
  */
-export async function saveImport(ready: readonly ReadyItem[], opts: SaveImport): Promise<TrainingPlan> {
+export async function saveImport(ready: readonly ReadyItem[], opts: SaveImport, onMade?: (made: ImportMade) => void): Promise<TrainingPlan> {
   if (ready.length === 0) throw new PlanImportError('There is nothing to save.')
   const existing = opts.event ? await eventOn(opts.event.date, opts.event.name) : undefined
   const event = existing ?? (opts.event ? await addMark({ date: opts.event.date, kind: 'event', name: opts.event.name, priority: opts.event.priority }) : undefined)
@@ -255,7 +281,9 @@ export async function saveImport(ready: readonly ReadyItem[], opts: SaveImport):
     }
     const items: PlanItem[] = ready.map((r, i) => ({ id: newItemId(i), workoutId: r.workout.id, ...(r.kind === 'session' ? { sport: r.workout.sport } : {}), ...(r.date ? { date: r.date } : {}) }))
     await updatePlan(plan.id, { items })
-    return await putOnCalendar(plan.id)
+    const onCalendar = await putOnCalendar(plan.id)
+    onMade?.({ planId: plan.id, ...(event && !existing ? { eventId: event.id } : {}), bikes: madeBikes, sessions: madeSessions })
+    return onCalendar
   } catch (e) {
     await undoSave(plan, existing ? undefined : event, madeBikes, madeSessions).catch(() => undefined)
     throw e

@@ -1,7 +1,7 @@
 // Renderer-side AI helpers. All calls go through main (keys never live here).
 import { coachVoice } from '@core/coach'
 import { athleteContext, type ContextPlanned, type ContextWorkout } from '@core/ai/athlete-context'
-import type { AiMessage } from '@core/ai/types'
+import type { AiMessage, AiToolCall } from '@core/ai/types'
 import type { FitnessFacts } from '@core/metrics'
 import { dailyLoad } from '@core/sport/daily-load'
 import { activityLoad } from '@core/sport/load'
@@ -38,8 +38,17 @@ function hash(text: string): string {
   return (h >>> 0).toString(36)
 }
 
+export interface StreamEnd {
+  text: string | null
+  error: string | null
+  code: string | null
+  model: string | null
+  /** The coach chat's proposals, unchecked. */
+  toolCalls?: AiToolCall[]
+}
+
 export interface StreamHandle {
-  done: Promise<{ text: string | null; error: string | null; code: string | null; model: string | null }>
+  done: Promise<StreamEnd>
   cancel(): void
 }
 
@@ -47,7 +56,7 @@ export function streamAi(purpose: 'debrief' | 'chat' | 'fitness-summary', messag
   const streamId = `s${Date.now().toString(36)}${Math.random().toString(36).slice(2, 8)}`
   let offDelta = () => {}
   let offEnd = () => {}
-  const done = new Promise<{ text: string | null; error: string | null; code: string | null; model: string | null }>((resolve) => {
+  const done = new Promise<StreamEnd>((resolve) => {
     offDelta = bridge().on('ai.stream.delta', (d) => {
       if (d.streamId === streamId) onDelta(d.text)
     })
@@ -78,7 +87,7 @@ const r1 = (v: number | null | undefined) => (v === null || v === undefined ? nu
  * message: see src/core/ai/athlete-context.ts for what it holds. Every
  * stored ride, other sport, plan and calendar entry; never Strava data.
  */
-export async function coachContext(now = Date.now()): Promise<string> {
+export async function coachContext(now = Date.now(), draft?: unknown): Promise<string> {
   const settings = settingsStore.getState()
   const [ftps, profile, curve, weeks, rides, activities, plans, schedule, marks, sessions, thresholds] = await Promise.all([
     ftpHistory(),
@@ -126,6 +135,7 @@ export async function coachContext(now = Date.now()): Promise<string> {
     planned,
     marks,
     workouts,
+    ...(draft !== undefined ? { draft } : {}),
   })
 }
 

@@ -3,7 +3,8 @@
 import OpenAI from 'openai'
 import { zodTextFormat } from 'openai/helpers/zod'
 import type { z } from 'zod'
-import { AiError, type AiRequest, type AiResult } from '@core/ai/types'
+import { toolJsonSchema } from '@core/ai/coach-tools'
+import { AiError, type AiRequest, type AiResult, type AiToolCall } from '@core/ai/types'
 import { withinOutputLimit, type AiProvider, type CallOpts, type ProviderConfig } from '../provider'
 
 const refusal = (e: unknown) => (e instanceof OpenAI.BadRequestError ? e.message : null)
@@ -54,6 +55,8 @@ export class OpenAiProvider implements AiProvider {
       instructions: req.system,
       input: req.messages.map((m) => ({ role: m.role, content: m.content })),
       max_output_tokens: req.maxTokens ?? 16000,
+      // not strict: strict mode wants every field required, and the renderer re-checks every call anyway
+      ...(req.tools?.length ? { tools: req.tools.map((t) => ({ type: 'function' as const, name: t.name, description: t.description, parameters: toolJsonSchema(t), strict: false })) } : {}),
     }
   }
 
@@ -71,17 +74,20 @@ export class OpenAiProvider implements AiProvider {
       const s = await this.client.responses.create({ ...this.body(req, opts.model), stream: true }, { signal: opts.signal, timeout: opts.timeoutMs })
       let text = ''
       let model = opts.model
+      const toolCalls: AiToolCall[] = []
       for await (const ev of s) {
         if (ev.type === 'response.output_text.delta') {
           text += ev.delta
           onDelta(ev.delta)
+        } else if (ev.type === 'response.output_item.done' && ev.item.type === 'function_call') {
+          toolCalls.push({ name: ev.item.name, input: argumentsOf(ev.item.arguments) })
         } else if (ev.type === 'response.completed') {
           model = ev.response.model
         } else if (ev.type === 'error') {
           throw new AiError(ev.message, 'provider')
         }
       }
-      return { text, model }
+      return { text, model, ...(toolCalls.length > 0 ? { toolCalls } : {}) }
     } catch (e) {
       throw mapError(e, this.flavor.name)
     }
@@ -98,6 +104,15 @@ export class OpenAiProvider implements AiProvider {
     } catch (e) {
       throw mapError(e, this.flavor.name)
     }
+  }
+}
+
+/** A function call's arguments, which come as a JSON string; left as the string when they aren't JSON, for the renderer to report. */
+export function argumentsOf(args: string): unknown {
+  try {
+    return JSON.parse(args)
+  } catch {
+    return args
   }
 }
 

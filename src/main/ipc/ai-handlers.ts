@@ -1,5 +1,18 @@
 import type { WebContents } from 'electron'
-import { CHAT_SYSTEM, DEBRIEF_SYSTEM, FITNESS_SUMMARY_SYSTEM, LIVE_LINE_SYSTEM, PLAN_IMPORT_SYSTEM, QUIP_PACK_SYSTEM, RIDE_TITLE_SYSTEM, TRAINING_PLAN_SYSTEM, WORKOUT_SYSTEM } from '@core/ai/prompts'
+import { COACH_TOOLS } from '@core/ai/coach-tools'
+import {
+  CHAT_SYSTEM,
+  DEBRIEF_SYSTEM,
+  FITNESS_SUMMARY_SYSTEM,
+  LIVE_LINE_SYSTEM,
+  PLAN_IMPORT_SYSTEM,
+  PLAN_OUTLINE_SYSTEM,
+  PLAN_WEEKS_SYSTEM,
+  QUIP_PACK_SYSTEM,
+  RIDE_TITLE_SYSTEM,
+  TRAINING_PLAN_SYSTEM,
+  WORKOUT_SYSTEM,
+} from '@core/ai/prompts'
 import { AiError, type AiProviderId, type AiPurpose } from '@core/ai/types'
 import type { SecretStore } from '../secrets/secret-store'
 import { AnthropicProvider } from '../ai/providers/anthropic'
@@ -18,6 +31,8 @@ const SYSTEM: Record<AiPurpose, string> = {
   'fitness-summary': FITNESS_SUMMARY_SYSTEM,
   'training-plan': TRAINING_PLAN_SYSTEM,
   'plan-import': PLAN_IMPORT_SYSTEM,
+  'plan-outline': PLAN_OUTLINE_SYSTEM,
+  'plan-weeks': PLAN_WEEKS_SYSTEM,
 }
 
 function configStore(secrets: SecretStore): AiConfigStore {
@@ -71,8 +86,9 @@ export function registerAiHandlers(deps: { secrets: SecretStore }): AiService {
     const ctrl = new AbortController()
     streams.set(streamId, ctrl)
     void service
-      .stream(purpose, { system: SYSTEM[purpose], messages }, (text) => emit(sender, 'ai.stream.delta', { streamId, text }), ctrl.signal)
-      .then((r) => emit(sender, 'ai.stream.end', { streamId, text: r.text, error: null, code: null, model: r.model }))
+      // the coach chat may propose changes and plans; the renderer checks every call before showing it
+      .stream(purpose, { system: SYSTEM[purpose], messages, ...(purpose === 'chat' ? { tools: COACH_TOOLS } : {}) }, (text) => emit(sender, 'ai.stream.delta', { streamId, text }), ctrl.signal)
+      .then((r) => emit(sender, 'ai.stream.end', { streamId, text: r.text, error: null, code: null, model: r.model, ...(r.toolCalls ? { toolCalls: r.toolCalls } : {}) }))
       .catch((e: unknown) => {
         const d = describe(e)
         emit(sender, 'ai.stream.end', { streamId, text: null, error: d.error, code: d.code, model: null })

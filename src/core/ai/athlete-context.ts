@@ -6,6 +6,7 @@
 // Strava: intervals.icu doesn't pass Strava activities on. The rider's name
 // stays out (it is never sent anywhere). Cut to a budget by dropping detail
 // (laps, steps, far days) before anything else.
+import { refOf } from '../coach-actions/refs'
 import { computePmc, projectPmc, type PmcDay } from '../metrics/pmc'
 import type { RideSummary } from '../ride/types'
 import { activityGroup, type SportGroup } from '../sport/group'
@@ -97,6 +98,8 @@ export interface AthleteContextInput {
   planned: ReadonlyMap<string, ContextPlanned>
   marks: readonly DayMark[]
   workouts: readonly ContextWorkout[]
+  /** A plan the coach has drafted in the chat and the rider hasn't accepted yet (draftFacts in @core/coach-plan/draft). */
+  draft?: unknown
 }
 
 interface MmpPoint {
@@ -260,6 +263,7 @@ function planFacts(p: TrainingPlan, input: AthleteContextInput, prep: Prepared) 
   const { today, done } = prep
   const race = p.eventId ? input.marks.find((m) => m.id === p.eventId) : undefined
   const base = {
+    ref: refOf('p', p.id),
     name: clip(p.name, 80),
     description: clip(p.description, 300),
     madeFrom: p.source,
@@ -301,6 +305,7 @@ function calendarFacts(input: AthleteContextInput, prep: Prepared, d: Detail) {
     const what = input.planned.get(e.id)
     const detailed = e.date >= today && e.date < stepsTo && status !== 'done'
     return {
+      ref: refOf('c', e.id),
       date: day(e.date),
       name: clip(e.name, 80),
       sport,
@@ -324,6 +329,7 @@ function eventFacts(prep: Prepared, d: Detail) {
     .map((m) => {
       const form = prep.projected.get(m.date)
       return {
+        ref: refOf('m', m.id),
         date: day(m.date),
         name: clip(m.name, 80),
         priority: m.priority,
@@ -355,7 +361,7 @@ function shape(input: AthleteContextInput, prep: Prepared, d: Detail) {
       .filter((m) => m.kind !== 'event' && m.date >= from && m.date <= to)
       .sort((a, b) => a.date.localeCompare(b.date))
       .slice(0, 30)
-      .map((m) => ({ date: day(m.date), kind: m.kind, note: clip(m.note, 120) })),
+      .map((m) => ({ ref: refOf('m', m.id), date: day(m.date), kind: m.kind, note: clip(m.note, 120) })),
     calendar: calendarFacts(input, prep, d),
     rides: rides.map((r, i) => rideFacts(r, i >= rides.length - d.laps ? 30 : 0)),
     otherActivities: input.activities
@@ -371,6 +377,7 @@ function shape(input: AthleteContextInput, prep: Prepared, d: Detail) {
       tags: w.tags.length > 0 ? w.tags.slice(0, 4).map((t) => clip(t, 30)) : undefined,
       favorite: w.favorite || undefined,
     })),
+    planDraft: input.draft,
   }
 }
 

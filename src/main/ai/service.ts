@@ -7,7 +7,7 @@
 //  * in-ride "live-line" calls are single-flight and rate-limited
 import type { z } from 'zod'
 import { AI_SCHEMAS, type AiSchemaId } from '@core/ai/schemas'
-import { AiError, PURPOSE_DEFAULTS, type AiMessage, type AiProviderId, type AiPurpose, type AiRequest, type AiResult } from '@core/ai/types'
+import { AiError, PURPOSE_DEFAULTS, type AiMessage, type AiProviderId, type AiPurpose, type AiRequest, type AiResult, type AiTool } from '@core/ai/types'
 import type { AiProvider, ProviderConfig } from './provider'
 import { DEFAULT_MODEL } from './provider'
 
@@ -34,7 +34,7 @@ const PROVIDER_NAME: Record<AiProviderId, string> = { anthropic: 'Anthropic', op
  * part by part. Their failures don't pause in-ride lines, and an open breaker
  * doesn't stop them.
  */
-const OUTSIDE_BREAKER: ReadonlySet<AiPurpose> = new Set(['plan-import'])
+const OUTSIDE_BREAKER: ReadonlySet<AiPurpose> = new Set(['plan-import', 'plan-outline', 'plan-weeks'])
 
 const BREAKER_THRESHOLD = 3
 const BREAKER_COOLDOWN_MS = 5 * 60_000
@@ -97,7 +97,7 @@ export class AiService {
     }
   }
 
-  async stream(purpose: AiPurpose, input: { system: string; messages: AiMessage[] }, onDelta: (t: string) => void, signal?: AbortSignal): Promise<AiResult> {
+  async stream(purpose: AiPurpose, input: { system: string; messages: AiMessage[]; tools?: readonly AiTool[] }, onDelta: (t: string) => void, signal?: AbortSignal): Promise<AiResult> {
     return this.guard(purpose, () => {
       const { provider, model, req, opts } = this.prepare(purpose, input, signal)
       return provider.stream(req, { model, ...opts }, onDelta)
@@ -149,13 +149,20 @@ export class AiService {
     return this.factory(id, { apiKey: key, baseUrl: id === 'ollama' ? c.ollamaHost : undefined })
   }
 
-  private prepare(purpose: AiPurpose, input: { system: string; messages: AiMessage[] }, signal?: AbortSignal) {
+  private prepare(purpose: AiPurpose, input: { system: string; messages: AiMessage[]; tools?: readonly AiTool[] }, signal?: AbortSignal) {
     const c = this.store.getConfig()
     if (!c.provider) throw new AiError('AI is turned off. Pick a provider in Settings → AI.', 'not-configured')
     const model = this.modelFor(c.provider)
     if (!model) throw new AiError(`Choose a ${PROVIDER_NAME[c.provider]} model in Settings → AI`, 'not-configured')
     const d = PURPOSE_DEFAULTS[purpose]
-    const req: AiRequest = { system: input.system, messages: input.messages, maxTokens: d.maxTokens, effort: d.effort, ...(d.replyTokens ? { replyTokens: d.replyTokens } : {}) }
+    const req: AiRequest = {
+      system: input.system,
+      messages: input.messages,
+      maxTokens: d.maxTokens,
+      effort: d.effort,
+      ...(d.replyTokens ? { replyTokens: d.replyTokens } : {}),
+      ...(input.tools?.length ? { tools: input.tools } : {}),
+    }
     return { provider: this.provider(c.provider), model, req, opts: { signal: withTimeout(signal, d.timeoutMs), timeoutMs: d.timeoutMs } }
   }
 

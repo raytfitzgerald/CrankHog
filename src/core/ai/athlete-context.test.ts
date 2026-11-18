@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest'
+import { refOf } from '../coach-actions/refs'
 import { normalizeRide } from '../ride/normalize'
 import type { RideSummary } from '../ride/types'
 import type { DayMark, TrainingPlan } from '../workout/plan'
@@ -142,7 +143,7 @@ describe('athleteContext', () => {
     const c = parse(athleteContext(input()))
     expect(c.events[0]).toMatchObject({ name: 'Gran fondo', daysAway: 26 })
     expect(c.events[0]?.projectedForm?.ctl).toBeGreaterThan(0)
-    expect(c.daysOff).toEqual([{ date: '2026-11-10 Tue', kind: 'sick', note: 'Head cold' }])
+    expect(c.daysOff).toEqual([{ ref: refOf('m', 'sick'), date: '2026-11-10 Tue', kind: 'sick', note: 'Head cold' }])
     expect(c.fitness.now?.ctl).toBeGreaterThan(0)
   })
 
@@ -189,5 +190,14 @@ describe('athleteContext', () => {
       }),
     )
     expect(json.length).toBeLessThanOrEqual(40_000)
+  })
+
+  it('gives every calendar entry, event, day off and plan a ref to name it by, and carries a plan draft', () => {
+    const c = JSON.parse(athleteContext({ ...input(), draft: { name: 'Draft', weeks: 2 } })) as AthleteContextJson
+    for (const e of c.calendar) expect(e.ref).toMatch(/^c[0-9a-z]{7}$/)
+    expect(c.events[0]?.ref).toMatch(/^m[0-9a-z]{7}$/)
+    expect(c.plans[0]?.ref).toMatch(/^p[0-9a-z]{7}$/)
+    expect(c.planDraft).toEqual({ name: 'Draft', weeks: 2 })
+    expect(new Set(c.calendar.map((e) => e.ref)).size).toBe(c.calendar.length)
   })
 })
