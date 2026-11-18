@@ -311,6 +311,7 @@ function calendarFacts(input: AthleteContextInput, prep: Prepared, d: Detail) {
       sport,
       label: e.session?.label && e.session.label !== e.name ? clip(e.session.label, 80) : undefined,
       plan: e.planId ? planNames.get(e.planId) : undefined,
+      from: e.source === 'intervals' ? 'intervals.icu' : undefined,
       status,
       min: what?.durationS ? Math.round(what.durationS / 60) : undefined,
       load: r1(what?.load) ?? undefined,

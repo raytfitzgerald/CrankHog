@@ -5,12 +5,14 @@ import { useEffect, useState } from 'react'
 import { Link } from '@tanstack/react-router'
 import { Loader2 } from 'lucide-react'
 import type { DayDiff } from '@core/coach-actions/actions'
+import { formatSportDistance } from '@core/sport/format'
 import { dateKeyToMs, type DateKey } from '@core/workout/schedule'
-import { applyProposal, checkProposal, undoSteps, type CheckedProposal } from '../../ai/coach-actions'
+import { applyProposal, checkProposal, undoSteps, type CardItem, type CheckedProposal, type Side } from '../../ai/coach-actions'
 import { setChangeState, useChangeState, type ChatCard } from '../../ai/coach-cards'
+import { useSettings } from '../../stores/settings'
 import { Button } from '../../ui/Button'
 import { cn } from '../../ui/cn'
-import { formatDate } from '../../ui/format'
+import { formatDate, formatDurationShort } from '../../ui/format'
 import { SportIcon } from '../calendar/SportIcon'
 
 const dayLabel = (d: DateKey) => formatDate(dateKeyToMs(d))
@@ -44,29 +46,24 @@ export function ChangesCard({ card }: { card: Extract<ChatCard, { kind: 'changes
       setBusy(false)
     }
   }
-  const apply = () => act(async () => void (await setChangeState(card.id, { state: 'applied', lines: checked?.lines ?? [], ...(await applyProposal(card.proposal)) })))
+  const apply = () => act(async () => void (await setChangeState(card.id, { state: 'applied', items: checked?.items ?? [], ...(await applyProposal(card.proposal)) })))
   const undo = () =>
     act(async () => {
       if (s.state !== 'applied') return
       await undoSteps(s.undo)
-      await setChangeState(card.id, { state: 'undone', lines: s.lines })
+      await setChangeState(card.id, { state: 'undone', items: s.items })
     })
 
   const problems = checked?.problems ?? []
-  const lines = s.state === 'pending' ? checked?.lines : s.lines
+  const items = s.state === 'pending' ? checked?.items : s.items
   return (
     <div className="rounded-2xl border border-line bg-panel-2 px-4 py-3 text-sm" data-testid="coach-changes" data-state={s.state}>
       <div className="eyebrow text-ink-dim">Proposed changes</div>
       {card.proposal.summary && <p className="mt-1 font-semibold text-ink">{card.proposal.summary}</p>}
-      {lines ? (
-        <ul className="mt-2 space-y-1" aria-label="Changes">
-          {lines.map((l, i) => (
-            <li key={i} className="flex gap-2">
-              <span aria-hidden className="text-ink-faint">
-                ·
-              </span>
-              <span data-testid="coach-change-line">{l}</span>
-            </li>
+      {items ? (
+        <ul className="mt-2 space-y-2" aria-label="Changes">
+          {items.map((it, i) => (
+            <Change key={i} item={it} />
           ))}
         </ul>
       ) : (
@@ -74,6 +71,7 @@ export function ChangesCard({ card }: { card: Extract<ChatCard, { kind: 'changes
       )}
       {s.state === 'pending' && checked && checked.diff.length > 0 && <CalendarDiff diff={checked.diff} />}
       {s.state === 'pending' && checked?.notes.map((n) => <p key={n} className="mt-2 text-xs text-ink-dim">{n}</p>)}
+      {s.state === 'pending' && problems.length === 0 && checked?.warnings.map((w) => <p key={w} className="mt-2 text-xs text-warn" data-testid="coach-change-warning">{w}</p>)}
       {s.state === 'pending' && problems.length > 0 && (
         <div className="mt-2 rounded-lg border border-bad/40 bg-bad/5 px-3 py-2" data-testid="coach-change-problems">
           <div className="font-semibold">This can't be applied</div>
@@ -96,7 +94,7 @@ export function ChangesCard({ card }: { card: Extract<ChatCard, { kind: 'changes
             <Button size="sm" variant="primary" onClick={() => void apply()} disabled={busy || !checked || problems.length > 0} data-testid="coach-change-apply">
               {busy && <Loader2 className="size-3.5 animate-spin" />} Apply
             </Button>
-            <Button size="sm" variant="ghost" onClick={() => void setChangeState(card.id, { state: 'dismissed', lines: checked?.lines ?? [] })} disabled={busy} data-testid="coach-change-dismiss">
+            <Button size="sm" variant="ghost" onClick={() => void setChangeState(card.id, { state: 'dismissed', items: checked?.items ?? [] })} disabled={busy} data-testid="coach-change-dismiss">
               Dismiss
             </Button>
           </>
@@ -132,6 +130,51 @@ export function ChangesCard({ card }: { card: Extract<ChatCard, { kind: 'changes
         )}
       </div>
     </div>
+  )
+}
+
+/** One change: what it does, the coach's reason, and the session before and after. */
+function Change({ item }: { item: CardItem }) {
+  return (
+    <li className="flex gap-2">
+      <span aria-hidden className="text-ink-faint">
+        ·
+      </span>
+      <span className="min-w-0 flex-1">
+        <span className="block" data-testid="coach-change-line">
+          {item.line}
+        </span>
+        {item.why && <span className="block text-xs text-ink-dim">{item.why}</span>}
+        {(item.before || item.after) && (
+          <span className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1 text-xs" data-testid="coach-change-sides">
+            {item.before && <SideTag side={item.before} gone={!!item.after || !!item.removed} />}
+            {item.before && item.after && (
+              <span aria-label="becomes" className="text-ink-faint">
+                →
+              </span>
+            )}
+            {item.after && <SideTag side={item.after} />}
+          </span>
+        )}
+      </span>
+    </li>
+  )
+}
+
+/** A session in a few words: its sport, length, distance and load. */
+function SideTag({ side, gone = false }: { side: Side; gone?: boolean }) {
+  const units = useSettings((s) => s.units)
+  const facts = [
+    side.durationS ? formatDurationShort(side.durationS) : null,
+    side.distanceM ? formatSportDistance(side.distanceM, side.sport, units) : null,
+    side.load !== null ? `${Math.round(side.load)} load` : null,
+  ].filter(Boolean)
+  return (
+    <span className={cn('inline-flex min-w-0 items-center gap-1.5 rounded-md bg-panel px-2 py-0.5', gone ? 'text-ink-faint' : 'text-ink')}>
+      <SportIcon sport={side.sport} className="size-3.5 shrink-0" aria-hidden />
+      <span className={cn('truncate', gone && 'line-through')}>{side.name}</span>
+      {facts.length > 0 && <span className="shrink-0 tabular text-ink-dim">{facts.join(' · ')}</span>}
+    </span>
   )
 }
 

@@ -14,7 +14,7 @@ export const PROPOSE_CHANGES = 'propose_changes'
 export const DRAFT_PLAN = 'draft_plan'
 export const REVISE_PLAN = 'revise_plan'
 
-const PROPOSE = `Propose changes to the rider's CrankHog: their calendar, workouts, days off, events, history or thresholds. CrankHog shows the rider a card listing exactly what changes, with the calendar before and after; nothing happens until they press Apply, and they can undo it. Every change for one request goes in one call, in order.
+const PROPOSE = `Propose changes to the rider's CrankHog: their calendar, workouts, days off, events, history or thresholds. CrankHog shows the rider a card listing exactly what changes, each with your why, its sessions' length and load before and after, and the calendar before and after; nothing happens until they press Apply, and they can undo it. Every change for one request goes in one call, in order. CrankHog refuses a session done already, a day that has passed, and rewriting (replace) a session imported from intervals.icu.
 
 Actions, by type:
 - create_workout: a new workout with steps, kept in the rider's library (a bike workout in Custom workouts, a run or swim with their sessions), and planned on date when you give one.

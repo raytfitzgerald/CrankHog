@@ -10,7 +10,7 @@ import { DRAFT_PLAN, PROPOSE_CHANGES, REVISE_PLAN } from '@core/ai/coach-tools'
 import type { AiToolCall } from '@core/ai/types'
 import { readProposal, type Proposal } from '@core/coach-actions/actions'
 import { db } from '../db/db'
-import type { Applied } from './coach-actions'
+import type { Applied, CardItem } from './coach-actions'
 import { draftNote, startDraft, startRevision } from './coach-plan'
 
 export type ChatCard =
@@ -19,12 +19,12 @@ export type ChatCard =
   /** A call that couldn't be used, and why. */
   | { kind: 'problem'; text: string }
 
-/** A card's state. Once decided, it keeps the lines it showed, since the calendar they were read from has changed. */
+/** A card's state. Once decided, it keeps what it showed, since the calendar that was read from has changed. */
 export type ChangeState =
   | { state: 'pending' }
-  | ({ state: 'applied'; lines: string[] } & Applied)
-  | { state: 'dismissed'; lines: string[] }
-  | { state: 'undone'; lines: string[] }
+  | ({ state: 'applied'; items: CardItem[] } & Applied)
+  | { state: 'dismissed'; items: CardItem[] }
+  | { state: 'undone'; items: CardItem[] }
 
 const KV_KEY = 'coach.cards'
 const store = createStore<{ cards: Record<string, ChangeState>; loaded: boolean }>(() => ({ cards: {}, loaded: false }))

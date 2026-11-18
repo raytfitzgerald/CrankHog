@@ -5,6 +5,7 @@
 // nothing is written any other way. Each change applied leaves an undo step
 // (plain data, kept with the chat's card), so Undo works after a restart too.
 import { describeOp, groupOfSport, relayNotes, resolveProposal, type ActionWorld, type NewSession, type Op, type Proposal, type ResolvedProposal, type WorldWorkout } from '@core/coach-actions/actions'
+import { describeSession } from '@core/multisport/build'
 import type { ImportItem } from '@core/plan-import/model'
 import type { SessionThresholds } from '@core/multisport/estimate'
 import type { SessionWorkout } from '@core/multisport/model'
@@ -13,23 +14,29 @@ import { effortLoad } from '@core/sport/load'
 import { contentId } from '@core/workout/ids'
 import type { Workout } from '@core/workout/model'
 import type { DayMark, PlanItem } from '@core/workout/plan'
-import { addDays, completions, dateKey, dateKeyToMs, type DateKey, type ScheduledWorkout } from '@core/workout/schedule'
+import { addDays, completions, dateKey, dateKeyToMs, isBikeWorkout, type DateKey, type PlannedSession, type ScheduledWorkout } from '@core/workout/schedule'
 import { currentFtp, DEFAULT_FTP_W, recordFtp, updateProfile } from '../db/athlete-repo'
 import { db } from '../db/db'
 import { addManualActivity } from '../plan/activities-repo'
 import { addMark, addMarks, removeMark, removeMarks, restoreMark, updateMark } from '../plan/day-marks-repo'
 import { checkItem } from '../plan/doc-import'
 import { updatePlan } from '../plan/plans-repo'
+import { followPushed, sendToIntervals } from '../plan/intervals-push'
 import { moveScheduled, removeScheduled, scheduleSession, scheduleWorkout } from '../plan/schedule-repo'
-import { BUILTINS, deleteWorkout, saveWorkout } from '../workouts/library'
-import { deleteSessionWorkout, planSessionWorkout, saveSessionWorkout, sessionThresholds } from '../workouts/sessions-repo'
+import { BUILTINS, deleteWorkout, describeWorkout, getWorkout, plannedStatsOf, saveWorkout } from '../workouts/library'
+import { deleteSessionWorkout, planSessionWorkout, plannedFrom, saveSessionWorkout, sessionThresholds } from '../workouts/sessions-repo'
 
 /** One way to take back a change, as plain data. */
 export type UndoStep =
   | { do: 'delete-entry'; id: string }
   | { do: 'move-entry'; id: string; date: DateKey }
-  | { do: 'put-entry'; entry: ScheduledWorkout }
-  | { do: 'plan-item'; planId: string; item: PlanItem }
+  /**
+   * A calendar entry as it was, or a plan item, and its entry. A copy on
+   * intervals.icu follows: sent again with the old content, or, with
+   * `resend`, sent anew where the copy went with a removal.
+   */
+  | { do: 'put-entry'; entry: ScheduledWorkout; resend?: boolean }
+  | { do: 'plan-item'; planId: string; item: PlanItem; entryId?: string; resend?: boolean }
   | { do: 'delete-workout'; id: string }
   | { do: 'delete-session-workout'; id: string }
   | { do: 'remove-marks'; ids: string[] }
@@ -68,15 +75,43 @@ export async function actionWorld(now = Date.now()): Promise<ActionWorld> {
   ]
   return {
     today,
-    entries: schedule.map((e) => ({ id: e.id, date: e.date, name: e.name, sport: e.sport ?? 'ride', ...(e.planId ? { planId: e.planId } : {}), ...(done.has(e.id) ? { done: true } : {}) })),
+    entries: schedule.map((e) => ({
+      id: e.id,
+      date: e.date,
+      name: e.name,
+      sport: e.sport ?? 'ride',
+      ...(e.planId ? { planId: e.planId } : {}),
+      ...(done.has(e.id) ? { done: true } : {}),
+      ...(e.source === 'intervals' ? { fromIntervals: true } : {}),
+    })),
     marks,
     workouts,
   }
 }
 
+/** A session as the card shows it: what it is, how long, how far, how hard. */
+export interface Side {
+  name: string
+  sport: SportGroup
+  durationS: number | null
+  distanceM: number | null
+  /** TSS for a bike workout, the planned load for any other session. */
+  load: number | null
+}
+
+/** One change on the card: what it does, the coach's reason, and the session before and after. */
+export interface CardItem {
+  line: string
+  why?: string
+  before?: Side
+  after?: Side
+  /** The session before goes (a removal), rather than moving. */
+  removed?: true
+}
+
 /** A proposal resolved now, with every new session's steps read by CrankHog's importers: what it would do, and what can't be done. */
 export interface CheckedProposal extends ResolvedProposal {
-  lines: string[]
+  items: CardItem[]
   /** What it does to plans that the calendar diff can't show (re-lays). */
   notes: string[]
 }
@@ -97,8 +132,75 @@ const asItem = (s: NewSession): ImportItem => ({ where: '', sport: s.sport, name
 function made(s: NewSession, ctx: Ctx): { kind: 'bike'; workout: Workout } | { kind: 'session'; workout: SessionWorkout } | string {
   const checked = checkItem(asItem(s), { ftpW: ctx.ftpW, thresholds: ctx.thresholds, now: ctx.now })
   if (typeof checked === 'string') return checked
-  if (checked.kind === 'bike') return { kind: 'bike', workout: { ...checked.workout, id: contentId('coach', `${s.name}\n${s.steps}`), source: 'ai' } }
-  return { kind: 'session', workout: checked.workout }
+  // tagged coach, so the rider can find what the coach made in the library
+  const tags = [...new Set([...checked.workout.tags, 'coach'])]
+  if (checked.kind === 'bike') return { kind: 'bike', workout: { ...checked.workout, id: contentId('coach', `${s.name}\n${s.steps}`), source: 'ai', tags } }
+  return { kind: 'session', workout: { ...checked.workout, tags } }
+}
+
+/** A calendar entry as the card shows it, at today's FTP and thresholds. */
+async function entrySide(id: string, ctx: Ctx): Promise<Side | undefined> {
+  const e = await db().schedule.get(id)
+  if (!e) return undefined
+  const base = { name: e.name, sport: e.sport ?? ('ride' as const) }
+  if (isBikeWorkout(e)) {
+    const w = e.workout ?? (e.workoutId ? await getWorkout(e.workoutId) : null)
+    const stats = w ? plannedStatsOf(w, describeWorkout(w, ctx.ftpW).stats) : null
+    return { ...base, durationS: stats?.durationS ?? null, distanceM: null, load: stats?.tss ?? null }
+  }
+  return { ...base, durationS: e.session?.durationS ?? null, distanceM: e.session?.distanceM ?? null, load: e.session?.load ?? null }
+}
+
+/** A new session as the card shows it. */
+function newSide(s: NewSession, ctx: Ctx): Side {
+  const sport = groupOfSport(s.sport)
+  if (!s.steps) {
+    const durationS = (s.minutes ?? 0) * 60
+    return { name: s.name, sport, durationS, distanceM: null, load: effortLoad(durationS, s.effort) }
+  }
+  const m = made(s, ctx)
+  if (typeof m === 'string') return { name: s.name, sport, durationS: null, distanceM: null, load: null }
+  if (m.kind === 'bike') {
+    const stats = plannedStatsOf(m.workout, describeWorkout(m.workout, ctx.ftpW).stats)
+    return { name: s.name, sport, durationS: stats.durationS, distanceM: null, load: stats.tss }
+  }
+  const est = describeSession(m.workout, ctx.thresholds).estimate
+  return { name: s.name, sport, durationS: est?.durationS ?? null, distanceM: est?.distanceM ?? null, load: est?.load ?? null }
+}
+
+/** A library workout as the card shows it. */
+async function workoutSide(w: WorldWorkout, ctx: Ctx): Promise<Side> {
+  const session = await db().sessionWorkouts.get(w.id)
+  if (session) {
+    const est = describeSession(session, ctx.thresholds).estimate
+    return { name: w.name, sport: w.sport, durationS: est?.durationS ?? null, distanceM: est?.distanceM ?? null, load: est?.load ?? null }
+  }
+  const bike = await getWorkout(w.id)
+  const stats = bike ? plannedStatsOf(bike, describeWorkout(bike, ctx.ftpW).stats) : null
+  return { name: w.name, sport: w.sport, durationS: stats?.durationS ?? null, distanceM: null, load: stats?.tss ?? null }
+}
+
+/** The sessions a change touches, before and after. */
+async function sidesOf(o: Op, ctx: Ctx): Promise<Pick<CardItem, 'before' | 'after' | 'removed'>> {
+  switch (o.op) {
+    case 'create':
+      return o.date ? { after: newSide(o.session, ctx) } : {}
+    case 'add-session':
+      return { after: newSide(o.session, ctx) }
+    case 'schedule':
+      return { after: await workoutSide(o.workout, ctx) }
+    case 'move':
+    case 'remove': {
+      const before = await entrySide(o.entry.id, ctx)
+      return before ? { before, ...(o.op === 'remove' ? { removed: true as const } : {}) } : {}
+    }
+    case 'replace': {
+      const before = await entrySide(o.entry.id, ctx)
+      return { ...(before ? { before } : {}), after: newSide(o.entry.planId ? rideSteps(o.session) : o.session, ctx) }
+    }
+    default:
+      return {}
+  }
 }
 
 /** The steps a ride without steps gets when it has to be a workout (in a plan): one steady block at the effort's power. */
@@ -117,7 +219,9 @@ export async function checkProposal(p: Proposal, day: (d: DateKey) => string, no
     const m = made(s, ctx)
     if (typeof m === 'string') problems.push(`${s.name}: ${m}`)
   }
-  return { ...r, problems, diff: problems.length === 0 ? r.diff : [], lines: r.ops.map((o) => describeOp(o, day)), notes: relayNotes(r.ops, world) }
+  const items: CardItem[] = []
+  for (const o of r.ops) items.push({ line: describeOp(o, day), ...(o.why ? { why: o.why } : {}), ...(await sidesOf(o, ctx)) })
+  return { ...r, problems, diff: problems.length === 0 ? r.diff : [], items, notes: relayNotes(r.ops, world) }
 }
 
 /**
@@ -167,6 +271,41 @@ async function plan(date: DateKey, s: NewSession, ctx: Ctx, out: Applied): Promi
   out.undo.push({ do: 'delete-entry', id: e.id })
 }
 
+/** What a calendar entry holds for a new session: a bike workout kept in the library, a session with its steps, or a length and effort. */
+async function contentOf(s: NewSession, ctx: Ctx, out: Applied): Promise<Pick<ScheduledWorkout, 'workoutId' | 'workout' | 'name' | 'sport' | 'session'>> {
+  if (!s.steps) {
+    const durationS = (s.minutes ?? 0) * 60
+    const session: PlannedSession = { label: s.name, durationS, effort: s.effort, load: effortLoad(durationS, s.effort), ...(s.notes ? { notes: s.notes } : {}) }
+    return { workoutId: null, workout: null, name: s.name, sport: groupOfSport(s.sport), session }
+  }
+  const m = made(s, ctx)
+  if (typeof m === 'string') throw new Error(`${s.name}: ${m}`)
+  await keep(m, ctx, out)
+  if (m.kind === 'bike') return { workoutId: m.workout.id, workout: null, name: m.workout.name }
+  return { workoutId: null, workout: null, name: m.workout.name, sport: m.workout.sport, session: plannedFrom(m.workout, ctx.thresholds) }
+}
+
+/**
+ * After an entry's content changed, or it came back: a session sent to
+ * intervals.icu is sent again (`resend` sends one whose copy there went with
+ * it), and one that became a bike workout, which isn't sent, is taken off
+ * there. Best effort, as moves are: the change here stands either way.
+ */
+async function follow(entryId: string, resend = false): Promise<void> {
+  const e = await db().schedule.get(entryId)
+  if (!e || (!e.pushedEventId && !resend)) return
+  try {
+    if (!isBikeWorkout(e)) await sendToIntervals(entryId)
+    else if (e.pushedEventId) {
+      await followPushed({ moved: [], removed: [{ eventId: e.pushedEventId }] })
+      const { pushedEventId: _p, ...rest } = e
+      await db().schedule.put(rest)
+    }
+  } catch {
+    // offline, or no intervals.icu key: the next send catches up
+  }
+}
+
 /** The plan item behind a calendar entry, when the entry is a plan's and the plan is on the calendar. */
 async function planItemOf(id: string): Promise<{ planId: string; item: PlanItem } | null> {
   const e = await db().schedule.get(id)
@@ -206,9 +345,10 @@ async function applyOp(o: Op, ctx: Ctx, out: Applied): Promise<void> {
       const owner = await planItemOf(o.entry.id)
       const row = await db().schedule.get(o.entry.id)
       if (!row) throw new Error(`${o.entry.name} is no longer on the calendar.`)
-      // a removed session's intervals.icu copy goes too, so the one put back is a new one there
+      // a removed session's intervals.icu copy goes too, so the one put back is sent there again
       const { pushedEventId: _p, ...kept } = row
-      out.undo.push(owner ? { do: 'plan-item', ...owner } : { do: 'put-entry', entry: kept })
+      const resend = !!row.pushedEventId
+      out.undo.push(owner ? { do: 'plan-item', ...owner, entryId: row.id, resend } : { do: 'put-entry', entry: kept, resend })
       await removeScheduled(o.entry.id)
       return
     }
@@ -219,19 +359,24 @@ async function applyOp(o: Op, ctx: Ctx, out: Applied): Promise<void> {
         const m = made(rideSteps(o.session), ctx)
         if (typeof m === 'string') throw new Error(`${o.session.name}: ${m}`)
         await keep(m, ctx, out, m.kind === 'bike' ? owner.planId : undefined)
-        out.undo.push({ do: 'plan-item', ...owner })
+        out.undo.push({ do: 'plan-item', ...owner, entryId: o.entry.id })
         const p = (await db().plans.get(owner.planId))!
         const { sport: _s, ...rest } = owner.item
         const item: PlanItem = { ...rest, workoutId: m.workout.id, ...(m.kind === 'session' ? { sport: m.workout.sport } : {}) }
         await updatePlan(owner.planId, { items: p.items.map((i) => (i.id === item.id ? item : i)) })
+        // the re-lay keeps an intervals.icu copy's event; the new content goes there too
+        await follow(o.entry.id)
         return
       }
+      // a session planned by hand changes in place: the same entry, so an intervals.icu copy follows
       const row = await db().schedule.get(o.entry.id)
       if (!row) throw new Error(`${o.entry.name} is no longer on the calendar.`)
-      const { pushedEventId: _p, ...kept } = row
-      await removeScheduled(o.entry.id)
-      out.undo.push({ do: 'put-entry', entry: kept })
-      await plan(o.entry.date, o.session, ctx, out)
+      // made first, so its undo (taking the new workout back out of the library) comes after the entry is put back
+      const content = await contentOf(o.session, ctx, out)
+      out.undo.push({ do: 'put-entry', entry: row })
+      const { sport: _s, session: _x, ...kept } = row
+      await db().schedule.put({ ...kept, ...content })
+      await follow(row.id)
       return
     }
     case 'days-off': {
@@ -303,11 +448,13 @@ async function undoStep(s: UndoStep): Promise<void> {
       return
     case 'put-entry':
       await db().schedule.put(s.entry)
+      await follow(s.entry.id, !!s.resend)
       return
     case 'plan-item': {
       const p = await db().plans.get(s.planId)
       if (!p) return
       await updatePlan(s.planId, { items: p.items.map((i) => (i.id === s.item.id ? s.item : i)) })
+      if (s.entryId) await follow(s.entryId, !!s.resend)
       return
     }
     case 'delete-workout':

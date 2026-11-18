@@ -4,6 +4,7 @@ import { readProposal, type Proposal } from '@core/coach-actions/actions'
 import { refOf } from '@core/coach-actions/refs'
 import { addDays, dateKey } from '@core/workout/schedule'
 import { currentFtp, currentProfile, recordFtp } from '../db/athlete-repo'
+import type { CrankHogBridge } from '@shared/ipc/contract'
 import { db } from '../db/db'
 import * as marks from '../plan/day-marks-repo'
 import { addMark } from '../plan/day-marks-repo'
@@ -209,5 +210,88 @@ describe('all or nothing', () => {
     await db().schedule.delete(tue.id)
     await expect(applyProposal(p)).rejects.toThrow(/no session/)
     expect((await db().schedule.toArray()).map((e) => e.name)).not.toContain('Yoga')
+  })
+})
+
+describe('what the card shows', () => {
+  it("each change's reason and its session before and after, with length and load, and warnings", async () => {
+    await recordFtp({ date: 0, ftpW: 250, source: 'manual' })
+    const e = await scheduleSession(addDays(today, 2), 'run', 'Run-walk 40', { durationS: 2400, load: 30, text: '8x\n- 4m Z2 HR\n- 1m Z1 HR walk' })
+    const icu = await db().schedule.put({ id: 'icu-1', date: addDays(today, 3), workoutId: null, workout: null, name: 'Club run', source: 'intervals', sport: 'run', session: { durationS: 3600 }, createdAt: 1 })
+    const checked = await checkProposal(
+      proposal(
+        { type: 'replace', ref: c(e.id), sport: 'bike', name: 'Spin instead', steps: '- 45m 60%', why: 'Your knee needs a break from running.' },
+        { type: 'move', ref: c(icu), to: addDays(today, 4) },
+      ),
+      (d) => d,
+    )
+    expect(checked.problems).toEqual([])
+    expect(checked.items[0]).toMatchObject({
+      why: 'Your knee needs a break from running.',
+      before: { name: 'Run-walk 40', sport: 'run', durationS: 2400, load: 30 },
+      after: { name: 'Spin instead', sport: 'ride', durationS: 2700, load: expect.any(Number) },
+    })
+    expect(checked.items[1]).toMatchObject({ before: { name: 'Club run', durationS: 3600 } })
+    expect(checked.items[1]!.after).toBeUndefined()
+    expect(checked.warnings).toEqual(['Club run came from intervals.icu, and the next import puts it back as it is there. Change it on intervals.icu.'])
+  })
+
+  it('tags what the coach makes, so the rider can find it in the library', async () => {
+    const bike = await applyProposal(proposal({ type: 'create_workout', sport: 'bike', name: 'Tempo', steps: '- 20m 80%' }))
+    expect((await db().workouts.get(bike.workouts[0]!.id))?.json.tags).toContain('coach')
+    const run = await applyProposal(proposal({ type: 'create_workout', sport: 'run', name: 'Strides', steps: '- 20m Z2 HR' }))
+    expect((await db().sessionWorkouts.get(run.workouts[0]!.id))?.tags).toContain('coach')
+  })
+})
+
+describe('intervals.icu follows', () => {
+  const invoke = vi.fn()
+  const puts = () => invoke.mock.calls.filter(([ch]) => ch === 'intervals.putWorkout').map(([, req]) => req as { eventId?: string; workout: { name: string; description: string } })
+  const deletes = () => invoke.mock.calls.filter(([ch]) => ch === 'intervals.deleteWorkout').map(([, req]) => (req as { eventId: string }).eventId)
+  beforeEach(() => {
+    invoke.mockReset()
+    // an update keeps its event; a new one gets a new id
+    invoke.mockImplementation(async (ch: string, req: { eventId?: string }) => (ch === 'intervals.putWorkout' ? { eventId: req.eventId ?? 'ev-new' } : { ok: true }))
+    window.crankhog = { invoke, on: () => () => undefined, send: () => undefined } as unknown as CrankHogBridge
+  })
+
+  it('sends a changed session again, and the old one after Undo', async () => {
+    const e = await scheduleSession(addDays(today, 2), 'run', 'Run-walk 40', { durationS: 2400, text: '8x\n- 4m Z2 HR\n- 1m Z1 HR walk' })
+    await db().schedule.update(e.id, { pushedEventId: 'ev-1' })
+    const applied = await applyProposal(proposal({ type: 'replace', ref: c(e.id), sport: 'run', name: 'Easy run 40', steps: '- 40m Z2 HR' }))
+    // the same entry, changed in place
+    expect(await db().schedule.get(e.id)).toMatchObject({ name: 'Easy run 40', pushedEventId: 'ev-1' })
+    expect(puts().at(-1)).toMatchObject({ eventId: 'ev-1', workout: { name: 'Easy run 40', description: '- 40m Z2 HR' } })
+    await undoSteps(applied.undo)
+    expect(puts().at(-1)).toMatchObject({ eventId: 'ev-1', workout: { name: 'Run-walk 40', description: expect.stringContaining('1m Z1 HR walk') } })
+  })
+
+  it('takes a removed session off there, and sends it anew after Undo', async () => {
+    const e = await scheduleSession(addDays(today, 2), 'swim', 'Swim', { durationS: 1800, text: '- 1500mtr easy' })
+    await db().schedule.update(e.id, { pushedEventId: 'ev-2' })
+    const applied = await applyProposal(proposal({ type: 'remove', ref: c(e.id) }))
+    await vi.waitFor(() => expect(deletes()).toEqual(['ev-2']))
+    await undoSteps(applied.undo)
+    expect(puts().at(-1)).toMatchObject({ workout: { name: 'Swim' } })
+    expect(puts().at(-1)!.eventId).toBeUndefined()
+    expect((await db().schedule.get(e.id))?.pushedEventId).toBe('ev-new')
+  })
+
+  it("sends nothing for a session that was never sent", async () => {
+    const { thu } = await planOnCalendar()
+    const applied = await applyProposal(proposal({ type: 'replace', ref: c(thu.id), sport: 'run', name: 'Easy run', steps: '- 30m Z2 HR' }))
+    await undoSteps(applied.undo)
+    expect(puts()).toEqual([])
+  })
+
+  it("sends a plan's changed session again", async () => {
+    const { thu } = await planOnCalendar()
+    // a run in the plan, sent to intervals.icu
+    const swapped = await applyProposal(proposal({ type: 'replace', ref: c(thu.id), sport: 'run', name: 'Easy run', steps: '- 30m Z2 HR' }))
+    await db().schedule.update(thu.id, { pushedEventId: 'ev-3' })
+    invoke.mockClear()
+    await applyProposal(proposal({ type: 'replace', ref: c(thu.id), sport: 'run', name: 'Steady run', steps: '- 40m Z3 HR' }))
+    expect(puts().at(-1)).toMatchObject({ eventId: 'ev-3', workout: { name: 'Steady run', description: '- 40m Z3 HR' } })
+    expect(swapped.undo.length).toBeGreaterThan(0)
   })
 })

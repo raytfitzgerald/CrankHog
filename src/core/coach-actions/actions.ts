@@ -23,6 +23,7 @@ const sport = z.enum(['bike', 'run', 'swim', 'other']).describe('bike for any cy
 const effort = z.enum(['easy', 'moderate', 'hard', 'max'])
 const name = z.string().describe('Short and plain, at most 60 characters')
 const notes = z.string().nullish().describe('How it should feel, fuelling or technique, in a sentence or two')
+const why = z.string().nullish().describe('One short line on why, shown on the card under the change')
 const steps = z
   .string()
   .describe('Bike: intervals.icu workout text. Run, swim, other: CrankHog session steps. One step a line, as in the chat prompt. Empty only for a session given by minutes and effort')
@@ -39,29 +40,29 @@ const content = {
 
 export const CoachActionSchema = z.discriminatedUnion('type', [
   z
-    .object({ type: z.literal('create_workout'), date: day.nullish().describe('Also plan it on this day; leave out to only save it'), sport, name, steps, notes })
+    .object({ type: z.literal('create_workout'), why, date: day.nullish().describe('Also plan it on this day; leave out to only save it'), sport, name, steps, notes })
     .describe("A new workout with steps, saved in the rider's library (a bike workout in Custom workouts, a run or swim in their sessions), and planned on `date` when given"),
   z
-    .object({ type: z.literal('add_session'), date: day, sport, name, minutes: z.number().describe('How long it lasts'), effort, notes })
+    .object({ type: z.literal('add_session'), why, date: day, sport, name, minutes: z.number().describe('How long it lasts'), effort, notes })
     .describe('A session with no steps planned on a day: "Squash, 1 h, hard", "Easy spin, 45 min"'),
   z
-    .object({ type: z.literal('schedule_workout'), date: day, workout: z.string().describe("The name of a workout in the rider's library (workouts in the data, or a CrankHog built-in)") })
+    .object({ type: z.literal('schedule_workout'), why, date: day, workout: z.string().describe("The name of a workout in the rider's library (workouts in the data, or a CrankHog built-in)") })
     .describe('A workout the rider already has, planned on a day'),
-  z.object({ type: z.literal('move'), ref: calendarRef, to: day }).describe('A planned session moved to another day'),
-  z.object({ type: z.literal('swap'), ref: calendarRef, with: calendarRef }).describe('Two planned sessions swap days'),
-  z.object({ type: z.literal('replace'), ref: calendarRef, ...content }).describe('A planned session changed in place (same day): new steps, or a new length and effort, or a different sport'),
-  z.object({ type: z.literal('remove'), ref: calendarRef }).describe('A planned session taken off the calendar'),
+  z.object({ type: z.literal('move'), why, ref: calendarRef, to: day }).describe('A planned session moved to another day'),
+  z.object({ type: z.literal('swap'), why, ref: calendarRef, with: calendarRef }).describe('Two planned sessions swap days'),
+  z.object({ type: z.literal('replace'), why, ref: calendarRef, ...content }).describe('A planned session changed in place (same day): new steps, or a new length and effort, or a different sport'),
+  z.object({ type: z.literal('remove'), why, ref: calendarRef }).describe('A planned session taken off the calendar'),
   z
-    .object({ type: z.literal('days_off'), kind: z.enum(['rest', 'sick', 'travel']), from: day, to: day.describe('The last day, YYYY-MM-DD; the same as from for one day'), note: z.string().nullish() })
+    .object({ type: z.literal('days_off'), why, kind: z.enum(['rest', 'sick', 'travel']), from: day, to: day.describe('The last day, YYYY-MM-DD; the same as from for one day'), note: z.string().nullish() })
     .describe("Rest, sick or travel days. Plans on the calendar skip them: their sessions on those days move to the next free day"),
-  z.object({ type: z.literal('add_event'), name, date: day, priority: z.enum(['A', 'B', 'C']).describe('A = the race the season builds to') }).describe('A race or event on the calendar'),
+  z.object({ type: z.literal('add_event'), why, name, date: day, priority: z.enum(['A', 'B', 'C']).describe('A = the race the season builds to') }).describe('A race or event on the calendar'),
   z
-    .object({ type: z.literal('change_event'), ref: markRef, date: day.nullish(), name: z.string().nullish(), priority: z.enum(['A', 'B', 'C']).nullish() })
+    .object({ type: z.literal('change_event'), why, ref: markRef, date: day.nullish(), name: z.string().nullish(), priority: z.enum(['A', 'B', 'C']).nullish() })
     .describe('An event renamed, re-prioritised or moved to a new date. Plans built to it re-lay themselves to the new date'),
-  z.object({ type: z.literal('remove_day_mark'), ref: markRef }).describe('An event or a day off taken off the calendar'),
+  z.object({ type: z.literal('remove_day_mark'), why, ref: markRef }).describe('An event or a day off taken off the calendar'),
   z
     .object({
-      type: z.literal('log_activity'),
+      type: z.literal('log_activity'), why,
       date: day,
       sport,
       name,
@@ -73,7 +74,7 @@ export const CoachActionSchema = z.discriminatedUnion('type', [
     .describe('Something the rider did, logged in their history: "squash, 1 h, hard"'),
   z
     .object({
-      type: z.literal('set_thresholds'),
+      type: z.literal('set_thresholds'), why,
       ftpW: z.number().nullish().describe('FTP in watts'),
       lthr: z.number().nullish().describe('Lactate threshold heart rate, bpm'),
       maxHr: z.number().nullish(),
@@ -138,6 +139,8 @@ export interface WorldEntry {
   planId?: string
   /** Done (ridden or matched by an activity): it can't be moved or changed. */
   done?: boolean
+  /** Imported from intervals.icu: the next import puts it back as it is there. */
+  fromIntervals?: boolean
 }
 
 /** A workout in the library the coach may name: the rider's own, a session, or a CrankHog built-in. */
@@ -169,7 +172,12 @@ export interface NewSession {
   notes?: string
 }
 
-export type Op =
+export type Op = OpKind & {
+  /** The coach's one line on why, for the card. */
+  why?: string
+}
+
+type OpKind =
   | { op: 'create'; date?: DateKey; session: NewSession }
   | { op: 'add-session'; date: DateKey; session: NewSession & { minutes: number; effort: NonNullable<NewSession['effort']> } }
   | { op: 'schedule'; date: DateKey; workout: WorldWorkout }
@@ -195,8 +203,13 @@ export interface ResolvedProposal {
   ops: Op[]
   /** What can't be done, and why: the card shows these and offers no Apply. */
   problems: string[]
+  /** What can be done but the rider should know first. */
+  warnings: string[]
   diff: DayDiff[]
 }
+
+/** Why a session imported from intervals.icu isn't rewritten here, and what moving or removing one means. */
+export const FROM_INTERVALS = 'came from intervals.icu, and the next import puts it back as it is there. Change it on intervals.icu.'
 
 const clean = (s: string | null | undefined) => {
   const t = s?.trim()
@@ -221,7 +234,17 @@ const numberIn = (v: number | null | undefined, lo: number, hi: number) => (type
 export function resolveProposal(p: Proposal, world: ActionWorld): ResolvedProposal {
   const ops: Op[] = []
   const problems: string[] = []
+  const warnings: string[] = []
   const say = (n: number, text: string) => problems.push(p.actions.length > 1 ? `Change ${n}: ${text}` : text)
+  const warnIntervals = (e: WorldEntry) => {
+    const w = `${e.name} ${FROM_INTERVALS}`
+    if (e.fromIntervals && !warnings.includes(w)) warnings.push(w)
+  }
+  /** A day a session may be planned on: today or later. */
+  const ahead = (n: number, d: DateKey | undefined): DateKey | undefined => {
+    if (d && d < world.today) say(n, `${d} has passed, so nothing can be planned on it.`)
+    return d && d >= world.today ? d : undefined
+  }
   const entry = (n: number, ref: string): WorldEntry | undefined => {
     const e = byRef('c', world.entries, ref)
     if (!e) say(n, `There's no session ${ref} on the calendar.`)
@@ -245,18 +268,17 @@ export function resolveProposal(p: Proposal, world: ActionWorld): ResolvedPropos
     return t || undefined
   }
 
-  p.actions.forEach((a, i) => {
-    const n = i + 1
+  const one = (a: CoachAction, n: number): void => {
     switch (a.type) {
       case 'create_workout': {
-        const date = a.date ? realDay(n, a.date) : undefined
+        const date = a.date ? ahead(n, realDay(n, a.date)) : undefined
         const nm = named(n, a.name)
         if (!a.steps.trim()) say(n, `${a.name || 'The workout'} has no steps.`)
         else if (nm && (a.date ? date : true)) ops.push({ op: 'create', ...(date ? { date } : {}), session: { sport: a.sport, name: nm, steps: a.steps.trim(), ...(clean(a.notes) ? { notes: clean(a.notes) } : {}) } })
         return
       }
       case 'add_session': {
-        const date = realDay(n, a.date)
+        const date = ahead(n, realDay(n, a.date))
         const nm = named(n, a.name)
         const minutes = numberIn(a.minutes, 1, 24 * 60)
         if (minutes === undefined) say(n, `${a.minutes} minutes isn't a session's length.`)
@@ -265,7 +287,7 @@ export function resolveProposal(p: Proposal, world: ActionWorld): ResolvedPropos
         return
       }
       case 'schedule_workout': {
-        const date = realDay(n, a.date)
+        const date = ahead(n, realDay(n, a.date))
         const want = a.workout.trim().toLowerCase()
         const w = world.workouts.find((x) => x.name.trim().toLowerCase() === want)
         if (!w) say(n, `There's no workout called "${a.workout}" in your library.`)
@@ -274,19 +296,29 @@ export function resolveProposal(p: Proposal, world: ActionWorld): ResolvedPropos
       }
       case 'move': {
         const e = entry(n, a.ref)
-        const to = realDay(n, a.to)
+        const to = ahead(n, realDay(n, a.to))
+        if (e) warnIntervals(e)
         if (e && to) ops.push({ op: 'move', entry: e, to })
         return
       }
       case 'swap': {
         const e1 = entry(n, a.ref)
         const e2 = entry(n, a.with)
+        const past = [e1, e2].find((e) => e && e.date < world.today)
         if (e1 && e2 && e1.id === e2.id) say(n, 'It swaps a session with itself.')
-        else if (e1 && e2) ops.push({ op: 'move', entry: e1, to: e2.date }, { op: 'move', entry: e2, to: e1.date })
+        else if (past) say(n, `${past.date} has passed, so nothing can be planned on it.`)
+        else if (e1 && e2) {
+          warnIntervals(e1)
+          warnIntervals(e2)
+          ops.push({ op: 'move', entry: e1, to: e2.date }, { op: 'move', entry: e2, to: e1.date })
+        }
         return
       }
       case 'replace': {
-        const e = entry(n, a.ref)
+        const found = entry(n, a.ref)
+        if (found?.fromIntervals) say(n, `${found.name} ${FROM_INTERVALS}`)
+        else if (found && found.date < world.today) say(n, `${found.date} has passed, so ${found.name} can't be changed.`)
+        const e = found && !found.fromIntervals && found.date >= world.today ? found : undefined
         const nm = named(n, a.name)
         const minutes = numberIn(a.minutes, 1, 24 * 60)
         const hasSteps = a.steps.trim() !== ''
@@ -301,6 +333,7 @@ export function resolveProposal(p: Proposal, world: ActionWorld): ResolvedPropos
       }
       case 'remove': {
         const e = entry(n, a.ref)
+        if (e) warnIntervals(e)
         if (e) ops.push({ op: 'remove', entry: e })
         return
       }
@@ -375,8 +408,14 @@ export function resolveProposal(p: Proposal, world: ActionWorld): ResolvedPropos
         return
       }
     }
+  }
+  p.actions.forEach((a, i) => {
+    const start = ops.length
+    one(a, i + 1)
+    const reason = clean(a.why)?.slice(0, 200)
+    if (reason) for (let k = start; k < ops.length; k++) ops[k] = { ...ops[k]!, why: reason }
   })
-  return { ops, problems, diff: problems.length === 0 ? calendarDiff(ops, world) : [] }
+  return { ops, problems, warnings, diff: problems.length === 0 ? calendarDiff(ops, world) : [] }
 }
 
 /** Each day the ops change, before and after: sessions added, moved in or out, removed; days off and events. */

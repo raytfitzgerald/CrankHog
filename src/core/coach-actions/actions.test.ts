@@ -178,3 +178,55 @@ describe('calendarDiff', () => {
     expect(calendarDiff([{ op: 'move', entry: w.entries[1]!, to: '2026-11-19' }], w)).toEqual([])
   })
 })
+
+describe('what is refused, and what comes with a warning', () => {
+  const w = () =>
+    world({
+      entries: [
+        { id: 'e-missed', date: '2026-11-15', name: 'Missed tempo', sport: 'ride' },
+        { id: 'e-icu', date: '2026-11-20', name: 'Club run', sport: 'run', fromIntervals: true },
+        { id: 'e-run', date: '2026-11-19', name: 'Easy run', sport: 'run' },
+      ],
+    })
+
+  it('plans nothing on a day that has passed, and leaves a past session as it is', () => {
+    const r = resolveProposal(
+      proposal([
+        { type: 'add_session', date: '2026-11-16', sport: 'other', name: 'Yoga', minutes: 30, effort: 'easy' },
+        { type: 'create_workout', date: '2026-11-10', sport: 'bike', name: 'Old', steps: '- 1h 65%' },
+        { type: 'schedule_workout', date: '2026-11-01', workout: 'CSS 10x100' },
+        { type: 'move', ref: c('e-run'), to: '2026-11-16' },
+        { type: 'replace', ref: c('e-missed'), sport: 'bike', name: 'Easier', steps: '- 30m 60%' },
+        { type: 'swap', ref: c('e-missed'), with: c('e-run') },
+      ]),
+      w(),
+    )
+    expect(r.ops).toEqual([])
+    expect(r.problems).toEqual([
+      'Change 1: 2026-11-16 has passed, so nothing can be planned on it.',
+      'Change 2: 2026-11-10 has passed, so nothing can be planned on it.',
+      'Change 3: 2026-11-01 has passed, so nothing can be planned on it.',
+      'Change 4: 2026-11-16 has passed, so nothing can be planned on it.',
+      "Change 5: 2026-11-15 has passed, so Missed tempo can't be changed.",
+      'Change 6: 2026-11-15 has passed, so nothing can be planned on it.',
+    ])
+    // a missed session can still go, and today is not past
+    const ok = resolveProposal(proposal([{ type: 'remove', ref: c('e-missed') }, { type: 'move', ref: c('e-run'), to: '2026-11-17' }]), w())
+    expect(ok.problems).toEqual([])
+    expect(ok.ops).toHaveLength(2)
+  })
+
+  it("won't rewrite a session from intervals.icu, and warns when one is moved or removed", () => {
+    expect(resolveProposal(proposal([{ type: 'replace', ref: c('e-icu'), sport: 'run', name: 'Shorter', steps: '- 30m Z2 HR' }]), w()).problems).toEqual([
+      'Club run came from intervals.icu, and the next import puts it back as it is there. Change it on intervals.icu.',
+    ])
+    const moved = resolveProposal(proposal([{ type: 'move', ref: c('e-icu'), to: '2026-11-21' }, { type: 'swap', ref: c('e-icu'), with: c('e-run') }]), w())
+    expect(moved.problems).toEqual([])
+    expect(moved.warnings).toEqual(['Club run came from intervals.icu, and the next import puts it back as it is there. Change it on intervals.icu.'])
+  })
+
+  it("carries the coach's reason with each change, a swap's two moves too", () => {
+    const r = resolveProposal(proposal([{ type: 'swap', ref: c('e-thr'), with: c('e-run'), why: 'Legs need the easy day first.' }, { type: 'remove', ref: c('e-thr') }]), world())
+    expect(r.ops.map((o) => o.why)).toEqual(['Legs need the easy day first.', 'Legs need the easy day first.', undefined])
+  })
+})
