@@ -10,6 +10,9 @@ import { CX1, CX2, CY, lanePoint, oval, type TrackRider } from './track'
 //
 // Sir Loin is up on the stayers' line whatever the rider did this week. On a
 // week with no rides he has the whole track to himself, which is the point.
+// He can also be cranked (`@core/mascot/crank`): `hogSpeed` says how many
+// times his usual pace he's lapping at, and `onCrank` hears every click on the
+// track, and whether it landed on him.
 
 const LANES = [128, 150, 172]
 
@@ -18,41 +21,63 @@ export function Velodrome({
   hog,
   head,
   coach,
+  hogSpeed,
+  onCrank,
   className,
 }: {
   riders: readonly TrackRider[]
   hog?: TrackRider
   head: ReactNode
   coach?: ReactNode
+  /** Read every frame, on the `performance.now()` clock. */
+  hogSpeed?: (nowMs: number) => number
+  onCrank?: (onHog: boolean) => void
   className?: string
 }) {
   const reduced = useReducedMotion()
   const ref = useRef<SVGSVGElement>(null)
   const onTrack = useMemo(() => (hog ? [...riders, hog] : [...riders]), [riders, hog])
+  // read through a ref, so a new function from the parent doesn't restart the animation
+  const speed = useRef(hogSpeed)
+  useEffect(() => {
+    speed.current = hogSpeed
+  }, [hogSpeed])
+  // how far round each rider is, by id: added up frame by frame, so Sir Loin
+  // can speed up without jumping, and kept across renders, so nobody is put
+  // back on the line when the page around the track changes
+  const laps = useRef(new Map<string, number>())
+  const hogId = hog?.id
 
   useEffect(() => {
     const svg = ref.current
     if (!svg) return
     const els = [...svg.querySelectorAll<SVGGElement>('[data-rider]')]
-    const place = (now: number) =>
+    // spread the pack out, then let each ride lap at its own pace
+    onTrack.forEach((r, i) => laps.current.has(r.id) || laps.current.set(r.id, i / Math.max(1, onTrack.length)))
+    const place = () =>
       els.forEach((el, i) => {
         const rider = onTrack[i]
         if (!rider) return
-        // spread the pack out, then let each ride lap at its own pace
-        const t = i / Math.max(1, onTrack.length) + (reduced ? 0 : now / 1000 / rider.lapS)
-        const p = lanePoint(t, rider.lane ?? LANES[i % LANES.length]!)
+        const p = lanePoint(laps.current.get(rider.id) ?? 0, rider.lane ?? LANES[i % LANES.length]!)
         el.setAttribute('transform', `translate(${p.x.toFixed(1)} ${p.y.toFixed(1)})`)
       })
-    place(0)
+    place()
     if (reduced) return
     let raf = 0
+    let last: number | null = null
     const step = (now: number) => {
-      place(now)
+      const dt = last === null ? 0 : (now - last) / 1000
+      last = now
+      for (const rider of onTrack) {
+        const x = rider.id === hogId ? (speed.current?.(now) ?? 1) : 1
+        laps.current.set(rider.id, ((laps.current.get(rider.id) ?? 0) + (dt * x) / rider.lapS) % 1)
+      }
+      place()
       raf = requestAnimationFrame(step)
     }
     raf = requestAnimationFrame(step)
     return () => cancelAnimationFrame(raf)
-  }, [onTrack, reduced])
+  }, [onTrack, hogId, reduced])
 
   const start = lanePoint(0, 150)
   return (
@@ -60,6 +85,9 @@ export function Velodrome({
       ref={ref}
       viewBox="154 282 716 460"
       className={className}
+      onClick={onCrank ? (e) => onCrank(e.target instanceof Element && e.target.closest('[data-hog]') !== null) : undefined}
+      // no text selected by a run of clicks on the track
+      onMouseDown={onCrank ? (e) => e.detail > 1 && e.preventDefault() : undefined}
       role="img"
       aria-label={
         riders.length === 0
@@ -93,7 +121,7 @@ export function Velodrome({
         </g>
       )}
       {onTrack.map((r) => (
-        <g key={r.id} data-rider data-testid={r.id === hog?.id ? 'velodrome-hog' : 'velodrome-rider'}>
+        <g key={r.id} data-rider data-hog={r.id === hog?.id || undefined} data-testid={r.id === hog?.id ? 'velodrome-hog' : 'velodrome-rider'}>
           <title>{r.label}</title>
           <circle r={26 * (r.scale ?? 1)} fill="var(--color-board)" stroke="var(--color-night)" strokeWidth={4} />
           <g transform={`scale(${1.8 * (r.scale ?? 1)})`}>{r.head ?? head}</g>

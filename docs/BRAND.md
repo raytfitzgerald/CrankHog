@@ -208,6 +208,11 @@ mean he had noticed. He has no FTP and has never been tested.
   out over the road ahead, and he rides into the ride-along scene whenever the
   race comes back within 70 m.
 - **The verge behind the ride-along,** on foot, getting overtaken (`HogVerge`).
+- **Cranked, on Home.** The one secret: click him on the velodrome and he laps
+  faster, keep clicking and he winds up into a blur, and then the two wolves
+  come out (`src/core/mascot/crank.ts`, `TwoWolves`). Stop and he winds back
+  down. Not in the iPhone build, because the picture is a photo of a real
+  person. Don't put it in What's new or the README; it's meant to be found.
 
 He is **not** on the app icon. He was until 0.6.1, on the top straight; at 16 px
 he turned to mush and the track reads better on its own.

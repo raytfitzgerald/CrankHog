@@ -141,3 +141,35 @@ test('Home opens on the velodrome hero: before the first ride, Sir Loin laps it 
   await hero.getByTestId('hero-ride').click()
   await expect(page.getByTestId('ride-launcher')).toBeVisible()
 })
+
+test('cranking Sir Loin on Home brings out the two wolves, picture and all, from app://', async () => {
+  const { page } = ctx
+  await page.getByRole('link', { name: 'Home', exact: true }).click()
+  const hog = page.getByTestId('home-hero').getByTestId('velodrome-hog')
+  // the first click lands on him; the rest anywhere on the track, as they would once he's a blur
+  await hog.dispatchEvent('click')
+  for (let i = 0; i < 12; i++) {
+    await page.getByTestId('home-hero').getByRole('img', { name: /The velodrome/ }).dispatchEvent('click')
+    await page.waitForTimeout(120)
+  }
+  const wolves = page.getByTestId('two-wolves')
+  await expect(wolves).toBeVisible()
+  // and carry on clicking, as anyone cranking him would: none of it skips the setup
+  for (let i = 0; i < 8; i++) {
+    await wolves.dispatchEvent('click')
+    await page.waitForTimeout(120)
+  }
+  // the setup is the picture's own first caption, cut out of it: no words of ours on screen
+  await expect(page.getByAltText('Inside you there are two wolves.')).toBeVisible()
+  await expect(wolves).toHaveText('')
+  const picture = page.getByTestId('two-wolves-picture')
+  await expect(picture).toBeVisible({ timeout: 10_000 })
+  // the lazy chunk and the picture both came through the app:// handler and the CSP
+  await expect.poll(() => picture.evaluate((img: HTMLImageElement) => img.complete && img.naturalWidth)).toBe(447)
+  // the punchline slams down on its own, and the rest of the picture comes up behind it
+  await expect(page.getByTestId('two-wolves-punchline')).toBeVisible()
+  await expect(wolves).toHaveAttribute('data-whole', 'true', { timeout: 10_000 })
+  // once it's all up, a click closes it
+  await wolves.click()
+  await expect(wolves).toHaveCount(0)
+})

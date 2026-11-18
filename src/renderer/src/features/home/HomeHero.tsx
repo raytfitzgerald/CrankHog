@@ -1,9 +1,10 @@
-import { useMemo, useState } from 'react'
+import { lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Link } from '@tanstack/react-router'
 import { ArrowRight, Play } from 'lucide-react'
 import { previewLine } from '@core/coach'
 import { heroWords } from '@core/home/hero'
 import { rivalTaunt } from '@core/home/rival'
+import { CRANK_BLUR_MS, CRANK_IDLE, crankHog, crankLevel, crankSpeed, type Crank } from '@core/mascot/crank'
 import { HOG, TRACK_QUIPS, hogLine } from '@core/mascot/hog'
 import type { RideSummary } from '@core/ride/types'
 import type { Workout } from '@core/workout/model'
@@ -12,11 +13,15 @@ import { CoachHead, RiderHead } from '../../coach/heads'
 import { riderInitials, useRider } from '../../db/rider'
 import { useCoachPack } from '../../coach/custom'
 import { useSettings } from '../../stores/settings'
+import { isNative } from '../../platform/native'
 import { Button } from '../../ui/Button'
 import { HOG_LANE, HOG_LAP_S, HOG_SCALE, weekRiders } from './track'
 import type { ScheduledWorkout } from '@core/workout/schedule'
 import { PlannedWorkoutDialog } from '../plan/PlannedWorkoutDialog'
 import { Velodrome } from './Velodrome'
+
+// Only fetched when someone cranks him all the way.
+const TwoWolves = lazy(() => import('../../brand/hog/TwoWolves').then((m) => ({ default: m.TwoWolves })))
 
 /**
  * The top of Home: the velodrome with this week's rides lapping it, a
@@ -57,6 +62,7 @@ export function HomeHero({
   const [line] = useState(() => (coach.enabled ? previewLine(persona, { spice: coach.spice, profanity: coach.profanity, trigger: 'ride_start', rideKinds: ['workout'], withoutFacts: ['workoutName'] }) : null))
   const [taunt] = useState(() => rivalTaunt(persona.meta.id))
   const said = coach.enabled && riders.length === 0 ? taunt : line?.text
+  const { crankable, hogSpeed, onCrank, wolves, closeWolves } = useCrank()
 
   return (
     <section className="mb-6 grid grid-cols-[minmax(0,1fr)] items-center gap-6 overflow-hidden rounded-3xl border border-line bg-panel p-5 md:p-6 lg:grid-cols-[1.05fr_1fr] lg:p-8" data-testid="home-hero" aria-label="This week">
@@ -110,8 +116,48 @@ export function HomeHero({
             <span className="absolute -bottom-[7px] left-1/2 size-3.5 -translate-x-1/2 rotate-45 border-b border-r border-line-strong bg-panel-2" aria-hidden />
           </figure>
         )}
-        <Velodrome riders={riders} hog={hog} head={<RiderHead photo={rider.photo} initials={riderInitials(rider.name)} />} coach={coach.enabled ? <CoachHead personaId={persona.meta.id} /> : undefined} className="w-full" />
+        <Velodrome riders={riders} hog={hog} head={<RiderHead photo={rider.photo} initials={riderInitials(rider.name)} />} coach={coach.enabled ? <CoachHead personaId={persona.meta.id} /> : undefined} hogSpeed={hogSpeed} onCrank={crankable ? onCrank : undefined} className="w-full" />
+        {wolves && (
+          <Suspense fallback={null}>
+            <TwoWolves onClose={closeWolves} />
+          </Suspense>
+        )}
       </div>
     </section>
   )
+}
+
+/**
+ * Cranking Sir Loin round the velodrome (`@core/mascot/crank`), and the two
+ * wolves when he's wound all the way up. Not in the iPhone build: the picture
+ * is a photo of a real person, and App Review can turn that down the same way
+ * it can the parody coaches (`coach/available.ts`).
+ */
+function useCrank() {
+  const [crankable] = useState(() => !isNative())
+  const crank = useRef<Crank>(CRANK_IDLE)
+  const [wolves, setWolves] = useState(false)
+  // set from the click that winds him all the way until the wolves are closed, so a click while he's a blur can't set it off twice
+  const going = useRef(false)
+  const timer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined)
+  useEffect(() => () => clearTimeout(timer.current), [])
+
+  const onCrank = useCallback((onHog: boolean) => {
+    const now = performance.now()
+    // the first click has to land on him; once he's going, anywhere on the track will do
+    if (going.current || (!onHog && crankLevel(crank.current, now) === 0)) return
+    const r = crankHog(crank.current, now)
+    crank.current = r.crank
+    if (!r.fired) return
+    going.current = true
+    // a moment as a blur on the boards, then the curtain
+    timer.current = setTimeout(() => setWolves(true), CRANK_BLUR_MS)
+  }, [])
+  const hogSpeed = useCallback((now: number) => crankSpeed(crankLevel(crank.current, now)), [])
+  const closeWolves = useCallback(() => {
+    going.current = false
+    setWolves(false)
+  }, [])
+
+  return { crankable, hogSpeed, onCrank, wolves, closeWolves }
 }
