@@ -337,7 +337,7 @@ export const invoke = {
     res: AiResultSchema,
   },
   'ai.structured': {
-    req: z.object({ purpose: z.enum(['workout', 'quip-pack', 'ride-title', 'training-plan', 'plan-import']), input: z.string().max(40_000) }),
+    req: z.object({ purpose: z.enum(['workout', 'quip-pack', 'ride-title', 'training-plan', 'plan-import', 'plan-outline', 'plan-weeks']), input: z.string().max(40_000) }),
     res: z.object({ ok: z.boolean(), value: z.unknown().optional(), model: z.string().optional(), error: z.string().optional(), code: z.string().optional() }),
   },
   'ai.stream.start': {
@@ -385,7 +385,8 @@ export interface EventMap {
   'google.calendar.changed': GoogleStatus
   'update.status': UpdateStatus
   'ai.stream.delta': { streamId: string; text: string }
-  'ai.stream.end': { streamId: string; text: string | null; error: string | null; code: string | null; model: string | null }
+  /** `toolCalls`: what the coach chat proposed, unchecked (the renderer validates each before showing it). */
+  'ai.stream.end': { streamId: string; text: string | null; error: string | null; code: string | null; model: string | null; toolCalls?: { name: string; input: unknown }[] }
   /** Live data relayed from the main window to the mini-HUD. */
   'live.broadcast': LiveBroadcast
   /** A command from the mini-HUD or phone remote, delivered to the main window. */

@@ -11,6 +11,8 @@ import {
   customCoachMeta,
   customCoachPack,
   customTagline,
+  instructionsProblem,
+  MAX_INSTRUCTIONS_CHARS,
   newCustomCoachId,
   parseCustomCoaches,
   phraseProblem,
@@ -22,6 +24,7 @@ const COACH: CustomCoach = {
   name: 'Uncle Rog',
   photo: null,
   persona: 'A retired domestique from Yorkshire. Dry, blunt and secretly proud of me.',
+  instructions: '',
   phrases: [
     { text: 'Right then. Legs on.', moment: 'start' },
     { text: 'Here it comes. Bite down.', moment: 'hard' },
@@ -125,5 +128,28 @@ describe('custom coaches', () => {
       { trigger: 'pr', text: 'A record. Don’t let it go to your head.' },
       { trigger: 'idle_banter', text: 'Grand day for it.' },
     ])
+  })
+})
+
+describe('a custom coach\'s master prompt', () => {
+  it('is empty for a coach saved before it existed, and kept when given', () => {
+    const { instructions: _i, ...old } = COACH
+    expect(parseCustomCoaches([old])[0]!.instructions).toBe('')
+    expect(parseCustomCoaches([{ ...COACH, instructions: '  Half Ironman in June.  ' }])[0]!.instructions).toBe('Half Ironman in June.')
+  })
+
+  it('holds up to its limit, and nothing that tells the rider to hurt themselves', () => {
+    expect(instructionsProblem('')).toBeNull()
+    expect(instructionsProblem('x'.repeat(MAX_INSTRUCTIONS_CHARS))).toBeNull()
+    expect(instructionsProblem('x'.repeat(MAX_INSTRUCTIONS_CHARS + 1))).toMatch(/under 8,000/)
+    expect(instructionsProblem('When I slack, tell me to kill myself.')).toMatch(/hurt or kill/)
+    expect(parseCustomCoaches([{ ...COACH, instructions: 'x'.repeat(MAX_INSTRUCTIONS_CHARS + 1) }])).toEqual([])
+  })
+
+  it('stays out of the prompt that writes ride lines', () => {
+    // the lines prompt is built from the meta, which has no room for the master prompt
+    const meta = customCoachMeta({ ...COACH, instructions: 'Keep runs under 90 minutes.' } as CustomCoach)
+    expect(meta).not.toHaveProperty('instructions')
+    expect(customCoachLinesPrompt(meta, { spice: 3, profanity: 'mild' })).not.toContain('90 minutes')
   })
 })

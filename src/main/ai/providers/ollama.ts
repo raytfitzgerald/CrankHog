@@ -2,6 +2,7 @@
 // abort only cancels that request (Ollama's abort() kills a client's streams).
 import { Ollama } from 'ollama'
 import { z } from 'zod'
+import { extractToolCalls, textToolsPrompt, ToolBlockFilter } from '@core/ai/text-tools'
 import { AiError, type AiRequest, type AiResult } from '@core/ai/types'
 import type { AiProvider, CallOpts, ProviderConfig } from '../provider'
 
@@ -59,6 +60,15 @@ export class OllamaProvider implements AiProvider {
     return [{ role: 'system', content: req.system }, ...req.messages.map((m) => ({ role: m.role, content: m.content }))]
   }
 
+  /**
+   * Tools go in the system prompt, to be called in a fenced block: Ollama's
+   * own tool calling works with some models and fails with the rest, and
+   * which is which can't be told ahead.
+   */
+  private withTools(req: AiRequest): AiRequest {
+    return req.tools?.length ? { ...req, system: `${req.system}\n\n${textToolsPrompt(req.tools)}` } : req
+  }
+
   async complete(req: AiRequest, opts: CallOpts): Promise<AiResult> {
     const c = this.client()
     const r = await withAbort(c, opts.signal, () =>
@@ -67,28 +77,34 @@ export class OllamaProvider implements AiProvider {
     return { text: r.message.content, model: r.model, usage: { inputTokens: r.prompt_eval_count, outputTokens: r.eval_count } }
   }
 
-  async stream(req: AiRequest, opts: CallOpts, onDelta: (text: string) => void): Promise<AiResult> {
+  async stream(asked: AiRequest, opts: CallOpts, onDelta: (text: string) => void): Promise<AiResult> {
+    const req = this.withTools(asked)
     const c = this.client()
     const it = await withAbort(c, opts.signal, () =>
       c.chat({ model: opts.model, messages: this.messages(req), stream: true, options: sizes(req, 4096) }),
     )
     const onAbort = () => it.abort()
     opts.signal.addEventListener('abort', onAbort, { once: true })
+    const filter = req.tools?.length ? new ToolBlockFilter() : null
+    const send = (t: string) => t && onDelta(t)
     let text = ''
     try {
       for await (const part of it) {
         if (part.message?.content) {
           text += part.message.content
-          onDelta(part.message.content)
+          send(filter ? filter.push(part.message.content) : part.message.content)
         }
       }
+      if (filter) send(filter.flush())
     } catch (e) {
       if (opts.signal.aborted) throw new AiError('Cancelled', 'cancelled')
       throw mapError(e)
     } finally {
       opts.signal.removeEventListener('abort', onAbort)
     }
-    return { text, model: opts.model }
+    if (!req.tools?.length) return { text, model: opts.model }
+    const { text: said, calls } = extractToolCalls(text, req.tools)
+    return { text: said, model: opts.model, ...(calls.length > 0 ? { toolCalls: calls } : {}) }
   }
 
   async structured(req: AiRequest, schema: z.ZodType, _name: string, opts: CallOpts) {

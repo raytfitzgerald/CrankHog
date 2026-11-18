@@ -2,9 +2,11 @@ import { useRef, useState } from 'react'
 import { ImagePlus, Plus, Sparkles, Trash2, X } from 'lucide-react'
 import {
   MAX_COACH_NAME,
+  MAX_INSTRUCTIONS_CHARS,
   MAX_PERSONA_CHARS,
   MAX_PHRASES,
   coachNameProblem,
+  instructionsProblem,
   newCustomCoachId,
   phraseProblem,
   type CustomCoach,
@@ -61,6 +63,7 @@ function Editor({ coach, ai, close }: { coach: CustomCoach | null; ai: boolean; 
   const [name, setName] = useState(coach?.name ?? '')
   const [photo, setPhoto] = useState<string | null>(coach?.photo ?? null)
   const [persona, setPersona] = useState(coach?.persona ?? '')
+  const [instructions, setInstructions] = useState(coach?.instructions ?? '')
   const [rows, setRows] = useState<Row[]>(() => (coach?.phrases ?? []).map((p, i) => ({ key: i, text: p.text, moment: p.moment })))
   const [photoError, setPhotoError] = useState<string | null>(null)
   const [saving, setSaving] = useState(false)
@@ -72,9 +75,10 @@ function Editor({ coach, ai, close }: { coach: CustomCoach | null; ai: boolean; 
 
   const filled = rows.filter((r) => r.text.trim())
   const nameProblem = coachNameProblem(name)
+  const masterProblem = instructionsProblem(instructions)
   const rowProblem = (r: Row) => (r.text.trim() ? phraseProblem(r.text) : null)
-  const empty = !persona.trim() && filled.length === 0
-  const canSave = !saving && nameProblem === null && !empty && filled.every((r) => rowProblem(r) === null)
+  const empty = !persona.trim() && !instructions.trim() && filled.length === 0
+  const canSave = !saving && nameProblem === null && masterProblem === null && !empty && filled.every((r) => rowProblem(r) === null)
 
   const choose = async (f: File | undefined) => {
     setPhotoError(null)
@@ -96,6 +100,7 @@ function Editor({ coach, ai, close }: { coach: CustomCoach | null; ai: boolean; 
       name: name.trim(),
       photo,
       persona: persona.trim(),
+      instructions: instructions.trim(),
       phrases: filled.map((r) => ({ text: r.text.replace(/\s+/g, ' ').trim(), moment: r.moment })),
       // kept until the AI has written new ones, so the coach is never left with nothing to say
       aiLines: (coach && customCoach(coach.id)?.aiLines) ?? [],
@@ -167,6 +172,26 @@ function Editor({ coach, ai, close }: { coach: CustomCoach | null; ai: boolean; 
               : 'Set up an AI provider (Settings → AI) and the AI writes their ride lines from this and chats as them.'}{' '}
           The one thing no coach does is tell you to hurt yourself.
         </span>
+      </label>
+
+      <label className="block text-sm font-medium">
+        Master prompt <span className="font-normal text-ink-faint">(optional)</span>
+        <textarea
+          className={`${area} mt-1 h-48`}
+          value={instructions}
+          maxLength={MAX_INSTRUCTIONS_CHARS}
+          onChange={(e) => setInstructions(e.target.value)}
+          placeholder="I'm training for a half Ironman on 14 June. My left knee flares up after long runs, so keep runs under 90 minutes. I work late on Tuesdays. Tell me straight when I'm skipping sessions, and explain the why behind workouts."
+          aria-invalid={masterProblem !== null}
+          data-testid="custom-coach-instructions"
+        />
+        <span className="mt-1 flex justify-between gap-3 text-xs font-normal text-ink-faint">
+          <span>Anything this coach should always know in chats, debriefs and the fitness overview: goals, injuries, schedule, how you like to be coached. Not used for ride lines.</span>
+          <span className="shrink-0 font-display tabular-nums">
+            {instructions.length.toLocaleString()} / {MAX_INSTRUCTIONS_CHARS.toLocaleString()}
+          </span>
+        </span>
+        {masterProblem && <span className="mt-1 block text-xs font-normal text-bad">{masterProblem}</span>}
       </label>
 
       <div>

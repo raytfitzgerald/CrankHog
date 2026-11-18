@@ -1,10 +1,13 @@
 import { useEffect, useRef, useState } from 'react'
 import { Link } from '@tanstack/react-router'
 import { ChevronDown, Send, Square, Trash2 } from 'lucide-react'
+import { CONTEXT_BUDGET } from '@core/ai/athlete-context'
 import type { AiMessage } from '@core/ai/types'
 import { PROFESSIONAL } from '@core/persona'
 import { coachContext, coachVoiceNow, streamAi, type StreamHandle } from '../../ai/client'
 import { trimChat, type ChatMessage } from '../../ai/chat-history'
+import { cardNote, cardsFor, cardsInWords, clearCards, loadCards, type ChatCard } from '../../ai/coach-cards'
+import { clearDrafts, draftForCoach, loadDrafts } from '../../ai/coach-plan'
 import { handoffMessage, takeHandoff, type ChatHandoff } from '../../ai/handoff'
 import { PersonaAvatar } from '../../coach/PersonaAvatar'
 import { db } from '../../db/db'
@@ -13,15 +16,21 @@ import { useSettings } from '../../stores/settings'
 import { Button } from '../../ui/Button'
 import { Markdown } from '../../ui/Markdown'
 import { PageHeader } from '../../ui/PageHeader'
+import { ChangesCard } from './ChangesCard'
+import { PlanDraftCard } from './PlanDraftCard'
 
 const KV_KEY = 'coach.chat'
 const SUGGESTIONS = [
   'Am I getting fitter? Be honest.',
-  'What should I ride tomorrow?',
-  'Give me a 45-minute workout that hurts.',
-  'Why did my HR drift so much last ride?',
+  'What should I do tomorrow?',
+  'Make me a 45-minute workout that hurts.',
+  'Build me a training plan for my next race.',
 ]
 const DATA_PREFIX = 'My training data (JSON):\n'
+/** What one message may hold (the IPC contract allows 60,000 characters), less a margin for the [App] lines. */
+const MESSAGE_ROOM = 56_000
+/** The least training data a message carries, however long the coach's master prompt and notes. */
+const MIN_CONTEXT = 15_000
 const SPICE = ['gentle', 'cheeky', 'snarky', 'savage', 'feral']
 
 /** What the rider sees for their own message. Older chats stored the training data with it. */
@@ -47,8 +56,14 @@ function forAi(history: readonly ChatMessage[], data: string): AiMessage[] {
   const last = history.length - 1
   return history.map((m, i) => {
     const content = withoutData(m.content)
-    if (i !== last || m.role !== 'user') return { role: m.role, content }
-    return { role: m.role, content: `${coachVoiceNow()}\n\n${DATA_PREFIX}${data}\n\n${m.shared ? content : `Question: ${content}`}` }
+    // a reply that was only a proposal still says something, so no message is empty
+    if (m.role === 'assistant') return { role: m.role, content: content.trim() || (m.cards?.length ? cardsInWords(m.cards) : '…') }
+    // what became of the coach's last cards, as CrankHog tells it
+    const before = i > 0 ? history[i - 1] : undefined
+    const notes = (before?.cards ?? []).map(cardNote).filter((n): n is string => !!n)
+    const noted = notes.length > 0 ? `${notes.map((n) => `[App] ${n}`).join('\n')}\n\n` : ''
+    if (i !== last) return { role: m.role, content: `${noted}${content}` }
+    return { role: m.role, content: `${coachVoiceNow()}\n\n${DATA_PREFIX}${data}\n\n${noted}${m.shared ? content : `Question: ${content}`}` }
   })
 }
 
@@ -88,7 +103,9 @@ export function CoachChatPage() {
     // read for every message, so a ride, a plan or a calendar change since the last one is in it
     let data: string
     try {
-      data = await coachContext()
+      // a long master prompt or notes leave less room, so the data drops detail (far days, laps) rather than overfill the message
+      const room = MESSAGE_ROOM - coachVoiceNow().length - turn.content.length
+      data = await coachContext(Date.now(), draftForCoach(), Math.max(MIN_CONTEXT, Math.min(CONTEXT_BUDGET, room)))
     } catch (e) {
       setError(e instanceof Error ? e.message : String(e))
       setMessages([...prior])
@@ -108,7 +125,9 @@ export function CoachChatPage() {
       setMessages(history)
       return
     }
-    const final = trimChat([...history, { role: 'assistant', content: res.text ?? acc }])
+    // what the coach proposed becomes cards: checked here, nothing changed until the rider says so
+    const cards = res.toolCalls?.length ? cardsFor(res.toolCalls) : []
+    const final = trimChat([...history, { role: 'assistant', content: res.text ?? acc, ...(cards.length > 0 ? { cards } : {}) }])
     setMessages(final)
     await db().kv.put({ key: KV_KEY, value: final })
     input.current?.focus()
@@ -116,8 +135,8 @@ export function CoachChatPage() {
 
   useEffect(() => {
     let live = true
-    void db()
-      .kv.get(KV_KEY)
+    void Promise.all([loadCards(), loadDrafts()])
+      .then(() => db().kv.get(KV_KEY))
       .then((row) => {
         if (!live) return
         const stored = Array.isArray(row?.value) ? (row.value as ChatMessage[]) : []
@@ -143,7 +162,7 @@ export function CoachChatPage() {
 
   const clear = async () => {
     setMessages([])
-    await db().kv.delete(KV_KEY)
+    await Promise.all([db().kv.delete(KV_KEY), clearCards(), clearDrafts()])
   }
 
   const language = persona.id === PROFESSIONAL.meta.id ? 'clean' : coach.profanity
@@ -151,7 +170,7 @@ export function CoachChatPage() {
     <div className="mx-auto flex h-full max-w-4xl flex-col px-4 md:px-8 pb-6">
       <PageHeader
         title="Coach"
-        subtitle="Ask about your training, plans and calendar. What you keep in CrankHog is shared with your AI provider, never Strava data."
+        subtitle="Ask about your training, plans and calendar, or ask for changes and a plan: nothing changes until you apply it. What you keep in CrankHog is shared with your AI provider, never Strava data."
         actions={
           messages.length > 0 && (
             <Button size="sm" variant="ghost" onClick={() => void clear()}>
@@ -194,7 +213,10 @@ export function CoachChatPage() {
           ) : (
             <div key={i} className="flex max-w-[90%] items-start gap-2.5">
               <PersonaAvatar persona={persona} className="mt-1" />
-              <div className="min-w-0 rounded-2xl border border-line bg-panel px-4 py-3">{m.content ? <Markdown text={m.content} /> : <span className="text-sm text-ink-faint">…</span>}</div>
+              <div className="min-w-0 flex-1 space-y-2">
+                {(m.content || !m.cards?.length) && <div className="w-fit max-w-full rounded-2xl border border-line bg-panel px-4 py-3">{m.content ? <Markdown text={m.content} /> : <span className="text-sm text-ink-faint">…</span>}</div>}
+                {m.cards?.map((c, k) => <Card key={k} card={c} />)}
+              </div>
             </div>
           ),
         )}
@@ -235,6 +257,17 @@ export function CoachChatPage() {
           </Button>
         )}
       </form>
+    </div>
+  )
+}
+
+/** What the coach proposed: changes to apply, a plan to review, or why a proposal couldn't be used. */
+function Card({ card }: { card: ChatCard }) {
+  if (card.kind === 'changes') return <ChangesCard card={card} />
+  if (card.kind === 'plan') return <PlanDraftCard id={card.id} />
+  return (
+    <div className="rounded-2xl border border-bad/40 bg-bad/5 px-4 py-2.5 text-sm" data-testid="coach-card-problem">
+      {card.text} Ask again, and the coach can have another go.
     </div>
   )
 }

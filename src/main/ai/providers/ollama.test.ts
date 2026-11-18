@@ -49,3 +49,39 @@ describe('a plan document part', () => {
     expect(sizes({ system: 'x', messages: [] }, 2048)).toEqual({ num_ctx: 8192, num_predict: 2048 })
   })
 })
+
+describe('the coach chat’s tools on a local model', () => {
+  it('go in the prompt, and a fenced call is kept out of the stream and handed on', async () => {
+    const { createServer } = await import('node:http')
+    const { COACH_TOOLS } = await import('@core/ai/coach-tools')
+    const { OllamaProvider } = await import('./ollama')
+    const call = '```crankhog-tool\n{"tool":"draft_plan","input":{"name":"Sprint tri"}}\n```'
+    const reply = `Here's your draft.\n\n${call}`
+    let system = ''
+    const server = createServer((req, res) => {
+      let raw = ''
+      req.on('data', (c: Buffer) => (raw += c.toString()))
+      req.on('end', () => {
+        system = (JSON.parse(raw) as { messages: { content: string }[] }).messages[0]!.content
+        res.setHeader('content-type', 'application/x-ndjson')
+        for (const part of reply.match(/[\s\S]{1,6}/g)!) res.write(`${JSON.stringify({ model: 'm', created_at: '', message: { role: 'assistant', content: part }, done: false })}\n`)
+        res.end(`${JSON.stringify({ model: 'm', created_at: '', message: { role: 'assistant', content: '' }, done: true, done_reason: 'stop' })}\n`)
+      })
+    })
+    await new Promise<void>((r) => server.listen(0, '127.0.0.1', r))
+    try {
+      const port = (server.address() as { port: number }).port
+      const deltas: string[] = []
+      const out = await new OllamaProvider({ baseUrl: `http://127.0.0.1:${port}` }).stream(
+        { system: 'You are the coach.', messages: [{ role: 'user', content: 'plan please' }], tools: COACH_TOOLS },
+        { model: 'm', signal: new AbortController().signal, timeoutMs: 5000 },
+        (d) => deltas.push(d),
+      )
+      expect(system).toMatch(/^You are the coach\.\n\nTools: this chat has no tool-calling interface/)
+      expect(deltas.join('')).toBe("Here's your draft.\n\n")
+      expect(out).toEqual({ text: "Here's your draft.", model: 'm', toolCalls: [{ name: 'draft_plan', input: { name: 'Sprint tri' } }] })
+    } finally {
+      await new Promise((r) => server.close(r))
+    }
+  })
+})

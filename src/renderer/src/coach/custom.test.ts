@@ -13,6 +13,7 @@ const COACH: CustomCoach = {
   name: 'Uncle Rog',
   photo: 'data:image/jpeg;base64,AAAA',
   persona: 'A retired domestique. Dry and blunt.',
+  instructions: '',
   phrases: [{ text: 'Right then. Legs on.', moment: 'start' }],
   aiLines: [],
   createdAt: 1,

@@ -3,6 +3,9 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { MIRROR_FOOTER, plainDuration } from '@core/calendar-mirror/event-text'
 import { sessionFromFile } from '@core/multisport/build'
 import { SESSION_EXAMPLES } from '@core/multisport/examples'
+import { readProposal } from '@core/coach-actions/actions'
+import { refOf } from '@core/coach-actions/refs'
+import { toIntervalsText } from '@core/workout/io/intervals-text'
 import { addDays, dateKey } from '@core/workout/schedule'
 import type { CrankHogBridge } from '@shared/ipc/contract'
 import { DEFAULT_SETTINGS } from '@shared/settings'
@@ -11,6 +14,7 @@ import { db } from '../db/db'
 import { settingsStore } from '../stores/settings'
 import { BUILTINS, describeWorkout, plannedStatsOf } from '../workouts/library'
 import { planSessionWorkout, saveSessionWorkout } from '../workouts/sessions-repo'
+import { applyProposal, undoSteps } from '../ai/coach-actions'
 import { CALENDARS_KV, MIRROR_DEBOUNCE_MS, mirrorSnapshot, startGoogleMirror } from './google-mirror'
 import { moveScheduled, removeScheduled, scheduleSession, scheduleWorkout } from './schedule-repo'
 
@@ -24,7 +28,7 @@ beforeEach(async () => {
 })
 
 describe('the snapshot sent to Google', () => {
-  it('holds every planned entry from 30 days back, bike workouts with their length and TSS', async () => {
+  it('holds every planned entry from 30 days back, bike workouts with their length, TSS and steps', async () => {
     await recordFtp({ date: 0, ftpW: 250, source: 'manual' })
     await scheduleWorkout(addDays(TODAY, -31), { id: workout.id, name: 'Too old' })
     const bike = await scheduleWorkout(addDays(TODAY, -2), { id: workout.id, name: workout.name })
@@ -38,6 +42,7 @@ describe('the snapshot sent to Google', () => {
     ])
     const planned = plannedStatsOf(workout, describeWorkout(workout, 250).stats)
     expect(snap.events[0]!.description.split('\n\n')[0]).toBe(`Ride · ${plainDuration(planned.durationS)} · TSS ${Math.round(planned.tss!)}`)
+    expect(snap.events[0]!.description).toContain(toIntervalsText(workout).trim())
     expect(snap.events[1]!.description).toBe(`Run · 1 h 30 min · 15 km · Easy\n\nFlat route.\n\n${MIRROR_FOOTER}`)
   })
 
@@ -63,7 +68,7 @@ describe('startGoogleMirror', () => {
   const invoke = vi.fn()
   let statusListener: ((s: { connected: boolean }) => void) | null = null
   let stop: () => void = () => undefined
-  const syncs = () => invoke.mock.calls.filter(([c]) => c === 'google.calendar.sync').map(([, req]) => req as { events: { key: string; date: string }[]; calendarHint?: string })
+  const syncs = () => invoke.mock.calls.filter(([c]) => c === 'google.calendar.sync').map(([, req]) => req as { events: { key: string; date: string; title: string; description: string }[]; calendarHint?: string })
   const wait = (ms: number) => new Promise((r) => setTimeout(r, ms))
 
   beforeEach(() => {
@@ -107,6 +112,26 @@ describe('startGoogleMirror', () => {
     await wait(MIRROR_DEBOUNCE_MS + 300)
     expect(syncs().at(-1)!.events).toEqual([])
     expect(statusListener).not.toBeNull()
+  }, 15_000)
+
+  it('sends a change the coach made, new steps in the description, and the old ones again after Undo', async () => {
+    const e = await scheduleSession(addDays(dateKey(Date.now()), 2), 'run', 'Run-walk 40', { durationS: 2400, text: '8x\n- 4m Z2 HR\n- 1m Z1 HR walk' })
+    stop = startGoogleMirror()
+    await wait(MIRROR_DEBOUNCE_MS + 300)
+    expect(syncs().at(-1)!.events[0]!.description).toContain('1m Z1 HR walk')
+
+    const p = readProposal({ summary: 'Run it all', actions: [{ type: 'replace', ref: refOf('c', e.id), sport: 'run', name: 'Easy run 40', steps: '- 40m Z2 HR' }] })
+    if (!p.ok) throw new Error(p.error)
+    const applied = await applyProposal(p.proposal)
+    await wait(MIRROR_DEBOUNCE_MS + 300)
+    const sent = syncs().at(-1)!.events[0]!
+    expect(sent.title).toContain('Easy run 40')
+    expect(sent.description).toContain('- 40m Z2 HR')
+    expect(sent.description).not.toContain('walk')
+
+    await undoSteps(applied.undo)
+    await wait(MIRROR_DEBOUNCE_MS + 300)
+    expect(syncs().at(-1)!.events[0]!.description).toContain('1m Z1 HR walk')
   }, 15_000)
 
   it('sends nothing while the sync is off, and everything when it is switched on', async () => {

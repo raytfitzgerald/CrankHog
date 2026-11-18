@@ -1,7 +1,8 @@
 // What a planned entry says in Google Calendar: its name as the title, and
-// a description with the sport, length and load, then a run, swim or other
-// session's whole .txt file as imported (header lines and steps), or else the
-// workout's own notes. Plain text, sentence case, no emoji.
+// a description with the sport, length and load, then the steps (a run, swim
+// or other session's whole .txt file as imported, header lines and steps; a
+// bike workout's steps as intervals.icu text), then the workout's own notes.
+// Plain text, sentence case, no emoji.
 import { SPORT_GROUP_LABEL, type SportGroup } from '../sport/group'
 import { EFFORT_LABEL, type Effort } from '../sport/load'
 import { formatSportDistance } from '../sport/format'
@@ -23,7 +24,7 @@ export interface MirrorSource {
   /** A session's planned load, when it has no TSS from steps. */
   load?: number | null
   effort?: Effort
-  /** A session's .txt file as imported, header lines and steps; its notes: line carries the notes. */
+  /** A session's .txt file as imported, header lines and steps (its notes: line carries the notes), or a bike workout's steps as intervals.icu text. */
   workoutText?: string
   /** The workout's description, or a session's notes. */
   notes?: string

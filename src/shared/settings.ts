@@ -42,6 +42,8 @@ export const CoachPrefsSchema = z.object({
   useAi: z.boolean().default(false),
   /** The ride-along panel where the coach bikes next to you: open, folded to a strip, or off. */
   rideAlong: z.enum(['open', 'minimized', 'off']).default('open'),
+  /** What every coach should know, in the rider's words: sent with each chat, debrief and fitness overview, whoever the coach is. */
+  notes: z.string().max(4000).default(''),
 })
 
 export const FuelingPrefsSchema = z.object({

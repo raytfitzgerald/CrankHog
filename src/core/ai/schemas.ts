@@ -117,10 +117,48 @@ export const PlanImportSchema = z.object({
 })
 export type PlanImportOutput = z.infer<typeof PlanImportSchema>
 
+/**
+ * A coach-drafted plan's outline (src/core/coach-plan/draft.ts): each week's
+ * phase, focus, hours per sport and key sessions. Shape only, as for the plan
+ * import; fromOutline checks the values.
+ */
+export const PlanOutlineSchema = z.object({
+  notes: z.string().describe("The plan's approach in two or three sentences: how it builds, where the recovery weeks fall, the taper"),
+  weeks: z.array(
+    z.object({
+      week: z.number().describe('The plan week, 1 = the first'),
+      phase: z.string().describe('base, build, peak, taper or recovery'),
+      focus: z.string().describe('What the week is for, in a line'),
+      hours: z.object({ swim: z.number(), bike: z.number(), run: z.number(), other: z.number() }).describe('Hours of each sport that week; other is strength and mobility'),
+      keySessions: z.array(z.string()).describe("The week's two or three key sessions, a few words each"),
+    }),
+  ),
+})
+export type PlanOutlineOutput = z.infer<typeof PlanOutlineSchema>
+
+/** Some weeks of a coach-drafted plan's sessions, in the plan import's item shape without dates. */
+export const PlanWeeksSchema = z.object({
+  items: z.array(
+    z.object({
+      week: z.number().describe('The plan week'),
+      weekday: z.number().describe('0 = Monday … 6 = Sunday'),
+      sport: z.string().describe('bike, run, swim or other'),
+      name: z.string(),
+      steps: z.string().describe('Bike: intervals.icu workout text. Run, swim, other: CrankHog session steps. Empty for a session given only by its length and effort'),
+      minutes: z.number().nullable().describe('A session with no steps: how long it lasts'),
+      effort: z.string().nullable().describe('A session with no steps: easy, moderate, hard or max'),
+      notes: z.string().nullable(),
+    }),
+  ),
+})
+export type PlanWeeksOutput = z.infer<typeof PlanWeeksSchema>
+
 export const AI_SCHEMAS = {
   workout: GeneratedWorkoutSchema,
   'training-plan': PlanSkeletonSchema,
   'plan-import': PlanImportSchema,
+  'plan-outline': PlanOutlineSchema,
+  'plan-weeks': PlanWeeksSchema,
   'quip-pack': QuipPackSchema,
   'ride-title': RideTitleSchema,
 } as const

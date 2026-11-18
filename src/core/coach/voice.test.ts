@@ -36,3 +36,20 @@ describe('coach voice rules', () => {
     }
   })
 })
+
+describe('what the rider wrote for the coach', () => {
+  it('carries the master prompt and the notes for any coach, ahead of the house rules', () => {
+    const v = coachVoice(ZEN, { spice: 2, profanity: 'mild' }, { instructions: 'Half Ironman on 14 June.\nKeep runs under 90 minutes.', notes: 'Two young kids.' })
+    expect(v).toContain('Standing instructions from the rider for Zen')
+    expect(v).toContain('Half Ironman on 14 June.\nKeep runs under 90 minutes.')
+    expect(v).toContain('Notes from the rider for any coach')
+    expect(v.indexOf('Two young kids.')).toBeLessThan(v.indexOf('House rules'))
+    expect(v.trimEnd().endsWith('[/Coach settings]')).toBe(true)
+  })
+
+  it('leaves them out when there are none', () => {
+    const v = coachVoice(ZEN, { spice: 2, profanity: 'mild' }, { instructions: '  ', notes: '' })
+    expect(v).not.toContain('Standing instructions')
+    expect(v).not.toContain('Notes from the rider')
+  })
+})

@@ -15,6 +15,26 @@ export async function addMark(mark: Omit<DayMark, 'id'>): Promise<DayMark> {
   return m
 }
 
+/** Several marks at once (a week of travel), with one re-lay. */
+export async function addMarks(marks: readonly Omit<DayMark, 'id'>[]): Promise<DayMark[]> {
+  const rows = marks.map((mark): DayMark => ({ ...mark, id: newId(), ...(mark.name !== undefined ? { name: mark.name.trim() } : {}) }))
+  await db().dayMarks.bulkPut(rows)
+  await relayAllPlans()
+  return rows
+}
+
+/** Puts back a mark as it was (an undo), with its id. */
+export async function restoreMark(mark: DayMark): Promise<void> {
+  await db().dayMarks.put(mark)
+  await relayAllPlans()
+}
+
+/** Takes several marks off at once, with one re-lay. */
+export async function removeMarks(ids: readonly string[]): Promise<void> {
+  await db().dayMarks.bulkDelete([...ids])
+  await relayAllPlans()
+}
+
 export async function updateMark(id: string, patch: Partial<Omit<DayMark, 'id'>>): Promise<void> {
   await db().dayMarks.update(id, patch)
   await relayAllPlans()

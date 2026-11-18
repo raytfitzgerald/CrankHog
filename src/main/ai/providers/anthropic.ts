@@ -7,7 +7,8 @@
 import Anthropic from '@anthropic-ai/sdk'
 import { betaZodOutputFormat } from '@anthropic-ai/sdk/helpers/beta/zod'
 import type { z } from 'zod'
-import { AiError, type AiRequest, type AiResult } from '@core/ai/types'
+import { toolJsonSchema } from '@core/ai/coach-tools'
+import { AiError, type AiRequest, type AiResult, type AiToolCall } from '@core/ai/types'
 import { withinOutputLimit, type AiProvider, type CallOpts, type ProviderConfig } from '../provider'
 
 const refusal = (e: unknown) => (e instanceof Anthropic.BadRequestError ? e.message : null)
@@ -38,6 +39,9 @@ export class AnthropicProvider implements AiProvider {
       output_config: { effort: req.effort ?? 'medium' },
       betas: BETAS,
       fallbacks: 'default' as const,
+      ...(req.tools?.length
+        ? { tools: req.tools.map((t) => ({ name: t.name, description: t.description, input_schema: toolJsonSchema(t) as Anthropic.Beta.BetaTool.InputSchema })), tool_choice: { type: 'auto' as const } }
+        : {}),
     }
   }
 
@@ -57,7 +61,8 @@ export class AnthropicProvider implements AiProvider {
       stream.on('text', (delta) => onDelta(delta))
       const final = await stream.finalMessage()
       if (final.stop_reason === 'refusal') throw new AiError('The model declined this request', 'refusal')
-      return { text: textOf(final.content), model: final.model, usage: usageOf(final.usage) }
+      const toolCalls = toolCallsOf(final.content)
+      return { text: textOf(final.content), model: final.model, usage: usageOf(final.usage), ...(toolCalls.length > 0 ? { toolCalls } : {}) }
     } catch (e) {
       throw mapError(e)
     }
@@ -87,6 +92,11 @@ function textOf(content: readonly { type: string }[]): string {
     .filter((b): b is { type: 'text'; text: string } => b.type === 'text')
     .map((b) => b.text)
     .join('')
+}
+
+/** The tools the model called (it stops after them: CrankHog shows the call to the rider rather than answering it). */
+export function toolCallsOf(content: readonly { type: string }[]): AiToolCall[] {
+  return content.filter((b): b is { type: 'tool_use'; name: string; input: unknown } => b.type === 'tool_use').map((b) => ({ name: b.name, input: b.input }))
 }
 
 function usageOf(u: { input_tokens?: number | null; output_tokens?: number | null; cache_read_input_tokens?: number | null } | undefined) {
