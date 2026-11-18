@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { Link } from '@tanstack/react-router'
 import { ChevronDown, Send, Square, Trash2 } from 'lucide-react'
+import { CONTEXT_BUDGET } from '@core/ai/athlete-context'
 import type { AiMessage } from '@core/ai/types'
 import { PROFESSIONAL } from '@core/persona'
 import { coachContext, coachVoiceNow, streamAi, type StreamHandle } from '../../ai/client'
@@ -26,6 +27,10 @@ const SUGGESTIONS = [
   'Build me a training plan for my next race.',
 ]
 const DATA_PREFIX = 'My training data (JSON):\n'
+/** What one message may hold (the IPC contract allows 60,000 characters), less a margin for the [App] lines. */
+const MESSAGE_ROOM = 56_000
+/** The least training data a message carries, however long the coach's master prompt and notes. */
+const MIN_CONTEXT = 15_000
 const SPICE = ['gentle', 'cheeky', 'snarky', 'savage', 'feral']
 
 /** What the rider sees for their own message. Older chats stored the training data with it. */
@@ -98,7 +103,9 @@ export function CoachChatPage() {
     // read for every message, so a ride, a plan or a calendar change since the last one is in it
     let data: string
     try {
-      data = await coachContext(Date.now(), draftForCoach())
+      // a long master prompt or notes leave less room, so the data drops detail (far days, laps) rather than overfill the message
+      const room = MESSAGE_ROOM - coachVoiceNow().length - turn.content.length
+      data = await coachContext(Date.now(), draftForCoach(), Math.max(MIN_CONTEXT, Math.min(CONTEXT_BUDGET, room)))
     } catch (e) {
       setError(e instanceof Error ? e.message : String(e))
       setMessages([...prior])

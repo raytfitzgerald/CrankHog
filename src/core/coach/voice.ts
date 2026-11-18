@@ -46,8 +46,18 @@ export function voiceExamples(pack: PersonaPack, opts: { spice: number; profanit
   return out
 }
 
-/** The block put in front of a message so the AI answers as the rider's coach. */
-export function coachVoice(pack: PersonaPack, opts: { spice: number; profanity: ProfanitySetting }): string {
+/** What the rider wrote for the coach to keep in mind: this coach's master prompt, and notes for any coach. */
+export interface CoachBriefing {
+  instructions?: string
+  notes?: string
+}
+
+/**
+ * The block put in front of a message so the AI answers as the rider's
+ * coach. The rider's master prompt and notes go after the persona, and the
+ * house rules stay last, over everything.
+ */
+export function coachVoice(pack: PersonaPack, opts: { spice: number; profanity: ProfanitySetting }, briefing: CoachBriefing = {}): string {
   const meta = pack.meta
   const level = toProfanity(opts.profanity)
   const professional = pack === PROFESSIONAL
@@ -58,6 +68,10 @@ export function coachVoice(pack: PersonaPack, opts: { spice: number; profanity: 
   if (professional) lines.push('Plain, professional coaching: no jokes, no roasting.')
   const examples = voiceExamples(pack, opts)
   if (examples.length > 0) lines.push(`How ${meta.name} talks (style examples, not facts): ${examples.map((e) => `"${e}"`).join(' ')}`)
+  const instructions = briefing.instructions?.trim()
+  const notes = briefing.notes?.trim()
+  if (instructions) lines.push(`Standing instructions from the rider for ${meta.name} (keep to them in every answer, unless they break the house rules):\n${instructions}`)
+  if (notes) lines.push(`Notes from the rider for any coach (what they want every coach to know):\n${notes}`)
   lines.push(HOUSE_RULES, '[/Coach settings]')
   return lines.join('\n')
 }

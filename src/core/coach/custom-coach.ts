@@ -22,6 +22,8 @@ export const CUSTOM_COACH_PREFIX = 'custom-'
 export const MAX_CUSTOM_COACHES = 20
 export const MAX_COACH_NAME = 40
 export const MAX_PERSONA_CHARS = 800
+/** The master prompt: room for goals, injuries, a schedule and how the rider likes to be coached. */
+export const MAX_INSTRUCTIONS_CHARS = 8000
 export const MAX_PHRASES = 40
 /** A 160 px JPEG data URL is 10–20 kB; this leaves room for a PNG without letting a backup bloat the database. */
 export const MAX_PHOTO_CHARS = 300_000
@@ -62,6 +64,12 @@ export const CustomCoachSchema = z.object({
     .nullable(),
   /** Who the coach is, in the rider's words. */
   persona: z.string().trim().max(MAX_PERSONA_CHARS),
+  /**
+   * The master prompt: what the coach should always know and do, in the
+   * rider's words. Goes with every chat, debrief and fitness overview, never
+   * with the ride lines. Missing in coaches saved before it existed.
+   */
+  instructions: z.string().trim().max(MAX_INSTRUCTIONS_CHARS).default(''),
   phrases: z.array(PhraseSchema).max(MAX_PHRASES),
   /** Lines the AI wrote from the persona, already filtered. */
   aiLines: z.array(AiLineSchema).max(MAX_AI_LINES),
@@ -120,6 +128,13 @@ export function phraseProblem(text: string): string | null {
   const hit = guardrailMatch(t)
   if (hit) return SELF_HARM
   return null
+}
+
+/** Why a master prompt can't be used, or null. An empty one is fine. */
+export function instructionsProblem(text: string): string | null {
+  const t = text.trim()
+  if (t.length > MAX_INSTRUCTIONS_CHARS) return `Keep it under ${MAX_INSTRUCTIONS_CHARS.toLocaleString('en')} characters.`
+  return guardrailMatch(t) ? SELF_HARM : null
 }
 
 /** Why a name can't be used, or null. */

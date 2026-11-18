@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { Check, Pencil, Plus, Volume2 } from 'lucide-react'
-import { MAX_CUSTOM_COACHES, customCoachMeta, isCustomCoachId, previewLine, type CustomCoach } from '@core/coach'
+import { MAX_CUSTOM_COACHES, customCoachMeta, instructionsProblem, isCustomCoachId, previewLine, type CustomCoach } from '@core/coach'
 import { PROFESSIONAL, type CoachLine, type CoachTrigger, type PersonaMeta } from '@core/persona'
 import type { BeepPrefs, CoachPrefs, FuelingPrefs } from '@shared/settings'
 import { listVoices, onVoicesChanged, resolveVoice, speak } from '../../audio/tts'
@@ -230,6 +230,12 @@ export function CoachSection() {
         <Field label="Ride-along" hint="A little road on the ride screen where your coach bikes next to you and says their lines. Ease off and they ride away; push and you drop them. You can fold it during a ride.">
           <Segmented ariaLabel="Ride-along" value={c.rideAlong} options={RIDE_ALONG} onChange={(v) => set({ rideAlong: v })} />
         </Field>
+        <Field
+          label="Notes for every coach"
+          hint="What any coach should know in chats, debriefs and the fitness overview, whoever you pick: goals, injuries, your week. Each coach you make can also have a master prompt of its own."
+        >
+          <CoachNotes notes={c.notes} onSave={(notes) => set({ notes })} />
+        </Field>
         {ai && (
           <Field label="Use AI for fresh lines" hint="At the start of each ride, asks your AI provider for new lines in this persona's style. If the AI is slow or says no, the canned lines carry the ride.">
             <Switch checked={c.useAi} onChange={(v) => set({ useAi: v })} label={c.useAi ? 'On' : 'Off'} />
@@ -293,6 +299,38 @@ export function CoachSection() {
           <Slider ariaLabel="Drink every" value={fuel.drinkEveryMin} min={5} max={60} step={5} format={(v) => `${v} min`} onChange={(v) => setFuel({ drinkEveryMin: v })} />
         </Field>
       </Section>
+    </>
+  )
+}
+
+const MAX_COACH_NOTES = 4000
+
+/** The notes for every coach, saved when the box loses focus rather than on every key. */
+function CoachNotes({ notes, onSave }: { notes: string; onSave: (notes: string) => void }) {
+  const [draft, setDraft] = useState(notes)
+  const problem = instructionsProblem(draft)
+  const save = () => {
+    if (problem === null && draft.trim() !== notes.trim()) onSave(draft.trim())
+  }
+  return (
+    <>
+      <textarea
+        className="no-drag h-28 w-full resize-y rounded-xl border border-line bg-panel-2 px-3 py-2 text-sm text-ink placeholder:text-ink-faint focus:border-accent focus:outline-none"
+        value={draft}
+        maxLength={MAX_COACH_NOTES}
+        onChange={(e) => setDraft(e.target.value)}
+        onBlur={save}
+        placeholder="Racing a gravel 100 in May. Two young kids, so weekday sessions stay under an hour."
+        aria-label="Notes for every coach"
+        aria-invalid={problem !== null}
+        data-testid="coach-notes"
+      />
+      <div className="mt-1 flex justify-between gap-3 text-xs text-ink-faint">
+        <span className="text-bad">{problem}</span>
+        <span className="font-display tabular-nums">
+          {draft.length.toLocaleString()} / {MAX_COACH_NOTES.toLocaleString()}
+        </span>
+      </div>
     </>
   )
 }
