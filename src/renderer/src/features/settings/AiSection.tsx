@@ -4,6 +4,7 @@ import type { InvokeRes } from '@shared/ipc/contract'
 import { bridge } from '../../platform/bridge'
 import { Button } from '../../ui/Button'
 import { Field, Input, Section, Select } from '../../ui/form'
+import { ClaudeSection } from './ClaudeSection'
 
 type Provider = 'anthropic' | 'openai' | 'grok' | 'ollama'
 /** The providers that need an API key, with where to get one and what it looks like. */
@@ -140,6 +141,7 @@ export function AiSection() {
           </Field>
         )}
       </Section>
+      {!__CRANKHOG_WEB__ && <ClaudeSection />}
     </>
   )
 }

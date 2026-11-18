@@ -12,6 +12,7 @@ import { registerGoogleHandlers } from './ipc/google-handlers'
 import { registerAiHandlers } from './ipc/ai-handlers'
 import { registerHudHandlers } from './ipc/hud-handlers'
 import { registerUpdateHandlers } from './ipc/update-handlers'
+import { registerMcpHandlers } from './ipc/mcp-handlers'
 import { SecretStore, type Cipher } from './secrets/secret-store'
 import { JournalStore } from './ride/journal-store'
 import { emit } from './ipc/register'
@@ -79,6 +80,7 @@ void app.whenReady().then(() => {
   })
   registerAiHandlers({ secrets })
   registerHudHandlers(() => mainWindow)
+  const mcp = registerMcpHandlers({ settings, window: () => mainWindow, userData: app.getPath('userData') })
   const updates = loadUpdater()
     .catch((err: unknown) => {
       console.error('[update] the updater failed to start', err)
@@ -99,8 +101,14 @@ void app.whenReady().then(() => {
   chooser.attach(mainWindow.webContents)
   // A renderer that crashed or reloaded left its ride's journal open; close it
   // so the new page offers the ride for recovery.
-  mainWindow.webContents.on('render-process-gone', () => journal.closeAll())
-  mainWindow.webContents.on('did-navigate', () => journal.closeAll())
+  mainWindow.webContents.on('render-process-gone', () => {
+    journal.closeAll()
+    mcp.pageReset()
+  })
+  mainWindow.webContents.on('did-navigate', () => {
+    journal.closeAll()
+    mcp.pageReset()
+  })
   runSelfTestIfRequested(mainWindow)
   mainWindow.on('closed', () => {
     mainWindow = null

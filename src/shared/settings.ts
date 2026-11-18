@@ -128,6 +128,8 @@ export const AppSettingsSchema = z.object({
   intervalsSync: z.object({ activities: z.boolean().default(false) }).default({ activities: false }),
   /** Mirror planned training into a CrankHog calendar in Google (src/core/calendar-mirror). Turns on when the rider signs in with Google. */
   googleCalendar: z.object({ enabled: z.boolean().default(false) }).default({ enabled: false }),
+  /** Claude Desktop and Claude Code can use CrankHog through its add-on (src/main/mcp): off until the rider turns it on; changes on with it. */
+  claude: z.object({ enabled: z.boolean().default(false), changes: z.boolean().default(true) }).default({ enabled: false, changes: true }),
   /** Capture the hardest effort and a coach line from each ride as images, saved next to its FIT file. */
   rideSnapshots: z.boolean().default(true),
   /** The description on uploaded rides (core/ride/upload-text.ts): the rider's text, with {stats} for the numbers they tick. */

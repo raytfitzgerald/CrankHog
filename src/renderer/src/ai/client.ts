@@ -141,7 +141,7 @@ export async function coachContext(now = Date.now(), draft?: unknown, budget = C
 }
 
 /** A calendar entry's length and load at `ftpW`, and its steps: a bike workout's as intervals.icu text, a session's as planned. */
-async function plannedFacts(e: ScheduledWorkout, ftpW: number): Promise<ContextPlanned> {
+export async function plannedFacts(e: ScheduledWorkout, ftpW: number): Promise<ContextPlanned> {
   if (isBikeWorkout(e)) {
     const w = e.workout ?? (e.workoutId ? await getWorkout(e.workoutId) : null)
     if (!w) return { durationS: null, load: null, distanceM: null }
