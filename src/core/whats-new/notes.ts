@@ -18,6 +18,16 @@ export interface WhatsNewEntry {
 
 export const WHATS_NEW: readonly WhatsNewEntry[] = [
   {
+    version: '1.3.0',
+    title: 'The coach chat does things now: changes you apply, and a training plan built in the conversation.',
+    points: [
+      'Ask the coach to move, change or drop a session, add rest or sick days, move a race or set your FTP. It shows a card of the changes, and nothing happens until you press Apply. Undo puts it back.',
+      'Ask for a plan, answer its questions, and the coach drafts every week for you to review. Tell it what to change, then accept and it goes on your calendar, counted back from race day.',
+      'Custom coaches take a master prompt, and Settings → Coach has notes for every coach: your goals, injuries and how you like to be coached.',
+      "Google Calendar shows each ride's steps.",
+    ],
+  },
+  {
     version: '1.2.0',
     title: "Import a coach's plan from a document, and a coach chat that knows your plan.",
     points: [

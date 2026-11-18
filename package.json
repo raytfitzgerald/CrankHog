@@ -1,7 +1,7 @@
 {
   "name": "crankhog",
   "productName": "CrankHog",
-  "version": "1.2.0",
+  "version": "1.3.0",
   "description": "A data-obsessed indoor cycling trainer for macOS: ERG/SIM control, workout builder, FTP tests, FIT export, Strava upload, and optional AI coaching.",
   "author": "Ray Fitzgerald (https://github.com/raytfitzgerald)",
   "license": "MIT",
