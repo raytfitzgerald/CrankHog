@@ -271,6 +271,35 @@
   }
 }
 
+/* The two wolves (TwoWolves), at the end of cranking the hog: the curtain
+   fades in, the punchline slams down and shakes, one flash as it lands, and
+   then the rest of the picture comes up out of the dark. Under Reduce Motion
+   the slam only fades. */
+@keyframes wolves-fade {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes wolves-slam {
+  0% { opacity: 0; transform: scale(2.6) rotate(-7deg); }
+  45% { opacity: 1; transform: scale(0.94) rotate(1.5deg); }
+  58% { transform: translate(-12px, 7px) scale(1.02) rotate(-1deg); }
+  68% { transform: translate(10px, -6px) rotate(1deg); }
+  78% { transform: translate(-7px, 4px) rotate(-0.5deg); }
+  88% { transform: translate(4px, -2px); }
+  100% { opacity: 1; transform: none; }
+}
+
+@keyframes wolves-flash {
+  from { opacity: 0.8; }
+  to { opacity: 0; }
+}
+
+@keyframes wolves-emerge {
+  from { opacity: 0; filter: blur(12px) brightness(0.4); }
+  to { opacity: 1; filter: none; }
+}
+
 /* Thin scrollbars in the theme's line colour */
 * {
   scrollbar-width: thin;
