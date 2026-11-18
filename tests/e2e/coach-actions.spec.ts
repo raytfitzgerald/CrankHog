@@ -265,5 +265,12 @@ test('a multisport plan built in the chat: questions, a draft, a revision, then 
       [day(2, 5), 'ride', 'Openers'],
     ].sort(),
   )
+  // at the narrowest the Mac window goes, every card fits its column
+  await ctx.app.evaluate(({ BrowserWindow }) => BrowserWindow.getAllWindows().find((w) => (w.getMinimumSize()[0] ?? 0) >= 1000)?.setSize(1100, 700))
+  await expect.poll(() => page.evaluate(() => window.innerWidth)).toBeLessThanOrEqual(1100)
+  await second.scrollIntoViewIfNeeded()
+  const spills = await page.evaluate(() => [...document.querySelectorAll('[data-testid="coach-plan"], [data-testid="coach-changes"]')].filter((el) => el.scrollWidth > el.clientWidth + 1).length)
+  expect(spills).toBe(0)
+  await page.screenshot({ path: test.info().outputPath('coach-plan-narrow.png') })
   await expect(page.getByText('Something went wrong')).toHaveCount(0)
 })
