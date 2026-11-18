@@ -2,8 +2,8 @@
 // them, field by field. It is written out as a session file (the stored form,
 // docs/WORKOUT-FORMAT.md), and a file without errors reads back into one, so
 // the builder and the text never disagree about what a session is.
-import type { PoolLength, SessionSection, SessionStep, StepTarget } from './model'
-import { parseSession } from './parse'
+import type { DistanceUnit, PoolLength, SessionSection, SessionStep, StepTarget } from './model'
+import { METRES, parseSession } from './parse'
 
 export type BuildSport = 'run' | 'swim'
 export type LengthUnit = 'min' | 'sec' | 'km' | 'mtr' | 'mi' | 'y'
@@ -160,8 +160,14 @@ function targetDraft(t: StepTarget | undefined, per: PacePer): Pick<DraftStep, '
   }
 }
 
+/** The distance units the builder offers for each sport. */
+const DISTANCE_UNITS: Record<BuildSport, readonly DistanceUnit[]> = { run: ['km', 'mtr', 'mi'], swim: ['mtr', 'y'] }
+
 function lengthDraft(st: SessionStep, sport: BuildSport, pool: PoolLength): Pick<DraftStep, 'amount' | 'unit'> {
   if (st.distanceM !== undefined) {
+    // the unit it was written in, when the builder has it: 300y stays 300 yd whatever the pool
+    const unit = st.distanceUnit
+    if (unit && DISTANCE_UNITS[sport].includes(unit)) return { amount: round(st.distanceM / METRES[unit], 3), unit }
     if (sport === 'swim' && pool === '25y') return { amount: String(Math.round(st.distanceM / M_PER_YD)), unit: 'y' }
     if (sport === 'run' && st.distanceM >= 1000) return { amount: round(st.distanceM / 1000, 3), unit: 'km' }
     return { amount: String(Math.round(st.distanceM)), unit: 'mtr' }
@@ -190,7 +196,9 @@ export function draftFromText(text: string, runPace: PacePer = 'km'): { draft: S
   const sport = p.header.sport
   if (sport !== 'run' && sport !== 'swim') return { error: 'The builder builds runs and swims. This session stays as text.' }
   if (!p.sections.some((s) => s.steps.length > 0)) return { error: 'This session has no steps to build with. Add some in the text, or keep it as text.' }
-  const pool = p.header.pool ?? '25m'
+  // no pool line: a swim whose distances are all in yards is in a yard pool
+  const distances = p.sections.flatMap((s) => s.steps).filter((st) => st.distanceM !== undefined)
+  const pool = p.header.pool ?? (sport === 'swim' && distances.length > 0 && distances.every((st) => st.distanceUnit === 'y') ? '25y' : '25m')
   const per = sport === 'swim' ? swimPer(pool) : runPace
   return { draft: { sport, name: p.name, pool, notes: p.header.notes ?? '', sections: sectionsDraft(p.sections, sport, pool, per) } }
 }

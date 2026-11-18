@@ -13,6 +13,9 @@ export const SESSION_SPORTS: readonly SessionSport[] = ['run', 'swim', 'other']
 /** A pool length for a swim. */
 export type PoolLength = '25m' | '50m' | '25y'
 
+/** The unit a step's distance is written in: "400mtr", "1.5km", "1mi", "100y". */
+export type DistanceUnit = 'mtr' | 'km' | 'mi' | 'y'
+
 export type StepTarget =
   /** Seconds per km (runs) or per 100 m (swims); a range when low and high differ. */
   | { kind: 'pace'; low: number; high: number; per: 'km' | 'mi' | '100m' | '100y' }
@@ -30,6 +33,8 @@ export interface SessionStep {
   /** Seconds, or metres: exactly one of the two. */
   durationS?: number
   distanceM?: number
+  /** What the distance was written in, so it is shown the same way: 100y stays 100y, not 91mtr. */
+  distanceUnit?: DistanceUnit
   target?: StepTarget
   rest?: boolean
   /** Words after the target: "drill", "kick", "easy". */

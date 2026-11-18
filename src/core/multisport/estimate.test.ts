@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest'
+import { formatSportDistance } from '../sport/format'
 import { estimateSession, type SessionThresholds } from './estimate'
 import { SESSION_EXAMPLES } from './examples'
 import { parseSession } from './parse'
@@ -74,5 +75,30 @@ describe('estimateSession', () => {
     expect(e.warnings).toEqual(['Heart-rate targets in bpm need your threshold heart rate to score the load. Set it in Settings, Athlete.'])
     // half an hour at 145 of 170 bpm: 0.5 × 0.853² × 100
     expect(estimateSession('run', p.sections, p.header, { lthr: 170 }).load).toBe(36.4)
+  })
+})
+
+describe('yard totals', () => {
+  const yards = (body: string) => {
+    const p = parseSession('x.txt', `sport: swim\npool: 25y\n\n${body}`)
+    const e = estimateSession('swim', p.sections, p.header, thresholds)
+    return e.distanceM === null ? null : formatSportDistance(e.distanceM, 'swim', 'imperial')
+  }
+
+  it('adds 300 + 4 × 50 + 8 × 100 + 200 yd up to 1,500 yd, not 1,499', () => {
+    expect(yards('- 300y easy\n\nDrills 4x\n- 50y drill\n- 15s rest\n\nMain set 8x\n- 100y 100% Pace\n- 15s rest\n\n- 200y easy')).toBe('1,500 yd')
+    expect(yards('- 200y easy\n\n6x\n- 50y drill\n\n- 800y Z3 Pace\n\n- 200y easy')).toBe('1,500 yd')
+  })
+
+  it('adds up every whole number of lengths, and every set of 100s, exactly', () => {
+    for (let lengths = 1; lengths <= 200; lengths++) expect(yards(`- ${lengths * 25}y easy`)).toBe(`${(lengths * 25).toLocaleString('en-US')} yd`)
+    for (let reps = 1; reps <= 100; reps++) expect(yards(`Main ${reps}x\n- 100y easy`)).toBe(`${(reps * 100).toLocaleString('en-US')} yd`)
+  })
+
+  it('still shows the same swim as 1,372 m in metric', () => {
+    const p = parseSession('x.txt', 'sport: swim\npool: 25y\n\n- 300y easy\n\n4x\n- 50y drill\n\n8x\n- 100y easy\n\n- 200y easy')
+    const e = estimateSession('swim', p.sections, p.header, thresholds)
+    expect(e.distanceM).toBe(1371.6)
+    expect(formatSportDistance(e.distanceM!, 'swim', 'metric')).toBe('1,372 m')
   })
 })

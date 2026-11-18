@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { SESSION_EXAMPLES } from './examples'
-import { formatSections, isSessionFile, parseLength, parseSession } from './parse'
+import { formatSections, formatStep, isSessionFile, parseLength, parseSession } from './parse'
 
 const example = (i: number) => SESSION_EXAMPLES[i]!
 const parse = (text: string, fileName = 'x.txt') => parseSession(fileName, text)
@@ -29,8 +29,8 @@ describe('the guide examples', () => {
     expect(p.errors).toEqual([])
     expect(p.warnings).toEqual([])
     expect(p.header.pool).toBe('25m')
-    expect(p.sections[0]!.steps[0]).toEqual({ line: 6, distanceM: 400, note: 'easy' })
-    expect(p.sections[1]).toEqual({ title: 'Drills', repeat: 4, steps: [{ line: 9, distanceM: 50, note: 'drill' }, { line: 10, durationS: 15, rest: true }] })
+    expect(p.sections[0]!.steps[0]).toEqual({ line: 6, distanceM: 400, distanceUnit: 'mtr', note: 'easy' })
+    expect(p.sections[1]).toEqual({ title: 'Drills', repeat: 4, steps: [{ line: 9, distanceM: 50, distanceUnit: 'mtr', note: 'drill' }, { line: 10, durationS: 15, rest: true }] })
     expect(p.sections[2]!.steps[0]!.target).toEqual({ kind: 'pace', low: 100, high: 100, per: '100m' })
   })
 
@@ -61,10 +61,11 @@ describe('lengths', () => {
     expect(parseLength('10m')).toEqual({ durationS: 600 })
     expect(parseLength('1h20m')).toEqual({ durationS: 4800 })
     expect(parseLength('5m30s')).toEqual({ durationS: 330 })
-    expect(parseLength('400mtr')).toEqual({ distanceM: 400 })
-    expect(parseLength('1.5km')).toEqual({ distanceM: 1500 })
-    expect(parseLength('1mi')).toEqual({ distanceM: 1609.3 })
-    expect(parseLength('100y')).toEqual({ distanceM: 91.4 })
+    expect(parseLength('400mtr')).toEqual({ distanceM: 400, distanceUnit: 'mtr' })
+    expect(parseLength('1.5km')).toEqual({ distanceM: 1500, distanceUnit: 'km' })
+    expect(parseLength('1mi')).toEqual({ distanceM: 1609.344, distanceUnit: 'mi' })
+    expect(parseLength('100y')).toEqual({ distanceM: 91.44, distanceUnit: 'y' })
+    expect(parseLength('100yd')).toEqual({ distanceM: 91.44, distanceUnit: 'y' })
     expect(parseLength('fast')).toBeNull()
   })
 })
@@ -106,6 +107,10 @@ describe('the report messages', () => {
 
   it('warns about a distance that isn’t whole lengths of the pool', () => {
     expect(messages('sport: swim\npool: 25m\n\n- 175mtr easy\n- 160mtr easy').warnings).toEqual(["line 5: distance 160mtr isn't a whole number of 25m lengths."])
+  })
+
+  it('names a distance in that warning the way it was written', () => {
+    expect(messages('sport: swim\npool: 25m\n\n- 100y easy').warnings).toEqual(["line 4: distance 100y isn't a whole number of 25m lengths."])
   })
 
   it('wants a step to start with a length, a percent to say what of, and a zone to say which', () => {
@@ -154,5 +159,49 @@ describe('formatSections', () => {
       expect(again.errors).toEqual([])
       expect(again.sections.map((s) => ({ ...s, steps: s.steps.map(({ line: _l, ...rest }) => rest) }))).toEqual(p.sections.map((s) => ({ ...s, steps: s.steps.map(({ line: _l, ...rest }) => rest) })))
     }
+  })
+})
+
+// The swim from the 1.3.0 screenshots: 300 + 4 × 50 + 8 × 100 + 200 = 1,500 yd.
+const CSS_YARDS = `sport: swim
+name: CSS 8x100
+pool: 25y
+
+Warm-up
+- 300y easy
+
+Drills 4x
+- 50y drill
+- 15s rest
+
+Main set 8x
+- 100y 100% Pace
+- 15s rest
+
+Cool-down
+- 200y easy
+`
+
+describe('formatStep', () => {
+  const shown = (text: string) => parse(text).sections.flatMap((s) => s.steps.map((st) => formatStep(st).replace(/^- /, '')))
+
+  it('shows yards as yards, not as metres', () => {
+    const steps = ['300y easy', '50y drill', '15s rest', '100y 100% Pace', '15s rest', '200y easy']
+    expect(shown(CSS_YARDS)).toEqual(steps)
+    // with no pool line too
+    expect(shown(CSS_YARDS.replace('pool: 25y\n', ''))).toEqual(steps)
+    expect(shown('sport: swim\n\n- 100yd easy')).toEqual(['100y easy'])
+  })
+
+  it('keeps every distance in the unit it was written in', () => {
+    expect(shown('sport: run\n\n- 1mi 7:00/mi Pace\n- 1.5km easy\n- 2000mtr easy\n- 400mtr easy')).toEqual(['1mi 7:00/mi Pace', '1.5km easy', '2000mtr easy', '400mtr easy'])
+    expect(shown('sport: swim\npool: 25m\n\n- 100y easy\n- 12.5y kick')).toEqual(['100y easy', '12.5y kick'])
+  })
+
+  it('reads every distance back the same, in yards too', () => {
+    const p = parse(CSS_YARDS)
+    const again = parse(`sport: swim\n\n${formatSections(p.sections)}`)
+    const bare = (ss: typeof p.sections) => ss.map((s) => ({ ...s, steps: s.steps.map(({ line: _l, ...rest }) => rest) }))
+    expect(bare(again.sections)).toEqual(bare(p.sections))
   })
 })
