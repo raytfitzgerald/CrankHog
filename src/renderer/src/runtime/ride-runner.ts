@@ -8,6 +8,7 @@ import { FuelingTimer } from '@core/ride/fueling'
 import type { RidePlan } from '@core/ride/plan'
 import type { RideRecord } from '@core/ride/recorder'
 import { RideSession, type JournalSink } from '@core/ride/session'
+import { rideName } from '@core/ride/upload-text'
 import { WorkoutPlan } from '@core/ride/workout-plan'
 import type { RideKind } from '@core/ride/types'
 import type { LiveEngine } from '@core/ride/live-engine'
@@ -214,7 +215,7 @@ export class RideRunner {
       const rj = this.journey ? await finishRideJourney(this.journey, { rideId: session.rideId, endedAt, simulated: session.options.simulated }).catch(() => null) : null
       const saved = await saveFinishedRide({
         rideId: session.rideId,
-        name: rj ? `${session.options.name} · ${rj.title}` : session.options.name,
+        name: rideName({ name: session.options.name, kind: session.kind, ...(rj ? { journeyTitle: rj.title } : {}) }),
         ...(rj ? { descriptionExtra: rj.description } : {}),
         kind: session.kind,
         simulated: session.options.simulated,

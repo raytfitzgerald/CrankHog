@@ -1,7 +1,10 @@
 // The description CrankHog writes under a ride it uploads to Strava and
 // intervals.icu. The rider writes it in Settings → Strava & sync; {stats}
 // stands for the numbers they tick, in a fixed order. On a journey, the
-// journey's line goes above it.
+// journey's line goes just above the crankhog.app line, and only a free ride
+// puts the journey in its title.
+
+import type { RideKind } from './types'
 
 export const STATS_TOKEN = '{stats}'
 export const MAX_DESCRIPTION = 1000
@@ -60,5 +63,22 @@ export function uploadDescription(o: { text: string; stats: readonly Description
       const tidied = filled.replace(/(\s*·\s*){2,}/g, ' · ').replace(/^\s*·\s*|\s*·\s*$/g, '')
       return tidied.trim() ? [tidied] : []
     })
-  return [o.extra?.trim() || null, lines.join('\n').trim() || null].filter(Boolean).join('\n')
+  const body = lines.join('\n').trim()
+  const extra = o.extra?.trim()
+  if (!extra) return body
+  if (!body) return extra
+  // the journey's line sits just above the sign-off, or goes last when the rider took it out
+  const out = body.split('\n')
+  const signOff = out.findIndex((line) => /crankhog\.app/i.test(line))
+  out.splice(signOff === -1 ? out.length : signOff, 0, extra)
+  return out.join('\n')
+}
+
+/**
+ * The ride's name, on Strava and in CrankHog. A free ride on a journey adds
+ * the journey ("Free ride · Tour de France, day 3"); a workout or an FTP test
+ * keeps its own name, and its journey goes in the description only.
+ */
+export function rideName(o: { name: string; kind: RideKind; journeyTitle?: string }): string {
+  return o.kind === 'free' && o.journeyTitle ? `${o.name} · ${o.journeyTitle}` : o.name
 }
