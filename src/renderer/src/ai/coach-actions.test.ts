@@ -277,6 +277,17 @@ describe('intervals.icu follows', () => {
     expect((await db().schedule.get(e.id))?.pushedEventId).toBe('ev-new')
   })
 
+  it('takes a run that becomes a ride off there, and sends it anew after Undo', async () => {
+    const e = await scheduleSession(addDays(today, 2), 'run', 'Easy run', { durationS: 2400, text: '- 40m Z2 HR' })
+    await db().schedule.update(e.id, { pushedEventId: 'ev-4' })
+    const applied = await applyProposal(proposal({ type: 'replace', ref: c(e.id), sport: 'bike', name: 'Spin', steps: '- 40m 60%' }))
+    expect(deletes()).toEqual(['ev-4'])
+    expect((await db().schedule.get(e.id))?.pushedEventId).toBeUndefined()
+    await undoSteps(applied.undo)
+    expect(puts().at(-1)!.eventId).toBeUndefined()
+    expect(await db().schedule.get(e.id)).toMatchObject({ name: 'Easy run', pushedEventId: 'ev-new' })
+  })
+
   it("sends nothing for a session that was never sent", async () => {
     const { thu } = await planOnCalendar()
     const applied = await applyProposal(proposal({ type: 'replace', ref: c(thu.id), sport: 'run', name: 'Easy run', steps: '- 30m Z2 HR' }))

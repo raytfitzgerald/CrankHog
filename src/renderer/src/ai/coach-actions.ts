@@ -446,10 +446,15 @@ async function undoStep(s: UndoStep): Promise<void> {
     case 'move-entry':
       if (await db().schedule.get(s.id)) await moveScheduled(s.id, s.date)
       return
-    case 'put-entry':
-      await db().schedule.put(s.entry)
-      await follow(s.entry.id, !!s.resend)
+    case 'put-entry': {
+      // a copy on intervals.icu that went in the meantime (the session became a ride) is sent anew, not to its old event
+      const now = await db().schedule.get(s.entry.id)
+      const gone = !!s.entry.pushedEventId && !now?.pushedEventId
+      const { pushedEventId: _p, ...fresh } = s.entry
+      await db().schedule.put(gone ? fresh : s.entry)
+      await follow(s.entry.id, !!s.resend || gone)
       return
+    }
     case 'plan-item': {
       const p = await db().plans.get(s.planId)
       if (!p) return
