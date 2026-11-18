@@ -9,6 +9,7 @@ import { mirrorWindowStart, type MirrorEvent } from '@core/calendar-mirror/mirro
 import type { GoogleStatus } from '@shared/ipc/contract'
 import type { UnitSystem } from '@core/units'
 import { dateKey, entrySport, isBikeWorkout, type DateKey, type PlannedSession, type ScheduledWorkout } from '@core/workout/schedule'
+import { toIntervalsText } from '@core/workout/io/intervals-text'
 import { currentFtp, DEFAULT_FTP_W } from '../db/athlete-repo'
 import { db } from '../db/db'
 import { bridge } from '../platform/bridge'
@@ -43,7 +44,9 @@ async function sourceOf(e: ScheduledWorkout, ftpW: number): Promise<MirrorSource
     const w = e.workout ?? (e.workoutId ? await getWorkout(e.workoutId) : null)
     if (!w) return base
     const planned = plannedStatsOf(w, describeWorkout(w, ftpW).stats)
-    return { ...base, durationS: planned.durationS, tss: planned.tss, ...(w.description ? { notes: w.description } : {}) }
+    // the steps as intervals.icu text, so a workout changed here (by the rider or the coach) shows its new steps there
+    const steps = toIntervalsText(w).trim()
+    return { ...base, durationS: planned.durationS, tss: planned.tss, ...(steps ? { workoutText: steps } : {}), ...(w.description ? { notes: w.description } : {}) }
   }
   const s = e.session
   if (!s) return base
