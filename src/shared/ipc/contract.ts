@@ -79,6 +79,18 @@ export const GoogleStatusSchema = z.object({
   calendarId: z.string().max(300).optional(),
 })
 export type GoogleStatus = z.infer<typeof GoogleStatusSchema>
+
+/** CrankHog's MCP server for Claude (src/main/mcp): whether it's serving, and how Claude finds it. */
+export const McpStatusSchema = z.object({
+  enabled: z.boolean(),
+  running: z.boolean(),
+  /** Claude connections open now. */
+  clients: z.number(),
+  error: z.string().nullable(),
+  /** The command that adds CrankHog to Claude Code. */
+  claudeCode: z.string(),
+})
+export type McpStatus = z.infer<typeof McpStatusSchema>
 const AiProviderSchema = z.enum(['anthropic', 'openai', 'grok', 'ollama'])
 const AiStatusSchema = z.object({
   provider: AiProviderSchema.nullable(),
@@ -287,6 +299,13 @@ export const invoke = {
   /** Takes a session CrankHog sent off the intervals.icu calendar. */
   'intervals.deleteWorkout': { req: z.object({ eventId: z.string().min(1).max(40) }), res: Ok },
   'google.status': { req: Empty, res: GoogleStatusSchema },
+  'mcp.status': { req: Empty, res: McpStatusSchema },
+  /** Builds the CrankHog add-on (.mcpb) and opens it, which installs it in Claude Desktop. */
+  'mcp.installDesktop': { req: Empty, res: z.object({ ok: z.boolean(), error: z.string().optional() }) },
+  /** The page can take Claude's tool calls (mcp.call). */
+  'mcp.ready': { req: Empty, res: Empty },
+  /** A tool call's answer, for Claude. */
+  'mcp.result': { req: z.object({ callId: z.string().max(64), text: z.string().max(4_000_000), isError: z.boolean() }), res: Empty },
   /** The rider's own Google app (a Desktop OAuth client), for builds without CrankHog's. */
   'google.setApp': {
     req: z.object({ clientId: z.string().regex(/^[0-9]{1,30}-[a-z0-9]{8,64}\.apps\.googleusercontent\.com$/), clientSecret: z.string().regex(/^[A-Za-z0-9_-]{20,80}$/) }),
@@ -383,6 +402,9 @@ export interface EventMap {
   'uploads.changed': OutboxItemDto
   /** The Google sign-in or calendar sync changed. */
   'google.calendar.changed': GoogleStatus
+  /** A tool call from Claude, its input checked by main against the tool's schema; answered with mcp.result. */
+  'mcp.call': { callId: string; name: string; args: unknown }
+  'mcp.status': McpStatus
   'update.status': UpdateStatus
   'ai.stream.delta': { streamId: string; text: string }
   /** `toolCalls`: what the coach chat proposed, unchecked (the renderer validates each before showing it). */

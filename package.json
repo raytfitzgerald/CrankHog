@@ -83,6 +83,7 @@
     "@capacitor/cli": "^8.5.2",
     "@eslint/js": "^10.0.1",
     "@garmin/fitsdk": "^21.217.0",
+    "@modelcontextprotocol/sdk": "1.32.2",
     "@playwright/test": "^1.63.0",
     "@tailwindcss/vite": "^4.3.3",
     "@testing-library/dom": "^10.4.2",

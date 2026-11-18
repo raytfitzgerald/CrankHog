@@ -261,6 +261,11 @@ export function createWebShim(): CrankHogBridge {
     'remote.stop': () => ({ running: false, url: null, qrDataUrl: null, allowControl: false, clients: [] }),
     'remote.status': () => ({ running: false, url: null, qrDataUrl: null, allowControl: false, clients: [] }),
     'remote.kick': () => ({ ok: true }),
+    // Claude reaches the Mac app only
+    'mcp.status': () => ({ enabled: false, running: false, clients: 0, error: null, claudeCode: '' }),
+    'mcp.installDesktop': () => ({ ok: false, error: 'Claude works with the Mac app.' }),
+    'mcp.ready': () => ({}),
+    'mcp.result': () => ({}),
     'power.keepAwake': async ({ on }) => {
       if (native.isNative()) {
         await native.keepAwake(on).catch(() => undefined)
