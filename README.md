@@ -9,17 +9,17 @@
 
 You bought the smart trainer. You bought the bike. You turned a corner of the garage into a pain cave, complete with a fan older than your car. Then an app asked for a monthly subscription so you could pedal. In your garage. On the trainer you already paid for. Going nowhere.
 
-CrankHog is free. No subscription, no "Premium" tier, no annual plan with the cancel button hidden four menus deep, and no "your trial has ended" email on the morning of your FTP test. ERG, workouts, FTP tests, routes, the builder, the charts and a coach who will call you a statue mid-interval: all of it, for the grand total of nothing. The only thing it charges is your legs.
+CrankHog is free. No subscription, no "Premium" tier, no annual plan with the cancel button hidden four menus deep, and no "your trial has ended" email on the morning of your FTP test. ERG, workouts, FTP tests, routes, the builder, the charts, a training calendar, a plan for your race and a coach who will call you a statue mid-interval, then rewrite your week when you whine about it: all of it, for the grand total of nothing. The only thing it charges is your legs.
 
-It's a data-obsessed indoor cycling trainer for macOS, and [for your phone](#on-your-phone). It drives your smart trainer in ERG, level, slope or heart-rate mode, plays and builds structured workouts, runs an FTP test that actually saves your FTP, rides real routes, and records every second on your Mac as a FIT file. Your rides stay yours.
+It's a data-obsessed indoor cycling trainer for macOS, and [for your phone](#on-your-phone). It drives your smart trainer in ERG, level, slope or heart-rate mode, plays and builds structured workouts, runs an FTP test that actually saves your FTP, rides real routes, and records every second on your Mac as a FIT file. Around the riding, it keeps a training calendar with your runs, swims and squash games next to your rides, builds plans that count back from race day, and, with an AI provider you pick, gives you a coach who rearranges your week when life gets in the way. Your rides stay yours.
 
-<p align="center"><img src="docs/screenshots/home.png" alt="Home: a velodrome seen from above with this week's rides lapping it, the Drill Sergeant shouting from the infield through a megaphone, and a headline that reads your week" width="900"></p>
+<p align="center"><img src="docs/screenshots/home.png" alt="Home: a velodrome seen from above with this week's rides lapping it, the Drill Sergeant shouting from the infield through a megaphone, a headline that reads your week, a suggested workout and a countdown to the next race" width="900"></p>
 
 > CrankHog is not affiliated with or endorsed by FulGaz, Zwift, TrainerRoad or Wahoo. Product names are trademarks of their owners.
 
 ## A quick tour
 
-**Home is a velodrome.** Every ride this week puts a rider on the boards (with your face, if you add a photo), and harder rides lap faster. Your coach stands in the infield with a megaphone, yelling at you to get on the bike. Haven't ridden yet this week? Another coach is already doing laps, and yours will make sure you hear about it.
+**Home is a velodrome.** Every ride this week puts a rider on the boards (with your face, if you add a photo), and harder rides lap faster. Your coach stands in the infield with a megaphone, yelling at you to get on the bike. Haven't ridden yet this week? Another coach is already doing laps, and yours will make sure you hear about it. Under the headline: a workout picked for how tired you are, and a countdown to your next race.
 
 **Pick a ride and go.** One big button, four choices, no forty-tab dashboard to decode before your warm-up.
 
@@ -38,11 +38,23 @@ It's a data-obsessed indoor cycling trainer for macOS, and [for your phone](#on-
 
 <p align="center"><img src="docs/screenshots/coach.png" alt="Coach settings: the personas, a sample line, spice from gentle to feral, and profanity from clean to unhinged" width="900"></p>
 
-**Workouts you can see before they hurt you,** on three shelves: CrankHog's own workouts, your Custom ones, and your Training plans.
+**Then the coach does your admin.** With an AI provider on, tell your coach work is eating you alive and you get a card back: Tuesday's intervals become an easy spin, the swim moves up a day, Friday turns into a travel day. Every change comes with its reason and the session before and after. Nothing moves until you press **Apply**, and **Undo** puts it all back.
+
+<p align="center"><img src="docs/screenshots/coach-chat.png" alt="The coach chat: the rider says work is busy and they're away Friday; the Drill Sergeant answers with a card of three changes, each with its reason, and the calendar before and after, waiting for Apply" width="900"></p>
+
+**And writes the whole plan.** Ask for a plan for your race. The coach asks what it needs to know (your days, your hours, your pool, what hurts), then drafts every week: phases and recovery weeks, hours of each sport, and every session with its steps. Say "less swimming" and it rewrites only the weeks that change. Accept it and it lands on your calendar, counted back from race day. Got a plan from a human coach? Drop in the spreadsheet, Word file or PDF, and your AI reads it into sessions you check before anything is saved.
+
+<p align="center"><img src="docs/screenshots/coach-plan.png" alt="A draft plan in the coach chat: twelve weeks to an Olympic triathlon, a bar for each week's hours, base, build, peak and taper with their key sessions, hours of each sport, and week one's sessions" width="900"></p>
+
+**A calendar for the whole week, not just the rides.** Every planned workout shows its length, load and shape; done turns green and missed turns red. Runs, swims and squash come in from your watch's FIT files or intervals.icu, or you log them by hand, and each week adds up your ride, run, swim and other time against the plan. Drag a session to another day, mark your races and days off, and Google Calendar follows along.
+
+<p align="center"><img src="docs/screenshots/calendar.png" alt="The Calendar a month ahead: the triathlon plan's swims, rides and runs on their days, each with its length and load, and beside every week its planned time by sport and the fitness, fatigue and form it leads to" width="900"></p>
+
+**Workouts you can see before they hurt you.** Bike, Run and Swim each get a tab, and Bike has three shelves: CrankHog's own workouts, your Custom ones, and your Training plans.
 
 <p align="center">
-  <img src="docs/screenshots/workouts.png" alt="The Workouts page on its CrankHog workouts tab: every workout drawn as its power profile at your FTP, with Custom workouts and Training plan tabs beside it" width="440">
-  <img src="docs/screenshots/training-plan.png" alt="The Training plan tab: three workouts numbered in order, with arrows to reorder them" width="440">
+  <img src="docs/screenshots/workouts.png" alt="The Workouts page with its Bike, Run and Swim tabs, on the CrankHog workouts shelf: every workout drawn as its power profile at your FTP, with Custom workouts and Training plan beside it" width="440">
+  <img src="docs/screenshots/training-plan.png" alt="The Training plan tab: the Lakeside Olympic plan, its training days, counted back from race day, and its workouts in order" width="440">
 </p>
 
 **And some workouts your old app would never have shipped.** The CrankHog shelf includes eight rude ones, where the power chart is the joke. The Bird is four knuckles at threshold and a middle finger at 150 % FTP. Mount Stupid is the Dunning-Kruger curve. Stairway to Hell has no landing. Liar Liar says "last one" seven times. Sawtooth Motherfucker is exactly what it sounds like. The cues swear, bleeped to match your profanity setting.
@@ -52,6 +64,10 @@ It's a data-obsessed indoor cycling trainer for macOS, and [for your phone](#on-
 **A builder for the ones nobody has written yet.** Drag blocks, type intervals.icu text, or describe it and let the AI write it. File it under Custom workouts or straight into your plan.
 
 <p align="center"><img src="docs/screenshots/builder.png" alt="The builder: name, author and folder, live TSS, IF and zones, blocks you drag and resize, and export to Zwift" width="900"></p>
+
+**Runs and swims get a builder too.** Sections and repeats, lengths in time or distance, and targets in heart rate, pace, or a percent of your threshold pace or CSS, with the time and load worked out as you go. Or type it as text and watch it turn into steps.
+
+<p align="center"><img src="docs/screenshots/builder-run.png" alt="The run builder: Threshold 5x5 in warm-up, main set and cool-down sections, each step with its length and a heart-rate or threshold-pace target, and the session's time and load beside it" width="900"></p>
 
 **Real roads, real gradients.** Import a GPX and the trainer climbs when the road does. Race a ghost of your last attempt if you're feeling brave.
 
@@ -121,6 +137,7 @@ It's a data-obsessed indoor cycling trainer for macOS, and [for your phone](#on-
 - **Training plan tab.** **Plans and calendar** to build plans and put them on the calendar, or **Browse workouts** to search and filter a plan's workouts, numbered in plan order, and ride any of them.
 - **Training plans.** **Add a training plan** asks what you're training for and when, then:
   - **Import your workout files.** They go in in file-name order, and a file named `YYYY-MM-DD_name` goes on that day.
+  - **Import a plan document.** A coach's plan as a spreadsheet (.csv, .xlsx, .xls, .ods, .tsv), a Word file, a PDF, or text or Markdown. Your AI provider reads it into sessions: CrankHog says where the document's text is going and sends nothing until you press **Send it and read it**, and nothing else goes with it. No AI? **Download the template**, write one session a row, and it's read on your computer with no AI at all, on the Mac, the web and the iPhone. Either way, the review lists every session by day, sport and length, anything it couldn't read and why, and the race it found, before anything is saved. A race the document names goes on your calendar as an A event, and the plan counts back from it. A scanned PDF is a picture of the page and can't be read.
   - **Build a plan for me.** A few questions (hours a week, the days you ride, your long-ride day, raise FTP, build endurance, or the event, whether all-round, climbing, time trial or criterium), then a week-by-week plan: base, build, specialty and a taper into your event, with a recovery week every fourth week and a ramp test to start. CrankHog builds it from its own workouts, or your AI plans the weeks and writes any workout the library is missing.
   - **Start empty** and pick workouts from your library.
 
@@ -237,7 +254,7 @@ Apple doesn't let any iPhone browser use Bluetooth devices, so the iPhone app ca
 **Good to know**
 
 - The phone app keeps its rides in that phone's browser, separate from the Mac app. Use **Settings → Data & backup** to move a backup zip between them.
-- AI coaching and Strava upload need the Mac app, because they keep their keys and tokens on the Mac. On the phone, the coaches use their built-in lines.
+- AI coaching, Google Calendar and Strava upload need the Mac app, because they keep their keys and tokens on the Mac. On the phone, the coaches use their built-in lines, and a plan document comes in through the template.
 - It updates itself: the next time it opens online, it loads the latest version.
 
 ## First ride
@@ -276,11 +293,11 @@ CrankHog only uploads. It never reads your Strava data. Without a subscription, 
 **intervals.icu.** Paste your API key and athlete ID (from intervals.icu → Settings → Developer) in **Settings → Strava & sync**.
 - **Completed activities.** Turn on **Completed activities** there, and the runs, swims, squash games and outdoor rides your Garmin records show on the Calendar. They count in weekly volume by sport and in fitness. CrankHog checks at launch and every two hours, and the Calendar has **Refresh activities**.
 - **Garmin first.** Connect your Garmin to intervals.icu directly (on intervals.icu: Settings, Connections). Activities intervals.icu got from Strava can't be passed on, and CrankHog still never reads Strava itself.
-- **Kept out of the AI.** Activities from intervals.icu are never sent to the AI.
+- **And the AI.** Activities and planned workouts from intervals.icu go to your AI provider with your coach chat, like everything else kept in CrankHog. Nothing from Strava ever does, since intervals.icu never passes Strava activities on.
 - **Planned sessions to your watch.** Open a planned run or swim on the Calendar and press **Send to intervals.icu**. intervals.icu reads the steps and puts the workout on your Garmin, if your Garmin connection there allows planned workouts. Moving or removing the session in CrankHog changes it there too. **Import from intervals.icu** brings the runs and swims you plan there onto CrankHog's calendar.
 
 **Google Calendar.** Open **Settings → Strava & sync** and press **Sign in with Google**.
-- **What you get.** CrankHog makes a calendar named CrankHog in your Google account and keeps it matching your plan: every planned workout and session from 30 days ago onward, as an all-day event with its length, TSS or load, and notes. Runs, swims and other sessions also carry their whole `.txt` file, header lines and steps, as you imported it. Add, move, rename or remove one in CrankHog and Google follows within seconds, plans and intervals.icu imports included. Changes made while offline go across the next time CrankHog can reach Google.
+- **What you get.** CrankHog makes a calendar named CrankHog in your Google account and keeps it matching your plan: every planned workout and session from 30 days ago onward, as an all-day event with its length, TSS or load, and notes. A ride's event lists its steps, so a workout the coach changes shows its new steps there too. Runs, swims and other sessions carry their whole `.txt` file, header lines and steps. Add, move, rename or remove one in CrankHog and Google follows within seconds, plans and intervals.icu imports included. Changes made while offline go across the next time CrankHog can reach Google.
 - **Only its own calendar.** CrankHog asks for permission to manage calendars it created, nothing else. Your other calendars and events are never read or touched. Events you add to the CrankHog calendar yourself are left alone.
 - **CrankHog is the plan.** Drag an event to another day in Google and it goes back to its day in CrankHog. Move it in CrankHog instead.
 - **Your own Google app.** Official builds carry CrankHog's own Google app, so you just sign in. A build without it (a local build, or a fork) shows a short setup: make a free Google Cloud project, enable the Calendar API, create a *Desktop app* OAuth client, and paste its client ID and secret.
@@ -296,11 +313,15 @@ CrankHog only uploads. It never reads your Strava data. Without a subscription, 
 - **Grok (xAI):** an API key from [console.x.ai](https://console.x.ai).
 - **Ollama:** runs on your Mac with no key. Install it from [ollama.com](https://ollama.com) and pull a model.
 
-Keys are encrypted with your macOS Keychain and never reach the app's UI process. The AI only ever sees rides recorded on this Mac: never anything from Strava, and never activities synced from intervals.icu.
+Claude, OpenAI and Grok propose changes and plans with their own tool calls. With Ollama any local model can, though a small one may struggle to write a long plan.
+
+Keys are encrypted with your macOS Keychain and never reach the app's UI process.
+
+**What the AI sees.** With each chat message it gets what's kept in CrankHog, fresh: your rides, runs, swims and other sports (activities from intervals.icu included), your plans and the week you're in, the calendar from four weeks back to up to twelve ahead, races, days off, and your custom coach's master prompt and your notes for every coach. A ride debrief gets that ride, and the fitness overview your fitness numbers, each with the master prompt and notes. A plan document goes only when you import one, on its own. Your name never leaves your Mac, and nothing from Strava ever goes to the AI.
 
 ## Your data
 
-Everything stays on this Mac. Rides live in the app's database, plus a FIT file per ride in `~/Documents/CrankHog/Rides`; you can change that folder, for example to one in iCloud Drive for free sync. **Settings → Data & backup** saves or restores a full backup zip, or scans the FIT folder to rebuild your history on a new Mac. Nothing leaves the machine unless you connect Strava, intervals.icu or Google Calendar, turn on an AI provider, or send a bug report. Google Calendar gets only the name, day and description of each planned session. The update check asks GitHub for the newest release and sends no data of yours.
+Everything stays on this Mac. Rides live in the app's database, plus a FIT file per ride in `~/Documents/CrankHog/Rides`; you can change that folder, for example to one in iCloud Drive for free sync. **Settings → Data & backup** saves or restores a full backup zip, or scans the FIT folder to rebuild your history on a new Mac. Nothing leaves the machine unless you connect Strava, intervals.icu or Google Calendar, turn on an AI provider, or send a bug report. Google Calendar gets only the name, day and description of each planned session. Your AI provider gets what's listed under [What the AI sees](#connecting-services-all-optional), and never your name or anything from Strava. The update check asks GitHub for the newest release and sends no data of yours.
 
 ## Reporting a bug
 
