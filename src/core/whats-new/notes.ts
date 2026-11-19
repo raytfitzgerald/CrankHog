@@ -18,6 +18,16 @@ export interface WhatsNewEntry {
 
 export const WHATS_NEW: readonly WhatsNewEntry[] = [
   {
+    version: '1.4.0',
+    title: 'Claude can use CrankHog, journeys ride on a real map, and you can ride with others.',
+    points: [
+      'Settings → AI → Claude: add CrankHog to Claude Desktop or Claude Code. Claude reads your training, changes your calendar and builds plans with you, and every change has Undo.',
+      'On a journey, the ride panel has Ride-along, Map and 3D tabs: the real roads and hills, and the terrain in 3D. Settings → Journeys chooses which journeys use the real map.',
+      'Ride with others (beta): turn it on in Settings, then ride Routes → Shared tracks with riders of other apps over OpenBikeNet.',
+      'Strava titles name the journey only on a free ride. Swims written in yards stay in yards, and 1,500 yd totals 1,500.',
+    ],
+  },
+  {
     version: '1.3.0',
     title: 'The coach chat does things now: changes you apply, and a training plan built in the conversation.',
     points: [
