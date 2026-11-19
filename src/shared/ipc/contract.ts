@@ -91,6 +91,39 @@ export const McpStatusSchema = z.object({
   claudeCode: z.string(),
 })
 export type McpStatus = z.infer<typeof McpStatusSchema>
+/** Ride with others (beta): what the OpenBikeNet connection in main is doing (core/openbikenet/session.ts ObnState). */
+export const GroupRideStateSchema = z.object({
+  status: z.enum(['off', 'idle', 'connecting', 'connected', 'waiting']),
+  route: z.string().nullable(),
+  riders: z.array(
+    z.object({
+      id: z.string(),
+      app: z.string(),
+      name: z.string(),
+      lap: z.number(),
+      distance: z.number(),
+      speed: z.number(),
+      power: z.number().nullable(),
+      cadence: z.number().nullable(),
+      heartRate: z.number().nullable(),
+      at: z.number(),
+    }),
+  ),
+  riding: z.boolean(),
+  hold: z.enum(['simulated', 'name', 'refused']).nullable(),
+  problem: z.string().nullable(),
+  retryAt: z.number().nullable(),
+})
+export type GroupRideState = z.infer<typeof GroupRideStateSchema>
+/** The rider on a shared track, from the ride (core/openbikenet/session.ts ObnRiderInput). */
+const GroupRideRiderSchema = z.object({
+  lap: z.number().int().min(0).max(1_000_000),
+  distance: z.number().min(0).max(1_000_000),
+  speed: z.number().min(0).max(200),
+  power: z.number().min(0).max(5000).nullable(),
+  cadence: z.number().min(0).max(500).nullable(),
+  heartRate: z.number().min(0).max(500).nullable(),
+})
 const AiProviderSchema = z.enum(['anthropic', 'openai', 'grok', 'ollama'])
 const AiStatusSchema = z.object({
   provider: AiProviderSchema.nullable(),
@@ -382,6 +415,14 @@ export const invoke = {
   // ---- power management ----
   /** Keep the Mac awake (display on) while a ride is in progress. */
   'power.keepAwake': { req: z.object({ on: z.boolean() }), res: Ok },
+
+  // ---- ride with others (beta): the OpenBikeNet connection lives in main ----
+  /** What the page wants: a shared track to watch (OpenBikeNet route ID) and, while riding it, the rider. Sent about once a second during a ride. */
+  'groupRide.set': {
+    req: z.object({ watch: z.string().regex(/^[a-z0-9][a-z0-9-]{1,63}$/).nullable(), rider: GroupRideRiderSchema.nullable(), simulated: z.boolean() }),
+    res: GroupRideStateSchema,
+  },
+  'groupRide.status': { req: Empty, res: GroupRideStateSchema },
 } as const satisfies Record<string, { req: z.ZodType; res: z.ZodType }>
 
 export type InvokeContract = typeof invoke
@@ -411,6 +452,7 @@ export interface EventMap {
   'ai.stream.end': { streamId: string; text: string | null; error: string | null; code: string | null; model: string | null; toolCalls?: { name: string; input: unknown }[] }
   /** Live data relayed from the main window to the mini-HUD. */
   'live.broadcast': LiveBroadcast
+  'groupRide.state': GroupRideState
   /** A command from the mini-HUD or phone remote, delivered to the main window. */
   'ride.command': RideCommand
 }

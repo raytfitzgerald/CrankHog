@@ -1,7 +1,7 @@
-import { Clock, Repeat } from 'lucide-react'
+import { Clock, Repeat, Users } from 'lucide-react'
 import { distanceUnit, formatElevation } from '@core/units'
 import { formatGrade } from '../../routes/grade'
-import { formatKm } from '../../routes/format'
+import { formatKm, formatMetres } from '../../routes/format'
 import { useSettings } from '../../stores/settings'
 import type { RouteEntry } from '../../routes/routes-repo'
 import { ElevationThumb } from './ElevationThumb'
@@ -20,12 +20,18 @@ export function RouteCard({ entry, onOpen }: { entry: RouteEntry; onOpen: () => 
       </div>
       <div className="mt-3 font-semibold leading-snug">{entry.name}</div>
       <div className="tabular mt-1 text-xs text-ink-dim">
-        {formatKm(entry.distanceM, 1, units)} {distanceUnit(units)} · {formatElevation(entry.elevationGainM, units)} up · max {formatGrade(entry.maxGradePct)}
+        {entry.distanceM < 1000 ? formatMetres(entry.distanceM, units) : `${formatKm(entry.distanceM, 1, units)} ${distanceUnit(units)}`} · {formatElevation(entry.elevationGainM, units)} up · max {formatGrade(entry.maxGradePct)}
       </div>
       <div className="mt-2 flex flex-wrap gap-1">
-        <span className={entry.builtin ? 'rounded bg-panel-3 px-1.5 py-0.5 text-[10px] text-ink-dim' : 'rounded bg-accent/15 px-1.5 py-0.5 text-[10px] text-ink'}>
-          {entry.builtin ? 'Demo' : entry.source.toUpperCase()}
-        </span>
+        {entry.sharedTrack !== null ? (
+          <span className="flex items-center gap-1 rounded bg-accent/15 px-1.5 py-0.5 text-[10px] text-ink">
+            <Users className="size-3" aria-hidden /> Shared track
+          </span>
+        ) : (
+          <span className={entry.builtin ? 'rounded bg-panel-3 px-1.5 py-0.5 text-[10px] text-ink-dim' : 'rounded bg-accent/15 px-1.5 py-0.5 text-[10px] text-ink'}>
+            {entry.builtin ? 'Demo' : entry.source.toUpperCase()}
+          </span>
+        )}
         {entry.loop && (
           <span className="flex items-center gap-1 rounded bg-panel-3 px-1.5 py-0.5 text-[10px] text-ink-dim">
             <Repeat className="size-3" aria-hidden /> Loop

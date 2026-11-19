@@ -5,7 +5,8 @@ import type { Route } from '../routes/model'
 import type { GhostSample } from '../routes/player'
 import { demoRoutes, syntheticRoute } from '../routes/synthetic'
 import { IDLE_TICK, type PlanInput } from './plan'
-import { RoutePlan, isRouteTick, type RoutePlanOptions, type RouteTick } from './route-plan'
+import { MAX_LAPS, MAX_TRACK_LAPS, RoutePlan, isRouteTick, type RoutePlanOptions, type RouteTick } from './route-plan'
+import { sharedTrack, sharedTrackRoute } from '../openbikenet/tracks'
 import { recordedPaceTimes, recordedTimeBetween } from './route-course'
 
 const RIDER = { riderKg: 75, bikeKg: 8.5, cda: 0.35, crr: 0.0033, ftpW: 250 }
@@ -254,6 +255,40 @@ describe('RoutePlan: laps', () => {
 
   it('rides a point-to-point route once, whatever you ask for', () => {
     expect(plan(demo('demo-flat-five'), { laps: 3 }).laps).toBe(1)
+  })
+
+  it('caps a loop split by laps at 99', () => {
+    expect(plan(loop, { laps: 400 }).laps).toBe(MAX_LAPS)
+  })
+})
+
+describe('RoutePlan: a shared track', () => {
+  const track = sharedTrackRoute(sharedTrack('velodrome-250')!)
+
+  it('rides a 250 m velodrome for many laps, split by km, calling out only the last lap', () => {
+    const p = plan(track, { laps: 12, segments: 'km', mode: 'steady', steadyKmh: 36 })
+    expect(p.laps).toBe(12)
+    expect(p.totalM).toBeCloseTo(3000, 9)
+    const ticks = run(p, 0, 320, { power: 0 })
+    expect(ticks[0]).toMatchObject({ segmentIndex: 0, segmentLabel: '0–1 km', segmentKind: 'km' })
+    expect(new Set(ticks.filter((t) => !t.finished).map((t) => t.segmentIndex))).toEqual(new Set([0, 1, 2]))
+    expect(cues(ticks).filter((c) => c.startsWith('Lap'))).toEqual([])
+    expect(cues(ticks)).toContain('Last lap: 12 of 12.')
+    const lapTwo = ticks.find((t) => t.route.lap === 1)!
+    expect(lapTwo.route.distM).toBeLessThan(5)
+    expect(ticks.at(-1)!.finished).toBe(true)
+    expect(p.finishedAtS).toBeCloseTo(300, 0)
+  })
+
+  it('takes up to 1,000 laps when split by km', () => {
+    expect(plan(track, { laps: 160, segments: 'km' }).laps).toBe(160)
+    expect(plan(track, { laps: 5000, segments: 'km' }).laps).toBe(MAX_TRACK_LAPS)
+  })
+
+  it('stays off the FIT map, like the demo routes', () => {
+    const t = plan(track, { laps: 4, segments: 'km' }).tick(input(1))
+    expect(t.lat).toBeUndefined()
+    expect(t.lon).toBeUndefined()
   })
 })
 

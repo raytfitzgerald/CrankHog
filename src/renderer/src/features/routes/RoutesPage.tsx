@@ -1,16 +1,21 @@
 import { useLiveQuery } from 'dexie-react-hooks'
 import { useRef, useState, type DragEvent } from 'react'
-import { FileUp } from 'lucide-react'
+import { FileUp, Users } from 'lucide-react'
+import { useNavigate } from '@tanstack/react-router'
 import { Button } from '../../ui/Button'
+import { BetaBadge } from '../../ui/BetaBadge'
+import { useSettings } from '../../stores/settings'
 import { PageHeader } from '../../ui/PageHeader'
 import { cn } from '../../ui/cn'
-import { ROUTE_FILE_EXTENSIONS, importRouteFile, listRoutes } from '../../routes/routes-repo'
+import { ROUTE_FILE_EXTENSIONS, importRouteFile, listRoutes, offeredHere } from '../../routes/routes-repo'
 import { RouteCard } from './RouteCard'
 import { RouteDetailDialog, type Notice } from './RouteDetailDialog'
 
 /** /routes: the route library, GPX/TCX import (picker or drop), and the way into a route ride. */
 export function RoutesPage() {
+  const navigate = useNavigate()
   const routes = useLiveQuery(() => listRoutes(), [])
+  const groupRides = useSettings((s) => s.groupRides.enabled)
   const [openId, setOpenId] = useState<string | null>(null)
   const [notice, setNotice] = useState<Notice | null>(null)
   const [dragging, setDragging] = useState(false)
@@ -47,7 +52,9 @@ export function RoutesPage() {
   }
 
   const mine = (routes ?? []).filter((r) => !r.builtin)
-  const demos = (routes ?? []).filter((r) => r.builtin)
+  const demos = (routes ?? []).filter((r) => r.builtin && r.sharedTrack === null)
+  // Ride with others runs in the Mac app: the web app has no main process to connect from
+  const tracks = (routes ?? []).filter((r) => r.sharedTrack !== null && offeredHere(r))
   const open = routes?.find((r) => r.id === openId) ?? null
 
   return (
@@ -109,6 +116,29 @@ export function RoutesPage() {
           </div>
         )}
       </section>
+
+      {tracks.length > 0 && (
+        <section className="mb-8" data-testid="shared-tracks">
+          <div className="mb-3 flex flex-wrap items-center gap-x-3 gap-y-1">
+            <h2 className="flex items-center gap-2 text-sm font-semibold text-ink-dim">
+              Shared tracks <BetaBadge />
+            </h2>
+            <span className="text-xs text-ink-faint">
+              {groupRides ? 'Riders of other apps ride these too, over OpenBikeNet: open one to see who’s on it.' : 'Ride them alone, or turn on Ride with others to meet riders of other apps on them.'}
+            </span>
+            {!groupRides && (
+              <Button size="sm" variant="ghost" onClick={() => void navigate({ to: '/settings', search: { tab: 'group-rides' } })}>
+                <Users className="size-3.5" /> Ride with others
+              </Button>
+            )}
+          </div>
+          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+            {tracks.map((r) => (
+              <RouteCard key={r.id} entry={r} onOpen={() => setOpenId(r.id)} />
+            ))}
+          </div>
+        </section>
+      )}
 
       <section>
         <h2 className="mb-3 text-sm font-semibold text-ink-dim">Demo routes</h2>

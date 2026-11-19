@@ -33,7 +33,9 @@
 //     skip/back/extend mean nothing here, so they are not handled.
 //
 // Segments: one per lap on a multi-lap loop, otherwise one per km marker
-// (markerSpacingM), and the session laps the recording at each. The ride
+// (markerSpacingM), and the session laps the recording at each. A track ride
+// (segments: 'km', a shared velodrome) uses km markers however many laps it
+// has: a lap every half a minute would flood the recording and the cues. The ride
 // finishes at the end of the route or after the last lap; after that the
 // trainer goes flat and speed keeps coming from physics until you press
 // Finish, while the route position stays at the finish line.
@@ -87,6 +89,12 @@ export interface RoutePlanOptions {
   ghostLabel?: string
   /** Trainer look-ahead, s (player default 1.5). */
   lookaheadS?: number
+  /**
+   * What a multi-lap loop is split into: a segment (and a lap in the
+   * recording) per lap, the default, or per km marker for short tracks
+   * ridden for many laps. Km markers also quiet the lap cues to the last lap.
+   */
+  segments?: 'laps' | 'km'
 }
 
 /** A trainer override while the route keeps playing. */
@@ -169,6 +177,10 @@ const DEFAULT_ERG_W = 150
 const GHOST_PASS_MARGIN_M = 5
 /** ...and at most this often, s. */
 const GHOST_CUE_EVERY_S = 20
+/** Laps of a loop split into one segment per lap... */
+export const MAX_LAPS = 99
+/** ...and of a track split by km markers (1,000 laps of a 250 m velodrome is 250 km). */
+export const MAX_TRACK_LAPS = 1000
 
 export class RoutePlan implements RidePlan {
   readonly kind: RideKind = 'route'
@@ -195,6 +207,8 @@ export class RoutePlan implements RidePlan {
   private readonly steadyMps: number | null
   /** Km-marker spacing, or null when segments are laps. */
   private readonly markerM: number | null
+  /** A track ride: km markers, and only the last lap called out. */
+  private readonly byKm: boolean
   private readonly segmentCount: number
 
   private player: RoutePlayer
@@ -228,7 +242,8 @@ export class RoutePlan implements RidePlan {
     this.startMode = opts.mode
     this.lengthM = this.profile[this.profile.length - 1]?.distM ?? 0
     const laps = Math.floor(opts.laps ?? 1)
-    this.laps = isLoopRoute(route) && laps > 1 ? Math.min(laps, 99) : 1
+    this.byKm = opts.segments === 'km'
+    this.laps = isLoopRoute(route) && laps > 1 ? Math.min(laps, this.byKm ? MAX_TRACK_LAPS : MAX_LAPS) : 1
     this.totalM = this.lengthM * this.laps
     this.ghostLabel = opts.ghostLabel ?? null
     this.ghost = opts.mode === 'challenge' && opts.ghost && opts.ghost.length >= 2 ? opts.ghost : null
@@ -249,7 +264,7 @@ export class RoutePlan implements RidePlan {
     this.chunks = gradeChunks(this.profile)
     this.paceTimes = recordedPaceTimes(this.profile)
     this.steadyMps = opts.steadyKmh !== undefined ? opts.steadyKmh / 3.6 : this.paceTimes ? null : 25 / 3.6
-    this.markerM = this.laps > 1 ? null : markerSpacingM(this.totalM)
+    this.markerM = this.laps > 1 && !this.byKm ? null : markerSpacingM(this.totalM)
     this.segmentCount = this.markerM === null ? this.laps : Math.max(1, Math.ceil(this.totalM / this.markerM - 1e-9))
 
     this.playback = opts.mode === 'steady' ? 'steady' : 'reactive'
@@ -406,7 +421,8 @@ export class RoutePlan implements RidePlan {
     if (!done) this.ghostCues(ghost, elapsedS)
     if (!done && lap > this.lapSeen) {
       this.lapSeen = lap
-      this.cues.push(lap === this.laps - 1 ? `Last lap: ${lap + 1} of ${this.laps}.` : `Lap ${lap + 1} of ${this.laps}.`)
+      if (lap === this.laps - 1) this.cues.push(`Last lap: ${lap + 1} of ${this.laps}.`)
+      else if (!this.byKm) this.cues.push(`Lap ${lap + 1} of ${this.laps}.`)
     }
 
     const seg = this.segmentAt(position, done)

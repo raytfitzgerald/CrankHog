@@ -97,6 +97,25 @@ export const UpdatePrefsSchema = z.object({
   prereleases: z.boolean().default(true),
 })
 
+/** The public OpenBikeNet server (OBN_DEFAULT_SERVER in core/openbikenet/protocol.ts; a test keeps them equal). */
+export const DEFAULT_GROUP_RIDE_SERVER = 'wss://openbikenet.cloud/v0'
+
+/**
+ * Ride with others (beta): shared tracks on an OpenBikeNet server, where
+ * riders of other apps see you and you see them (src/core/openbikenet). Off
+ * until the rider turns it on; nothing is sent before that.
+ */
+export const GroupRidePrefsSchema = z.object({
+  enabled: z.boolean().default(false),
+  /** The name other riders see: the rider's own choice, never filled in from the athlete profile. 32 characters (core checks code points). */
+  name: z.string().max(64).default(''),
+  /** Send power and cadence with the position. */
+  sharePower: z.boolean().default(true),
+  shareHeartRate: z.boolean().default(false),
+  /** wss:// anywhere, or ws:// to this Mac for a server you run yourself. */
+  server: z.string().max(300).default(DEFAULT_GROUP_RIDE_SERVER),
+})
+
 /** The numbers an uploaded ride's description can carry (core/ride/upload-text.ts has their text). */
 export const DESCRIPTION_STAT_IDS = ['avgPower', 'np', 'maxPower', 'avgHr', 'maxHr', 'avgCadence', 'kj', 'tss', 'if'] as const
 export const DescriptionStatSchema = z.enum(DESCRIPTION_STAT_IDS)
@@ -149,6 +168,7 @@ export const AppSettingsSchema = z.object({
   fan: FanPrefsSchema.default(FanPrefsSchema.parse({})),
   journeys: JourneyPrefsSchema.default(JourneyPrefsSchema.parse({})),
   updates: UpdatePrefsSchema.default(UpdatePrefsSchema.parse({})),
+  groupRides: GroupRidePrefsSchema.default(GroupRidePrefsSchema.parse({})),
 })
 
 export type AppSettings = z.infer<typeof AppSettingsSchema>
@@ -160,6 +180,7 @@ export type HudPrefs = z.infer<typeof HudPrefsSchema>
 export type FanPrefs = z.infer<typeof FanPrefsSchema>
 export type JourneyPrefs = z.infer<typeof JourneyPrefsSchema>
 export type UpdatePrefs = z.infer<typeof UpdatePrefsSchema>
+export type GroupRidePrefs = z.infer<typeof GroupRidePrefsSchema>
 export type RememberedDeviceSetting = z.infer<typeof RememberedDeviceSchema>
 
 export const DEFAULT_SETTINGS: AppSettings = AppSettingsSchema.parse({})

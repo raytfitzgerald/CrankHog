@@ -31,7 +31,8 @@ function syntheticGpx(): string {
 test('imports a GPX route into the library', async () => {
   const { page } = ctx
   await page.getByRole('link', { name: 'Routes' }).click()
-  await expect(page.getByTestId('route-card')).toHaveCount(4) // the demo routes
+  await expect(page.getByTestId('demo-routes').getByTestId('route-card')).toHaveCount(4)
+  await expect(page.getByTestId('shared-tracks').getByTestId('route-card')).toHaveCount(3)
   await page.getByTestId('route-file-input').setInputFiles({ name: 'e2e-hill.gpx', mimeType: 'application/gpx+xml', buffer: Buffer.from(syntheticGpx()) })
   await expect(page.getByTestId('routes-notice')).toHaveText('Imported E2E Synthetic Hill.')
   // A single import opens the route: its profile, map and numbers.
@@ -41,7 +42,7 @@ test('imports a GPX route into the library', async () => {
   await expect(page.getByTestId('route-map').locator('polyline').first()).toHaveAttribute('points', /^[\d.]+,[\d.]+( [\d.]+,[\d.]+){20,}/)
   await expect(page.getByRole('dialog')).toContainText('50 m') // climbing
   await page.keyboard.press('Escape')
-  await expect(page.getByTestId('route-card')).toHaveCount(5)
+  await expect(page.getByTestId('route-card')).toHaveCount(8) // 4 demos, 3 shared tracks and the import
 })
 
 test('rides a demo route in Reactive mode: speed and grade follow the road, then saves', async () => {

@@ -23,6 +23,12 @@ import { HogRaceReadout } from '../../brand/hog/HogRaceReadout'
 import { hogRaceState } from '../../brand/hog/useHogRace'
 import { useFtp } from '../../db/use-athlete'
 import { RideAlong } from '../../coach/ride-along/RideAlong'
+import { sharedTrackForRoute, type SharedTrack } from '@core/openbikenet/tracks'
+import { positionNow } from '@core/openbikenet/standings'
+import { sampleAt } from '@core/routes/lookup'
+import { TrackRidersPanel } from '../../group-ride/TrackRiders'
+import { useGroupRide } from '../../group-ride/runtime'
+import { useNow } from '../../ui/useNow'
 import { CueBanner } from './CueBanner'
 import { GuardBanner } from './GuardBanner'
 import { RecordingBar } from './RecordingBar'
@@ -66,6 +72,7 @@ export function RouteRideView() {
 
   if (!plan || !tick) return null
   const r = tick.route
+  const track = sharedTrackForRoute(plan.routeId)
   const switchPlayback = (m: RoutePlayback) => {
     command({ type: 'routeMode', mode: m })
     refresh()
@@ -135,29 +142,49 @@ export function RouteRideView() {
         />
       </div>
 
-      <div className="grid gap-4 lg:grid-cols-[1fr_2fr]">
-        <div className="rounded-2xl border border-line bg-panel p-2">
-          <RouteOutline route={plan.route} rider={{ lat: r.lat, lon: r.lon }} ghost={r.ghost} height={200} title="Route outline with your position" testId="route-map" />
+      {track ? (
+        <div className="grid gap-4 lg:grid-cols-[1fr_2fr]">
+          <div className="rounded-2xl border border-line bg-panel p-2">
+            <TrackOutline track={track} plan={plan} r={r} />
+          </div>
+          <TrackRidersPanel track={track} r={r} />
         </div>
-        <div className="rounded-2xl border border-line bg-panel p-4">
-          <div className="mb-1 eyebrow text-ink-faint">Whole route{r.laps > 1 ? ` · ${r.laps} laps` : ''}</div>
-          <ElevationChart
-            route={plan.route}
-            laps={r.laps}
-            rider={r.riddenM}
-            ghost={r.ghost ? r.riddenM - r.ghost.gapM : null}
-            doneBefore={r.riddenM}
-            height={168}
-            title="Whole route elevation profile with your position"
-            testId="route-overview"
-          />
+      ) : (
+        <div className="grid gap-4 lg:grid-cols-[1fr_2fr]">
+          <div className="rounded-2xl border border-line bg-panel p-2">
+            <RouteOutline route={plan.route} rider={{ lat: r.lat, lon: r.lon }} ghost={r.ghost} height={200} title="Route outline with your position" testId="route-map" />
+          </div>
+          <div className="rounded-2xl border border-line bg-panel p-4">
+            <div className="mb-1 eyebrow text-ink-faint">Whole route{r.laps > 1 ? ` · ${r.laps} laps` : ''}</div>
+            <ElevationChart
+              route={plan.route}
+              laps={r.laps}
+              rider={r.riddenM}
+              ghost={r.ghost ? r.riddenM - r.ghost.gapM : null}
+              doneBefore={r.riddenM}
+              height={168}
+              title="Whole route elevation profile with your position"
+              testId="route-overview"
+            />
+          </div>
         </div>
-      </div>
+      )}
 
       <SecondaryTiles r={r} plan={plan} />
       <RecordingBar />
     </div>
   )
+}
+
+/** A shared track's outline, with everyone else on it as a dot. */
+function TrackOutline({ track, plan, r }: { track: SharedTrack; plan: RoutePlan; r: RouteProgress }) {
+  const riders = useGroupRide((s) => (s.route === track.obnId ? s.riders : null))
+  const now = useNow(250)
+  const others = (riders ?? []).map((o) => {
+    const at = sampleAt(plan.route.profile, positionNow(o, now, track.lengthM, track.loop))
+    return { id: o.id, name: o.name, lat: at.lat, lon: at.lon }
+  })
+  return <RouteOutline route={plan.route} rider={{ lat: r.lat, lon: r.lon }} ghost={r.ghost} others={others} height={200} title="Track outline with your position and the other riders" testId="route-map" />
 }
 
 /** What Sir Loin reads before he decides what to do: the road, and the rider. */

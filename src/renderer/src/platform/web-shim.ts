@@ -4,7 +4,7 @@
 // simulator: always in dev, and with ?sim=1 in the built app. Services that
 // need the main process (Strava, AI keys, the file system) have in-browser
 // stand-ins.
-import type { EventChannel, EventMap, CrankHogBridge, InvokeChannel, InvokeReq, InvokeRes } from '@shared/ipc/contract'
+import type { EventChannel, EventMap, CrankHogBridge, GroupRideState, InvokeChannel, InvokeReq, InvokeRes } from '@shared/ipc/contract'
 import { AppSettingsSchema, DEFAULT_SETTINGS, mergeSettings, migrateStoredSettings, type AppSettings } from '@shared/settings'
 import { bugIssueUrl } from '@core/support/bug-report'
 import { demoMode } from './demo'
@@ -25,6 +25,7 @@ function webOs(): string {
   return ua.match(/Mac OS X ([\d_]+)/)?.[1]?.replace(/_/g, '.') ?? 'unknown'
 }
 const JOURNAL_PREFIX = 'freegaz.web.journal.'
+const groupRideOff = (): GroupRideState => ({ status: 'off', route: null, riders: [], riding: false, hold: null, problem: null, retryAt: null })
 
 const ls = {
   get: (k: string) => {
@@ -266,6 +267,9 @@ export function createWebShim(): CrankHogBridge {
     'mcp.installDesktop': () => ({ ok: false, error: 'Claude works with the Mac app.' }),
     'mcp.ready': () => ({}),
     'mcp.result': () => ({}),
+    // Ride with others needs the Mac app: its connection lives in the main process
+    'groupRide.set': groupRideOff,
+    'groupRide.status': groupRideOff,
     'power.keepAwake': async ({ on }) => {
       if (native.isNative()) {
         await native.keepAwake(on).catch(() => undefined)

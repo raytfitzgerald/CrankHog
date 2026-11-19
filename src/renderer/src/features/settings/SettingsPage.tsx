@@ -1,6 +1,6 @@
 import { Tabs } from 'radix-ui'
 import { useSearch } from '@tanstack/react-router'
-import { Bot, Database, Gauge, Info, Link2, MapPinned, Megaphone, Smartphone, SlidersHorizontal, SunMoon } from 'lucide-react'
+import { Bot, Database, Gauge, Info, Link2, MapPinned, Megaphone, Smartphone, SlidersHorizontal, SunMoon, Users } from 'lucide-react'
 import { PageHeader } from '../../ui/PageHeader'
 import { AthleteSection } from './AthleteSection'
 import { TrainerSection } from './TrainerSection'
@@ -12,6 +12,8 @@ import { RemoteSection } from './RemoteSection'
 import { AboutSection } from './AboutSection'
 import { DataSection } from './DataSection'
 import { JourneysSection } from './JourneysSection'
+import { GroupRidesSection } from './GroupRidesSection'
+import { BetaBadge } from '../../ui/BetaBadge'
 
 const TABS = [
   { id: 'athlete', label: 'Athlete & FTP', icon: Gauge, el: <AthleteSection /> },
@@ -19,6 +21,8 @@ const TABS = [
   { id: 'coach', label: 'Coach', icon: Megaphone, el: <CoachSection /> },
   { id: 'integrations', label: 'Strava & sync', icon: Link2, el: <IntegrationsSection /> },
   { id: 'journeys', label: 'Journeys', icon: MapPinned, el: <JourneysSection /> },
+  // the connection lives in the Mac app's main process: no tab in the web app
+  ...(__CRANKHOG_WEB__ ? [] : [{ id: 'group-rides', label: 'Ride with others', icon: Users, el: <GroupRidesSection />, beta: true } as const]),
   { id: 'ai', label: 'AI', icon: Bot, el: <AiSection /> },
   { id: 'remote', label: 'Remote & mini-HUD', icon: Smartphone, el: <RemoteSection /> },
   { id: 'appearance', label: 'Appearance', icon: SunMoon, el: <AppearanceSection /> },
@@ -34,13 +38,14 @@ export function SettingsPage() {
       <PageHeader title="Settings" subtitle={__CRANKHOG_WEB__ ? 'Everything is stored in this browser, on this device.' : 'Everything is stored on this Mac. Keys and tokens are encrypted with your macOS Keychain.'} />
       <Tabs.Root defaultValue={initial} orientation="vertical" className="flex flex-col gap-4 md:flex-row md:gap-6">
         <Tabs.List className="-mx-4 flex shrink-0 gap-1 overflow-x-auto px-4 md:mx-0 md:w-52 md:flex-col md:overflow-visible md:px-0" aria-label="Settings sections">
-          {TABS.map(({ id, label, icon: Icon }) => (
+          {TABS.map(({ id, label, icon: Icon, ...t }) => (
             <Tabs.Trigger
               key={id}
               value={id}
               className="no-drag flex shrink-0 items-center gap-2 whitespace-nowrap rounded-lg px-3 py-2 text-left text-sm text-ink-dim hover:bg-panel-2 hover:text-ink data-[state=active]:bg-panel-3 data-[state=active]:text-ink"
             >
               <Icon className="size-4" /> {label}
+              {'beta' in t && <BetaBadge />}
             </Tabs.Trigger>
           ))}
         </Tabs.List>
