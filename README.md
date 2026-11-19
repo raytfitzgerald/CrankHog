@@ -65,7 +65,7 @@ It's a data-obsessed indoor cycling trainer for macOS, and [for your phone](#on-
 
 <p align="center"><img src="docs/screenshots/builder.png" alt="The builder: name, author and folder, live TSS, IF and zones, blocks you drag and resize, and export to Zwift" width="900"></p>
 
-**Runs and swims get a builder too.** Sections and repeats, lengths in time or distance, and targets in heart rate, pace, or a percent of your threshold pace or CSS, with the time and load worked out as you go. Or type it as text and watch it turn into steps.
+**Runs and swims get a builder too.** Sections and repeats, lengths in time or distance, and targets in heart rate, pace, or a percent of your threshold pace or CSS, with the time and load worked out as you go. Or type it as text and watch it turn into steps, or describe it and let the AI write it.
 
 <p align="center"><img src="docs/screenshots/builder-run.png" alt="The run builder: Threshold 5x5 in warm-up, main set and cool-down sections, each step with its length and a heart-rate or threshold-pace target, and the session's time and load beside it" width="900"></p>
 
@@ -155,7 +155,7 @@ It's a data-obsessed indoor cycling trainer for macOS, and [for your phone](#on-
 - **Import and export:**
   - `.zwo`, `.mrc`, `.erg` and intervals.icu text;
   - **Export to Zwift** drops the file straight into Zwift's Custom Workouts.
-- **Optional AI.** "45 minutes of over-unders, finish with sprints" becomes a workout you can edit.
+- **Optional AI.** "45 minutes of over-unders, finish with sprints" becomes a workout you can edit, and "10 x 100 at CSS, drills in the warm-up" a swim, in your pool's lengths.
 - **Runs and swims too.** The builder's Run and Swim tabs build sessions step by step: sections and repeats, lengths in time or distance, and targets in heart rate, pace, or a percent of threshold pace or CSS, with the time and load worked out as you go. Or type them in the session format in Text mode.
 
 **Coaching**

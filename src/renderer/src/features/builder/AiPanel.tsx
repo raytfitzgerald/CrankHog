@@ -1,22 +1,20 @@
 import { useEffect, useState } from 'react'
 import { CircleAlert, Loader2, Sparkles } from 'lucide-react'
-import { GeneratedWorkoutSchema } from '@core/ai/schemas'
-import { workoutFromGenerated } from '@core/workout/from-generated'
-import type { Workout } from '@core/workout/model'
-import { workoutIssues } from '@core/workout/validate'
 import { bridge } from '../../platform/bridge'
 import { Button } from '../../ui/Button'
 import { Input } from '../../ui/form'
+import type { AiDraft } from './ai-draft'
 
 /** Longest request sent to the model. */
 const MAX_REQUEST = 500
 
 /**
- * "Describe a workout": plain English → a draft in the builder, through the
- * structured-AI channel (main owns the keys and the prompt). Shown only when
- * a provider is configured. The draft opens unsaved and is never saved here.
+ * "Describe a workout": plain English → a draft in the builder (a bike
+ * workout, a run or a swim: `ask` sends the request and reads the answer).
+ * Shown only when a provider is configured. The draft opens unsaved and is
+ * never saved here.
  */
-export function AiPanel({ onDrafted }: { onDrafted: (w: Workout, model: string | null) => void }) {
+export function AiPanel<T>({ placeholder, ask, onDrafted }: { placeholder: string; ask: (request: string) => Promise<AiDraft<T>>; onDrafted: (value: T, model: string | null) => void }) {
   const [available, setAvailable] = useState(false)
   const [request, setRequest] = useState('')
   const [busy, setBusy] = useState(false)
@@ -43,23 +41,9 @@ export function AiPanel({ onDrafted }: { onDrafted: (w: Workout, model: string |
     setBusy(true)
     setError(null)
     try {
-      const r = await bridge().invoke('ai.structured', { purpose: 'workout', input: `The rider's request: ${text}` })
-      if (!r.ok) {
-        setError(r.error ?? 'The AI request failed.')
-        return
-      }
-      const parsed = GeneratedWorkoutSchema.safeParse(r.value)
-      if (!parsed.success) {
-        setError("The AI's answer wasn't a workout CrankHog can read. Try rephrasing the request.")
-        return
-      }
-      const w = workoutFromGenerated(parsed.data, { id: `ai:${crypto.randomUUID()}` })
-      const problems = workoutIssues(w).filter((i) => i.severity === 'error')
-      if (problems.length > 0) {
-        setError(`The AI's workout can't be ridden as it is: ${problems.slice(0, 3).map((p) => p.message).join(' ')}`)
-        return
-      }
-      onDrafted(w, r.model ?? null)
+      const r = await ask(text)
+      if ('error' in r) setError(r.error)
+      else onDrafted(r.value, r.model)
     } catch (e) {
       setError(e instanceof Error ? e.message : String(e))
     } finally {
@@ -83,12 +67,12 @@ export function AiPanel({ onDrafted }: { onDrafted: (w: Workout, model: string |
         <Input
           value={request}
           onChange={(e) => setRequest(e.target.value.slice(0, MAX_REQUEST))}
-          placeholder="e.g. 45 min over-unders, finish with sprints"
+          placeholder={placeholder}
           aria-label="Describe the workout you want"
           disabled={busy}
           data-testid="builder-ai-input"
         />
-        <Button type="submit" variant="primary" disabled={busy || request.trim() === ''} className="shrink-0">
+        <Button type="submit" variant="primary" disabled={busy || request.trim() === ''} className="shrink-0" data-testid="builder-ai-draft">
           {busy ? <Loader2 className="size-4 animate-spin" aria-hidden /> : <Sparkles className="size-4" aria-hidden />}
           {busy ? 'Drafting…' : 'Draft it'}
         </Button>
