@@ -1,12 +1,15 @@
-import { mkdtempSync, rmSync, writeFileSync } from 'node:fs'
+import { mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { expect, test } from '@playwright/test'
 import { WebSocket } from 'ws'
+import { LIVE_CHECK_APP_ID } from '../../src/main/group-ride/live-check'
 import { launchApp, type Launched } from './launch'
 
-// The Mac app on the public OpenBikeNet server, on request only (it shows up
-// in the server's public stats):
+// The Mac app on the public OpenBikeNet server, on request only. The app's
+// window connects as crankhog with its real version, only watching; the
+// stands connect as crankhog-live-check, so the test itself stays out of
+// CrankHog's numbers in the server's public stats. Both still show up there:
 //
 //   CRANKHOG_LIVE_OBN=1 npx playwright test tests/e2e/group-ride-live.spec.ts
 //
@@ -30,7 +33,8 @@ test.beforeAll(async () => {
     stands.once('open', resolve)
     stands.once('error', reject)
   })
-  stands.send(JSON.stringify({ type: 'hello', app: { id: 'crankhog', version: 'live-check' } }))
+  const version = (JSON.parse(readFileSync(join(__dirname, '../../package.json'), 'utf8')) as { version: string }).version
+  stands.send(JSON.stringify({ type: 'hello', app: { id: LIVE_CHECK_APP_ID, version } }))
   stands.send(JSON.stringify({ type: 'subscribe', route: 'velodrome-250', room: 'public' }))
 
   userData = mkdtempSync(join(tmpdir(), 'crankhog-e2e-'))

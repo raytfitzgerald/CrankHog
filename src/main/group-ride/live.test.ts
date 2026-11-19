@@ -1,16 +1,18 @@
 // The real thing, on request only: CrankHog's own session and socket join the
 // public OpenBikeNet server for a few seconds as "CrankHog test" on the
 // velodrome, while a second connection watches from the stands, then leave.
-// It shows up in the server's public stats as app "crankhog", so it never
-// runs with the rest of the tests:
+// Both connections say they are crankhog-live-check, so a test run stays out
+// of CrankHog's numbers in the server's public stats. It still shows up there
+// under that ID, so it never runs with the rest of the tests:
 //
 //   CRANKHOG_LIVE_OBN=1 npx vitest run src/main/group-ride/live.test.ts
 import { readFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { describe, expect, it } from 'vitest'
 import { WebSocket } from 'ws'
-import { OBN_APP_ID, OBN_DEFAULT_SERVER } from '@core/openbikenet/protocol'
+import { OBN_DEFAULT_SERVER } from '@core/openbikenet/protocol'
 import { ObnSession } from '@core/openbikenet/session'
+import { LIVE_CHECK_APP_ID } from './live-check'
 import { wsConnect } from './socket'
 
 type Msg = Record<string, unknown>
@@ -36,12 +38,12 @@ describe.skipIf(!process.env.CRANKHOG_LIVE_OBN)('the public OpenBikeNet server',
       stands.once('open', resolve)
       stands.once('error', reject)
     })
-    stands.send(JSON.stringify({ type: 'hello', app: { id: OBN_APP_ID, version } }))
+    stands.send(JSON.stringify({ type: 'hello', app: { id: LIVE_CHECK_APP_ID, version } }))
     stands.send(JSON.stringify({ type: 'subscribe', route: TRACK, room: 'public' }))
     await until(() => heard.some((m) => m.type === 'snapshot'), "the stands' snapshot")
 
-    // the rider: exactly what the Mac app runs in main
-    const session = new ObnSession({ connect: wsConnect(`CrankHog/${version}`), app: { id: OBN_APP_ID, version, name: 'CrankHog', url: 'https://crankhog.app' }, now: Date.now })
+    // the rider: exactly what the Mac app runs in main, under the live check's own app ID
+    const session = new ObnSession({ connect: wsConnect(`CrankHog/${version}`), app: { id: LIVE_CHECK_APP_ID, version, name: 'CrankHog live check', url: 'https://crankhog.app' }, now: Date.now })
     session.configure({ enabled: true, server: OBN_DEFAULT_SERVER, name: NAME, sharePower: true, shareHeartRate: false })
     const started = Date.now()
     const ride = () => {
@@ -57,7 +59,7 @@ describe.skipIf(!process.env.CRANKHOG_LIVE_OBN)('the public OpenBikeNet server',
       await until(() => session.state().status === 'connected', 'the welcome')
       const joined = () => heard.find((m) => m.type === 'joined' && (m.rider as Msg).name === NAME)?.rider as Msg | undefined
       await until(() => joined() !== undefined, 'the stands to see the rider join')
-      expect(joined()).toMatchObject({ app: OBN_APP_ID, name: NAME, power: 180, cadence: 88 })
+      expect(joined()).toMatchObject({ app: LIVE_CHECK_APP_ID, name: NAME, power: 180, cadence: 88 })
       expect(joined()).not.toHaveProperty('heart_rate')
       const id = joined()!.id
       const updates = () => heard.filter((m) => m.type === 'updated').flatMap((m) => m.riders as Msg[]).filter((r) => r.id === id)
@@ -77,6 +79,6 @@ describe.skipIf(!process.env.CRANKHOG_LIVE_OBN)('the public OpenBikeNet server',
     }
 
     const stats = (await (await fetch(new URL('/v0/stats', OBN_DEFAULT_SERVER.replace('wss:', 'https:')))).json()) as { apps: { id: string; versions: string[] }[] }
-    expect(stats.apps.find((a) => a.id === OBN_APP_ID)?.versions).toContain(version)
+    expect(stats.apps.find((a) => a.id === LIVE_CHECK_APP_ID)?.versions).toContain(version)
   })
 })
