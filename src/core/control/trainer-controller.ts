@@ -293,15 +293,17 @@ function computeEffective(s: ControllerState, input: ControllerInputs, ctx: Deci
     const fromW = Math.max(0, Math.min(targetW, input.power ?? targetW * 0.5))
     s.softStart = settings.ergSoftStartS > 0 && fromW < targetW - 10 ? { fromW, startedAt: input.now } : null
   }
+  // It ends once the ramp is within the deadband of the target, not only when its time is up: a last
+  // step of target − 1 W would be too close for the target itself to go out, and the trainer would
+  // hold 1 W under it for as long as the target stayed the same.
   if (s.softStart) {
     const frac = (input.now - s.softStart.startedAt) / (settings.ergSoftStartS * 1000)
-    if (frac >= 1) {
-      s.softStart = null
-    } else {
+    const w = Math.round(s.softStart.fromW + (targetW - s.softStart.fromW) * frac)
+    if (frac < 1 && targetW - w >= settings.ergDeadbandW) {
       s.guard = 'soft-start'
-      const w = s.softStart.fromW + (targetW - s.softStart.fromW) * frac
-      return { kind: 'erg', watts: Math.round(w) }
+      return { kind: 'erg', watts: w }
     }
+    s.softStart = null
   }
 
   s.guard = 'none'

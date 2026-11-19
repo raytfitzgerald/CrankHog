@@ -100,6 +100,33 @@ describe('soft start', () => {
     expect(first.kind).toBe('erg')
     expect(first.watts).toBeLessThan(60)
   })
+
+  it('ends on the exact target when the last ramp step rounds to just under it', () => {
+    // From 189 W the ramp climbs 1.1 W/s. Sent at most once a second and only 2 W apart, its last
+    // step was 199 W: inside the 2 W deadband of 200 W, so the target itself never went out.
+    const cfg = { ...settings, ergSoftStartS: 10 }
+    const { state, sent } = run(withDesired({ mode: 'erg', watts: 200 }), 15, () => ({ power: 189 }), cfg)
+    expect(sent.at(-1)?.cmd).toEqual({ kind: 'erg', watts: 200 })
+    expect(state.applied).toEqual({ kind: 'erg', watts: 200 })
+    expect(state.guard).toBe('none')
+  })
+
+  it('ends on the exact target from any starting power', () => {
+    const cfg = { ...settings, ergSoftStartS: 10 }
+    for (let power = 0; power < 190; power++) {
+      const { state } = run(withDesired({ mode: 'erg', watts: 200 }), 15, () => ({ power }), cfg)
+      expect(state.applied, `from ${power} W`).toEqual({ kind: 'erg', watts: 200 })
+    }
+  })
+
+  it('still ignores 1 W jitter in the target once the soft start is over', () => {
+    const cfg = { ...settings, ergSoftStartS: 10 }
+    const start = run(withDesired({ mode: 'erg', watts: 200 }), 15, () => ({ power: 189 }), cfg)
+    const up = run(setDesired(start.state, { mode: 'erg', watts: 201 }), 3, () => ({ power: 200 }), cfg, start.end)
+    const down = run(setDesired(up.state, { mode: 'erg', watts: 199 }), 3, () => ({ power: 200 }), cfg, up.end)
+    expect([...up.sent, ...down.sent]).toEqual([])
+    expect(down.state.applied).toEqual({ kind: 'erg', watts: 200 })
+  })
 })
 
 describe('spiral-of-death guard', () => {
