@@ -1,6 +1,7 @@
 import { net, protocol } from 'electron'
 import { join, normalize, sep } from 'node:path'
 import { pathToFileURL } from 'node:url'
+import { MAP_TILE_ORIGINS } from '@shared/map-tiles'
 
 // Production builds are served from app://freegaz/ rather than file://.
 // IndexedDB, localStorage and Web Bluetooth permissions are all keyed by this
@@ -13,13 +14,16 @@ export const APP_SCHEME = 'app'
 export const APP_HOST = 'freegaz'
 export const APP_ORIGIN = `${APP_SCHEME}://${APP_HOST}`
 
+// The journey map's tiles (src/shared/map-tiles.ts) are the only outside hosts.
+const MAP_HOSTS = MAP_TILE_ORIGINS.join(' ')
+
 export const CONTENT_SECURITY_POLICY = [
   "default-src 'self'",
   "script-src 'self'",
   "style-src 'self' 'unsafe-inline'",
-  "img-src 'self' data: blob:",
+  `img-src 'self' data: blob: ${MAP_HOSTS}`,
   "font-src 'self' data:",
-  "connect-src 'self'",
+  `connect-src 'self' ${MAP_HOSTS}`,
   "media-src 'self' blob:",
   "worker-src 'self' blob:",
   "object-src 'none'",

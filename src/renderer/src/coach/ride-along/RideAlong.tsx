@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useRef, useState, type ReactNode } from 'react'
 import { ChevronDown, ChevronUp, Volume2, VolumeX } from 'lucide-react'
 import { MAX_GAP_M, RIDE_ALONG_START, coachPaceW, gapLabel, stepRideAlong } from '@core/coach'
 import { PRIORITY } from '@core/persona'
@@ -49,8 +49,11 @@ const sceneRoadM = () => race.state.roadM
 
 const toggleMute = () => getRuntime().rides.command({ type: 'muteCoach' })
 
-/** The ride-along panel for the ride screens, or the strip it folds into. Hidden when turned off in Settings. */
-export function RideAlong() {
+/**
+ * The ride-along panel for the ride screens, or the strip it folds into. Hidden when turned off in Settings.
+ * `switcher` is the ride panel's view tabs (on a journey: this, the map, 3D), shown in place of the title.
+ */
+export function RideAlong({ switcher = null }: { switcher?: ReactNode }) {
   const mode = useSettings((s) => s.coach.rideAlong)
   const coachOn = useSettings((s) => s.coach.enabled)
   const personaId = useSettings((s) => s.coach.personaId)
@@ -87,7 +90,7 @@ export function RideAlong() {
     <section className="rounded-2xl border border-line bg-panel" aria-label="Ride-along" data-testid="ride-along" data-mode={mode} data-snap>
       <div className="flex items-center justify-between gap-3 px-4 pt-2">
         <div className="flex min-w-0 items-center gap-2">
-          <span className="eyebrow text-ink-faint">Ride-along</span>
+          {switcher ? <div data-snap-hide>{switcher}</div> : <span className="eyebrow text-ink-faint">Ride-along</span>}
           <GapReadout name={meta.name} ftpW={ftpW} />
         </div>
         {controls}
@@ -113,6 +116,16 @@ function GapReadout({ name, ftpW }: { name: string; ftpW: number }) {
       {label}
     </span>
   )
+}
+
+/** Keeps the race going while another view (the journey map) has the panel, so the coach is where they should be on the way back. */
+export function RideAlongClock() {
+  const { ftpW } = useFtp()
+  useEffect(() => {
+    const id = setInterval(() => advance(performance.now(), ftpW), 500)
+    return () => clearInterval(id)
+  }, [ftpW])
+  return null
 }
 
 /**

@@ -37,7 +37,8 @@ function seedUnits(userData: string, units: 'metric' | 'imperial' | null): void 
   if (existsSync(file)) return
   const imperial = units === 'imperial'
   mkdirSync(userData, { recursive: true })
-  const seed = { version: 1, units, speedUnit: imperial ? 'mph' : 'kmh', weightUnit: imperial ? 'lb' : 'kg' }
+  // journeys draw their road offline, so no spec waits on (or depends on) the map tile servers
+  const seed = { version: 1, units, speedUnit: imperial ? 'mph' : 'kmh', weightUnit: imperial ? 'lb' : 'kg', journeys: { realMap: 'off' } }
   writeFileSync(file, JSON.stringify(seed, null, 2), 'utf8')
 }
 

@@ -99,3 +99,78 @@ export function mapFrame(points: readonly RoutePoint[], fromM: number, toM: numb
       .join(' ')
   return { project, unproject, metersPerPx: M_PER_DEG / scale, path }
 }
+
+// ---- the tiled map (MapLibre) ----
+
+export type MapZoom = 'today' | 'journey'
+
+/**
+ * The stretch of road a map shows: the whole course, or for today a little
+ * behind the dot and more ahead, moved on every 500 m so the frame doesn't swim.
+ */
+export function mapWindow(zoom: MapZoom, positionM: number, lengthM: number): [number, number] {
+  if (zoom === 'journey') return [0, lengthM]
+  const anchor = Math.floor(Math.max(0, positionM) / 500) * 500
+  return [Math.max(0, anchor - 2_000), Math.min(lengthM, anchor + 8_000)]
+}
+
+/** [lon, lat], the order GeoJSON and MapLibre use. */
+export type LonLat = [number, number]
+
+/** The point `distM` along the road, between its vertices. */
+export function pointAt(points: readonly RoutePoint[], distM: number): LonLat {
+  const i = indexAt(points, distM)
+  const a = points[i]!
+  const b = points[i + 1]
+  if (!b || b.distM <= a.distM) return [a.lon, a.lat]
+  const t = Math.min(1, Math.max(0, (distM - a.distM) / (b.distM - a.distM)))
+  return [a.lon + (b.lon - a.lon) * t, a.lat + (b.lat - a.lat) * t]
+}
+
+/**
+ * The road from `fromM` to `toM` as [lon, lat] pairs, starting and ending
+ * exactly there (so a trail stops at the dot, not at the next vertex), with at
+ * most `max` vertices in between.
+ */
+export function lineBetween(points: readonly RoutePoint[], fromM: number, toM: number, max = 20_000): LonLat[] {
+  if (points.length === 0) return []
+  const a = Math.min(fromM, toM)
+  const b = Math.max(fromM, toM)
+  const inside = pointsBetween(points, a, b, max).filter((p) => p.distM > a && p.distM < b)
+  return [pointAt(points, a), ...inside.map((p): LonLat => [p.lon, p.lat]), pointAt(points, b)]
+}
+
+/** The compass bearing (degrees, 0 = north, clockwise) from the road at `atM` to the road `aheadM` further on (negative looks back). */
+export function headingAt(points: readonly RoutePoint[], atM: number, aheadM: number): number {
+  if (points.length < 2) return 0
+  const last = points[points.length - 1]!.distM
+  const from = pointAt(points, Math.min(last, Math.max(0, atM)))
+  const to = pointAt(points, Math.min(last, Math.max(0, atM + aheadM)))
+  const k = Math.cos((from[1] * Math.PI) / 180)
+  const dx = (to[0] - from[0]) * k
+  const dy = to[1] - from[1]
+  if (dx === 0 && dy === 0) return 0
+  return ((Math.atan2(dx, dy) * 180) / Math.PI + 360) % 360
+}
+
+/** The box around some points: [[west, south], [east, north]]. */
+export function boundsOf(coords: readonly LonLat[]): [LonLat, LonLat] {
+  let w = Infinity
+  let s = Infinity
+  let e = -Infinity
+  let n = -Infinity
+  for (const [lon, lat] of coords) {
+    w = Math.min(w, lon)
+    e = Math.max(e, lon)
+    s = Math.min(s, lat)
+    n = Math.max(n, lat)
+  }
+  if (!Number.isFinite(w)) return [
+    [0, 0],
+    [0, 0],
+  ]
+  return [
+    [w, s],
+    [e, n],
+  ]
+}

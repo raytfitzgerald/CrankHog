@@ -9,6 +9,7 @@ import { liveStore } from '../../stores/live'
 import { useRide } from '../../stores/ride'
 import { useSettings } from '../../stores/settings'
 import { cn } from '../../ui/cn'
+import { usePanelView } from './use-panel-view'
 
 const SHOW_MS = 10_000
 const riderCadence = () => liveStore.getState().cadence
@@ -18,8 +19,10 @@ export function CueBanner() {
   const cue = useRide((s) => s.cue)
   const coach = useRide((s) => s.snapshot?.coachLine ?? null)
   const talk = useCoachTalk((s) => s.line)
-  // the open ride-along says the coach's own lines in a bubble; the banner keeps cues, notices and safety
-  const alongside = useSettings((s) => s.coach.rideAlong === 'open' && s.coach.enabled)
+  // the open ride-along says the coach's own lines in a bubble; the banner keeps cues, notices and safety.
+  // On a journey with the map showing instead, the banner says them again.
+  const onRoad = usePanelView().shown === 'road'
+  const alongside = useSettings((s) => s.coach.rideAlong === 'open' && s.coach.enabled) && onRoad
   const [now, setNow] = useState(() => Date.now())
   useEffect(() => {
     const id = setInterval(() => setNow(Date.now()), 1000)
