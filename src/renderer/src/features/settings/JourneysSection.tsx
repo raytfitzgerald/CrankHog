@@ -66,6 +66,16 @@ export function JourneysSection() {
         <Field label="Map on Strava" hint="Writes the road you rode into the FIT file as GPS, so Strava draws the map. It stays a virtual ride. Off: the journey stays in CrankHog.">
           <Switch checked={prefs.gps} onChange={(v) => setPrefs({ gps: v })} label={prefs.gps ? 'On' : 'Off'} />
         </Field>
+        <Field
+          label="Real map"
+          hint="The ride screen shows the journey on a real map, with hills and a 3D view. The map comes from OpenFreeMap and the hills from AWS terrain tiles, so those services see which part of the world is on screen. Off: the road is drawn on its own, and nothing is downloaded."
+        >
+          <Select value={prefs.realMap} onChange={(e) => setPrefs({ realMap: e.target.value as typeof prefs.realMap })} data-testid="journey-real-map">
+            <option value="famous">For famous journeys</option>
+            <option value="all">For my imported routes too</option>
+            <option value="off">Off</option>
+          </Select>
+        </Field>
       </Section>
 
       <Section title="Your journeys" description="Multi-day trips pick up where the last ride stopped. Simulated rides never move them.">

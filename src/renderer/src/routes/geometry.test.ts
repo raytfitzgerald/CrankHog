@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { sampleAt } from '@core/routes/lookup'
 import { demoRoutes } from '@core/routes/synthetic'
-import { courseSamples, elevationRange, fitProjection, gradeRuns, inLap, meanGrade, niceStep, outlineRuns, scaleBar, ticks } from './geometry'
+import { courseSamples, elevationRange, fitProjection, gradeLines, gradeRuns, inLap, meanGrade, niceStep, outlineRuns, scaleBar, ticks } from './geometry'
 import { GRADE_CLASSES, formatGrade, gradeClass } from './grade'
 
 const demos = demoRoutes()
@@ -105,6 +105,20 @@ describe('outline map', () => {
     expect(runs[0]!.cls).toBe(0)
     const vertices = runs.reduce((a, r) => a + r.points.split(' ').length, 0)
     expect(vertices).toBeLessThanOrEqual(110 + runs.length)
+  })
+
+  it('splits the full road into grade-coloured lines for the tiled map', () => {
+    const lines = gradeLines(six.points, six.profile)
+    expect(lines.map((l) => l.cls)).toContain(3)
+    expect(lines[0]!.cls).toBe(0)
+    // every vertex is kept, in order, and neighbouring lines share their joining point
+    const vertices = lines.reduce((a, l) => a + l.coords.length, 0)
+    expect(vertices).toBe(six.points.length + lines.length - 1)
+    expect(lines[0]!.coords[0]).toEqual([six.points[0]!.lon, six.points[0]!.lat])
+    expect(lines.at(-1)!.coords.at(-1)).toEqual([six.points.at(-1)!.lon, six.points.at(-1)!.lat])
+    // no two neighbours share a class: they would have been one line
+    for (let i = 1; i < lines.length; i++) expect(lines[i]!.cls).not.toBe(lines[i - 1]!.cls)
+    expect(gradeLines(six.points.slice(0, 1), six.profile)).toEqual([])
   })
 
   it('picks a round scale bar that fits', () => {

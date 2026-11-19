@@ -2,7 +2,7 @@
 // (laps unwrapped: x = lap × length + position) and the tile-free outline
 // map. Pure, so it is tested without a DOM.
 import { gradeIntegral, sampleAt } from '@core/routes/lookup'
-import type { ProfilePoint, RouteBounds } from '@core/routes/model'
+import type { ProfilePoint, RouteBounds, RoutePoint } from '@core/routes/model'
 import { formatSpan, scaleSteps, type UnitSystem } from '@core/units'
 import { gradeClass } from './grade'
 
@@ -179,6 +179,37 @@ export function outlineRuns(profile: readonly ProfilePoint[], proj: Projection, 
     else runs.push({ cls, points: `${at(idx[k]!)} ${at(idx[k + 1]!)}` })
   }
   return runs
+}
+
+export interface GradeLine {
+  cls: number
+  /** [lon, lat] pairs, GeoJSON order. */
+  coords: [number, number][]
+}
+
+/**
+ * The road at full detail as lines of one grade class each, for the tiled
+ * map (which thins them per zoom itself). Graded in stretches of at least
+ * `minRunM` so the colour doesn't flicker between the road's vertices.
+ */
+export function gradeLines(points: readonly RoutePoint[], profile: readonly ProfilePoint[], minRunM = 100): GradeLine[] {
+  const lines: GradeLine[] = []
+  if (points.length < 2 || profile.length === 0) return lines
+  let start = 0
+  for (let i = 1; i < points.length; i++) {
+    const a = points[start]!
+    const b = points[i]!
+    if (b.distM - a.distM < minRunM && i < points.length - 1) continue
+    const span = b.distM - a.distM
+    const cls = gradeClass(span > 0 ? gradeIntegral(profile, a.distM, b.distM) / span : 0)
+    const last = lines[lines.length - 1]
+    const line = last && last.cls === cls ? last : null
+    const coords = line ? line.coords : [[a.lon, a.lat] as [number, number]]
+    for (let k = start + 1; k <= i; k++) coords.push([points[k]!.lon, points[k]!.lat])
+    if (!line) lines.push({ cls, coords })
+    start = i
+  }
+  return lines
 }
 
 /** The longest round distance that fits in `maxUnits` of the drawing. */

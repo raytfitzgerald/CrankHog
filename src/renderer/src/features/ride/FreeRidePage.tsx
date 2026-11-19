@@ -14,8 +14,7 @@ import { cn } from '../../ui/cn'
 import { HudGrid } from '../../hud/HudGrid'
 import { NowPlaying } from './NowPlaying'
 import { RecordingBar } from './RecordingBar'
-import { RideAlong } from '../../coach/ride-along/RideAlong'
-import { JourneyMap } from '../journeys/JourneyMap'
+import { RideViews } from './RideViews'
 import { WhereTo } from '../journeys/WhereTo'
 import { GuardBanner } from './GuardBanner'
 import { CueBanner } from './CueBanner'
@@ -152,8 +151,7 @@ export function FreeRidePage() {
       )}
       <div className="mb-4 space-y-3">
         <CueBanner />
-        <RideAlong />
-        <JourneyMap />
+        <RideViews />
         <FtpResultCard />
         <SavedRideCard />
         <RecordingBar />

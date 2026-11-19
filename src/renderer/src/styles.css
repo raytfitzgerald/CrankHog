@@ -305,3 +305,13 @@
   scrollbar-width: thin;
   scrollbar-color: var(--color-line-strong) transparent;
 }
+
+/* The journey map's credits (MapLibre's attribution), in the theme's colours */
+.journey-tiles .maplibregl-ctrl-attrib {
+  background-color: color-mix(in oklab, var(--color-panel) 80%, transparent);
+  color: var(--color-ink-faint);
+  font-size: 10px;
+}
+.journey-tiles .maplibregl-ctrl-attrib a {
+  color: inherit;
+}

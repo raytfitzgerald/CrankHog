@@ -42,6 +42,16 @@ test('a free ride dropped at the Eiffel Tower goes somewhere, and the FIT file h
   await expect(page.getByTestId('journey-next')).toContainText(/in [\d.]+ km/)
   await map.getByRole('radio', { name: 'Journey' }).click()
 
+  // one panel, two views: the coach's road behind its tab, and back to the map (3D needs the real map, off here)
+  const views = () => page.getByRole('radiogroup', { name: 'Ride view' })
+  await expect(views().getByRole('radio')).toHaveText(['Ride-along', 'Map'])
+  await views().getByRole('radio', { name: 'Ride-along' }).click()
+  await expect(page.getByTestId('ride-along')).toBeVisible()
+  await expect(map).toBeHidden()
+  await views().getByRole('radio', { name: 'Map' }).click()
+  await expect(map).toBeVisible()
+  await expect(page.getByTestId('ride-along')).toBeHidden()
+
   await page.getByTestId('finish-ride').click()
   await page.getByTestId('confirm-finish').click()
   await expect(page.getByTestId('saved-ride')).toBeVisible({ timeout: 15_000 })

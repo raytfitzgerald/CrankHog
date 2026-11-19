@@ -87,6 +87,14 @@ export const JourneyPrefsSchema = z.object({
   gps: z.boolean().default(true),
   /** The journey "continue" carries on. */
   activeId: z.string().max(80).nullable().default(null),
+  /** What the ride screen's panel shows on a journey: the coach's road (the ride-along), the map, or the map in 3D. */
+  view: z.enum(['road', 'map', '3d']).default('3d'),
+  /**
+   * A real map under the journey (OpenFreeMap tiles and AWS terrain, src/shared/map-tiles.ts): for the famous
+   * journeys CrankHog ships, for imported routes too, or never (the road drawn offline). Imported routes are
+   * the rider's own and can start at their door, so they stay offline unless the rider says otherwise.
+   */
+  realMap: z.enum(['famous', 'all', 'off']).default('famous'),
 })
 
 /** In-app updates of the signed Mac app (electron-updater, from GitHub releases). */

@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import type { RoutePoint } from '../routes/model'
-import { gridLines, mapFrame, niceStepM, pointsBetween } from './map'
+import { boundsOf, gridLines, headingAt, lineBetween, mapFrame, mapWindow, niceStepM, pointAt, pointsBetween } from './map'
 
 // 10 km due east along the equator, a point every 10 m
 const road: RoutePoint[] = Array.from({ length: 1001 }, (_, i) => ({ lat: 0, lon: (i * 10) / 111_320, ele: 0, distM: i * 10 }))
@@ -50,5 +50,46 @@ describe('journey mini map', () => {
     // every 2 km along a 10 km road that starts at lon 0: 0, 2, 4, 6, 8, 10 km
     expect(xs).toHaveLength(6)
     expect(xs[1]! - xs[0]!).toBeCloseTo(2000 / f.metersPerPx, 0)
+  })
+
+  it('frames today around the dot in 500 m steps, and the whole road for the journey', () => {
+    expect(mapWindow('journey', 3_000, 10_000)).toEqual([0, 10_000])
+    expect(mapWindow('today', 3_499, 10_000)).toEqual([1_000, 10_000])
+    expect(mapWindow('today', 3_500, 50_000)).toEqual([1_500, 11_500])
+    expect(mapWindow('today', 100, 50_000)).toEqual([0, 8_000])
+  })
+
+  it('cuts a line that starts and stops exactly where asked', () => {
+    // vertices only every 1 km, so a trail cut at a vertex would overshoot the dot
+    const sparse = road.filter((p) => p.distM % 1_000 === 0)
+    const line = lineBetween(sparse, 1_250, 3_600)
+    expect(line[0]![0]).toBeCloseTo(1_250 / 111_320, 9)
+    expect(line.at(-1)![0]).toBeCloseTo(3_600 / 111_320, 9)
+    // 2 and 3 km are inside, 1 and 4 km are not
+    expect(line).toHaveLength(4)
+    expect(pointAt(sparse, 99_999)[0]).toBeCloseTo(10_000 / 111_320, 9)
+  })
+
+  it('knows which way the road goes, for the 3D camera', () => {
+    // due east
+    expect(headingAt(road, 2_000, 500)).toBeCloseTo(90, 3)
+    // looking back west, and past the end it uses what is left
+    expect(headingAt(road, 2_000, -500)).toBeCloseTo(270, 3)
+    expect(headingAt(road, 9_900, 500)).toBeCloseTo(90, 3)
+    const north: typeof road = road.map((p) => ({ ...p, lat: p.lon, lon: 0 }))
+    expect(headingAt(north, 100, 200)).toBeCloseTo(0, 3)
+  })
+
+  it('boxes the points it is given', () => {
+    expect(
+      boundsOf([
+        [1, 2],
+        [-1, 5],
+        [3, -4],
+      ]),
+    ).toEqual([
+      [-1, -4],
+      [3, 5],
+    ])
   })
 })
