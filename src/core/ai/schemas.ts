@@ -44,6 +44,14 @@ export const GeneratedWorkoutSchema = z.object({
 })
 export type GeneratedWorkout = z.infer<typeof GeneratedWorkoutSchema>
 
+/** A run or swim from "Describe a workout": its steps are session steps, which CrankHog reads with the session parser (src/core/multisport/ai-draft.ts). */
+export const GeneratedSessionSchema = z.object({
+  name: z.string().min(3).max(80),
+  notes: z.string().max(600).describe('How to do it and how it should feel, in one or two sentences'),
+  steps: z.string().min(5).max(6000).describe('The session steps, one a line, with section titles and repeats; no header lines'),
+})
+export type GeneratedSession = z.infer<typeof GeneratedSessionSchema>
+
 export const QuipPackSchema = z.object({
   lines: z
     .array(
@@ -155,6 +163,7 @@ export type PlanWeeksOutput = z.infer<typeof PlanWeeksSchema>
 
 export const AI_SCHEMAS = {
   workout: GeneratedWorkoutSchema,
+  'session-workout': GeneratedSessionSchema,
   'training-plan': PlanSkeletonSchema,
   'plan-import': PlanImportSchema,
   'plan-outline': PlanOutlineSchema,

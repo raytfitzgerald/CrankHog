@@ -17,6 +17,7 @@ import { copyOf, EXPORT_FORMATS, exportToZwift, exportWorkout, type ExportFormat
 import { saveAndFile } from '../../plan/plans-repo'
 import { startWorkout } from '../workouts/start'
 import { AiPanel } from './AiPanel'
+import { draftBikeWorkout } from './ai-draft'
 import { Canvas } from './Canvas'
 import { canRedo, canUndo } from './history'
 import { Inspector } from './Inspector'
@@ -249,7 +250,7 @@ export function BuilderEditor({ doc, urlId, onSaved, sportSwitch }: BuilderEdito
           </section>
 
           {!empty && <IssuesList issues={issues} onSelect={(index) => dispatch({ type: 'select', index })} />}
-          <AiPanel onDrafted={drafted} />
+          <AiPanel placeholder="e.g. 45 min over-unders, finish with sprints" ask={draftBikeWorkout} onDrafted={drafted} />
         </div>
 
         <aside className="min-w-0 space-y-4">

@@ -5,7 +5,7 @@ import type { z } from 'zod'
 export type AiProviderId = 'anthropic' | 'openai' | 'grok' | 'ollama'
 
 /** What the call is for; drives model choice, effort, timeout and budget. */
-export type AiPurpose = 'quip-pack' | 'live-line' | 'debrief' | 'workout' | 'chat' | 'ride-title' | 'fitness-summary' | 'training-plan' | 'plan-import' | 'plan-outline' | 'plan-weeks'
+export type AiPurpose = 'quip-pack' | 'live-line' | 'debrief' | 'workout' | 'session-workout' | 'chat' | 'ride-title' | 'fitness-summary' | 'training-plan' | 'plan-import' | 'plan-outline' | 'plan-weeks'
 
 /** A tool the model may call: what it does, and its input's schema. The coach chat's are in coach-tools.ts. */
 export interface AiTool {
@@ -67,6 +67,8 @@ export const PURPOSE_DEFAULTS: Record<AiPurpose, { timeoutMs: number; maxTokens:
   'live-line': { timeoutMs: 8_000, maxTokens: 1500, effort: 'low' },
   debrief: { timeoutMs: 180_000, maxTokens: 16_000, effort: 'medium' },
   workout: { timeoutMs: 120_000, maxTokens: 16_000, effort: 'medium' },
+  // a run or swim from the run and swim builder's "Describe a workout"
+  'session-workout': { timeoutMs: 120_000, maxTokens: 16_000, effort: 'medium' },
   chat: { timeoutMs: 180_000, maxTokens: 16_000, effort: 'medium' },
   'ride-title': { timeoutMs: 20_000, maxTokens: 1500, effort: 'low' },
   'fitness-summary': { timeoutMs: 90_000, maxTokens: 4000, effort: 'low' },

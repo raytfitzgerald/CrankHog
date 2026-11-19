@@ -10,6 +10,7 @@ import {
   PLAN_WEEKS_SYSTEM,
   QUIP_PACK_SYSTEM,
   RIDE_TITLE_SYSTEM,
+  SESSION_WORKOUT_SYSTEM,
   TRAINING_PLAN_SYSTEM,
   WORKOUT_SYSTEM,
 } from '@core/ai/prompts'
@@ -26,6 +27,7 @@ const SYSTEM: Record<AiPurpose, string> = {
   'live-line': LIVE_LINE_SYSTEM,
   debrief: DEBRIEF_SYSTEM,
   workout: WORKOUT_SYSTEM,
+  'session-workout': SESSION_WORKOUT_SYSTEM,
   chat: CHAT_SYSTEM,
   'ride-title': RIDE_TITLE_SYSTEM,
   'fitness-summary': FITNESS_SUMMARY_SYSTEM,

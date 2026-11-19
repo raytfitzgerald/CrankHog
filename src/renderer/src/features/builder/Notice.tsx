@@ -4,6 +4,8 @@ import { cn } from '../../ui/cn'
 export interface NoticeMessage {
   tone: 'good' | 'bad' | 'info'
   text: string
+  /** A button after the text, such as putting back what an AI draft replaced. */
+  action?: { label: string; onClick: () => void }
 }
 
 const TONES = {
@@ -22,6 +24,14 @@ export function Notice({ notice, onDismiss }: { notice: NoticeMessage; onDismiss
       <span className="min-w-0 flex-1">
         <span className="sr-only">{t.label}: </span>
         {notice.text}
+        {notice.action && (
+          <>
+            {' '}
+            <button type="button" onClick={notice.action.onClick} className="font-medium text-accent underline hover:text-ink" data-testid="builder-notice-action">
+              {notice.action.label}
+            </button>
+          </>
+        )}
       </span>
       <button type="button" onClick={onDismiss} className="rounded p-0.5 text-ink-faint hover:bg-panel-2 hover:text-ink" aria-label="Dismiss">
         <X className="size-4" />

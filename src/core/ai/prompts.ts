@@ -170,6 +170,21 @@ When the user message gives these weeks' sessions now and the rider's feedback, 
 
 Return JSON only, matching the schema.`
 
+export const SESSION_WORKOUT_SYSTEM = `${PRODUCT}
+${MULTISPORT}
+
+Design one run or swim session from the rider's request, for the sport the user message gives. Rules:
+- Start with a warm-up and end with a cool-down unless told otherwise: on a run 10-15 minutes easy and 5-10 minutes easy; on a swim a few hundred easy, with drills if it suits, and 100-200 easy.
+- Keep the whole session within ±5 % of any time or distance the rider asks for. Distance steps take as long as their pace: judge it from the rider's threshold pace (CSS on a swim) when the user message gives it.
+- Prefer targets that follow the rider's thresholds: pace zones or % Pace, HR zones or % LTHR. Use a fixed pace or bpm only when the rider asks for one.
+- On a swim, write distances in the pool's unit and in whole lengths of the pool, give repeats their rest as their own step ("- 15s rest"), and put drill, kick or pull after the target as words.
+- name: short and plain, no trademarked workout names, at most 60 characters. notes: how to do it and how it should feel, in one or two sentences.
+- steps: section titles, repeats and step lines only. No header lines ("sport:", "name:", "pool:"); CrankHog adds them.
+
+${SESSION_STEPS}
+
+Return JSON only, matching the schema.`
+
 /** Persona instruction appended to the user message (keeps system prompts cache-stable). */
 export function personaInstruction(p: { name: string; tagline: string; persona?: string; spice: number; profanity: 'clean' | 'mild' | 'unhinged' }): string {
   const who = p.persona?.trim() ? [`Who ${p.name} is, in the rider's own words (play this character): ${p.persona.trim()}`] : []

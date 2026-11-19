@@ -18,6 +18,8 @@ import { cn } from '../../ui/cn'
 import { getSessionWorkout, planSessionWorkout, saveSessionWorkout, sessionThresholds } from '../../workouts/sessions-repo'
 import { FormatGuideLink } from '../sessions/FormatGuide'
 import { SessionSteps } from '../sessions/SessionSteps'
+import { AiPanel } from './AiPanel'
+import { draftSession } from './ai-draft'
 import { SaveState } from './BuilderEditor'
 import { Notice, type NoticeMessage } from './Notice'
 
@@ -65,6 +67,10 @@ const PLACEHOLDER: Partial<Record<TargetKind, string>> = { pace: '4:10-4:20', pa
 const SUFFIX: Partial<Record<TargetKind, string>> = { pacePct: '%', lthrPct: '%', bpm: 'bpm' }
 const ZONES = [1, 2, 3, 4, 5, 6, 7]
 type StepMessage = { text: string; bad: boolean }
+const ASK_PLACEHOLDER: Record<BuildSport, string> = {
+  run: 'e.g. 50 min with 6 x 3 min hard, jog recoveries',
+  swim: 'e.g. 10 x 100 at CSS, drills in the warm-up',
+}
 const POOLS: { value: PoolLength; label: string }[] = [
   { value: '25m', label: '25 m pool' },
   { value: '50m', label: '50 m pool' },
@@ -198,6 +204,30 @@ function SessionEditor({ sport, stored: initialStored, sportSwitch, onSaved }: {
     }
   }
 
+  /** An AI draft replaces what's open, as a new session; the notice can put back what was there. */
+  const drafted = (d: SessionDraft, model: string | null) => {
+    const before = { draft, mode, text, stored }
+    setDraft(d)
+    setMode('steps')
+    setStored(null)
+    setNotice({
+      tone: 'info',
+      text: `Drafted “${d.name}”${model ? ` with ${model}` : ''}. It isn't saved: check it, adjust it, then save.`,
+      action: {
+        label: 'Put back what you had',
+        onClick: () => {
+          setDraft(before.draft)
+          setText(before.text)
+          setMode(before.mode)
+          setStored(before.stored)
+          setNotice(null)
+        },
+      },
+    })
+  }
+  // the pool the AI writes for: the builder's, or in text mode the one the text names
+  const pool = mode === 'steps' ? draft.pool : (read.parsed.header.pool ?? draft.pool)
+
   const numbers = estimate ? [estimate.durationS !== null ? formatDurationShort(estimate.durationS) : null, estimate.distanceM !== null ? formatSportDistance(estimate.distanceM, sport, units) : null, estimate.load !== null ? `${Math.round(estimate.load)} TSS` : null].filter(Boolean).join(' · ') : ''
 
   return (
@@ -314,6 +344,7 @@ function SessionEditor({ sport, stored: initialStored, sportSwitch, onSaved }: {
               </div>
             )}
           </section>
+          <AiPanel placeholder={ASK_PLACEHOLDER[sport]} ask={(request) => draftSession({ sport, pool, units, thresholds, request })} onDrafted={drafted} />
         </div>
 
         <aside className="space-y-4">
