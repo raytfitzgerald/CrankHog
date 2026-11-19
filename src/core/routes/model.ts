@@ -71,4 +71,6 @@ export interface Route {
   /** The source had timestamps, so the profile carries `recordedMps`. */
   hasTimes: boolean
   bounds: RouteBounds
+  /** A loop by definition, however short (a shared track): ridden for laps without the closing check. */
+  loop?: boolean
 }

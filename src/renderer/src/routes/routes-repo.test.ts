@@ -93,12 +93,19 @@ describe('route codec', () => {
 })
 
 describe('routes repo', () => {
-  it('lists the built-in demo routes before anything is imported', async () => {
+  it('lists the built-in demo routes and shared tracks before anything is imported', async () => {
     const list = await listRoutes()
-    expect(list.map((r) => r.id)).toEqual(['demo-test-loop', 'demo-flat-five', 'demo-six-percent', 'demo-rollers'])
+    expect(list.map((r) => r.id)).toEqual(['demo-test-loop', 'demo-flat-five', 'demo-six-percent', 'demo-rollers', 'obn-velodrome-250', 'obn-herne-hill-450', 'obn-herne-hill-450-clockwise'])
     expect(list.every((r) => r.builtin && r.thumb.ele.length === 64)).toBe(true)
     expect(list.find((r) => r.id === 'demo-test-loop')!.loop).toBe(true)
+    expect(list.filter((r) => r.sharedTrack !== null).map((r) => [r.sharedTrack, r.loop, Math.round(r.distanceM)])).toEqual([
+      ['velodrome-250', true, 250],
+      ['herne-hill-450', true, 450],
+      ['herne-hill-450-clockwise', true, 450],
+    ])
+    expect(list.filter((r) => r.id.startsWith('demo-')).every((r) => r.sharedTrack === null)).toBe(true)
     expect(await loadRoute('demo-six-percent')).toMatchObject({ name: 'CrankHog Six Percent' })
+    expect(await loadRoute('obn-velodrome-250')).toMatchObject({ name: 'Velodrome 250 m', loop: true })
   })
 
   it('imports a GPX file, lists it and rebuilds the same route from storage', async () => {

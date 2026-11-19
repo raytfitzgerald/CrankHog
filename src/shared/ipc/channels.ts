@@ -73,8 +73,10 @@ export const INVOKE_CHANNELS = [
   'mcp.installDesktop',
   'mcp.ready',
   'mcp.result',
+  'groupRide.set',
+  'groupRide.status',
 ] as const
 
 export const SEND_CHANNELS = ['live.publish'] as const
 
-export const EVENT_CHANNELS = ['app.log', 'settings.changed', 'ble.chooser', 'ble.chosen', 'power.suspend', 'uploads.changed', 'google.calendar.changed', 'update.status', 'ai.stream.delta', 'ai.stream.end', 'live.broadcast', 'ride.command', 'mcp.call', 'mcp.status'] as const
+export const EVENT_CHANNELS = ['app.log', 'settings.changed', 'ble.chooser', 'ble.chosen', 'power.suspend', 'uploads.changed', 'google.calendar.changed', 'update.status', 'ai.stream.delta', 'ai.stream.end', 'live.broadcast', 'ride.command', 'mcp.call', 'mcp.status', 'groupRide.state'] as const

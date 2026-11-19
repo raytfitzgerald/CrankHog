@@ -26,6 +26,7 @@ import { patchSettings, settingsStore } from '../stores/settings'
 import { playBeep, primeBeeps } from '../audio/beeps'
 import { BeepRuntime } from './beeps'
 import { RideRunner } from './ride-runner'
+import { GroupRideRuntime } from '../group-ride/runtime'
 
 export type AppInfo = InvokeRes<'app.info'>
 
@@ -42,6 +43,8 @@ export interface Runtime {
   coach: CoachRuntime
   /** Interval countdown beeps. */
   beeps: BeepRuntime
+  /** Ride with others (beta) on the shared tracks; null in the web app, which has no main process to connect from. */
+  groupRides: GroupRideRuntime | null
   sim: SimWorld | null
   /** A spin-down calibration for the connected trainer, or why there can't be one. It won't start while a ride is recording. */
   spinDown(): SpinDown | SpinDownFailure
@@ -138,6 +141,17 @@ export function initRuntime(info: AppInfo): Runtime {
   // Test runs stay silent and make no audio context.
   const beeps = new BeepRuntime({ rides, engine, clock, settings: () => settingsStore.getState(), play: info.isTest ? () => undefined : playBeep })
   beeps.start()
+  const groupRides = __CRANKHOG_WEB__
+    ? null
+    : new GroupRideRuntime({
+        rides,
+        live: () => liveStore.getState(),
+        enabled: () => settingsStore.getState().groupRides.enabled,
+        set: (wish) => bridge().invoke('groupRide.set', wish),
+        status: () => bridge().invoke('groupRide.status', {}),
+        onState: (listener) => bridge().on('groupRide.state', listener),
+      })
+  groupRides?.start()
   if (!info.isTest) primeBeeps(() => settingsStore.getState().beeps.enabled)
   engine.start()
   void rides.loadRecoveries()
@@ -184,6 +198,7 @@ export function initRuntime(info: AppInfo): Runtime {
     rides,
     coach,
     beeps,
+    groupRides,
     sim,
     spinDown: () => calibrator.create(),
     connect,

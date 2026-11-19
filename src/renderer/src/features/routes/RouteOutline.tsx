@@ -17,6 +17,7 @@ export function RouteOutline({
   route,
   rider,
   ghost,
+  others,
   height = 220,
   title,
   testId,
@@ -24,6 +25,8 @@ export function RouteOutline({
   route: Route
   rider?: { lat: number; lon: number } | null
   ghost?: { lat: number; lon: number } | null
+  /** Other riders on a shared track. */
+  others?: readonly { id: string; name: string; lat: number; lon: number }[]
   height?: number
   title: string
   testId?: string
@@ -62,6 +65,11 @@ export function RouteOutline({
         {ghost && (
           <circle cx={at(ghost).x} cy={at(ghost).y} r={5} fill="var(--color-panel)" stroke="var(--color-ink-dim)" strokeWidth={2} data-testid="map-ghost" />
         )}
+        {others?.map((o) => (
+          <circle key={o.id} cx={at(o).x} cy={at(o).y} r={5} fill="var(--color-ink-dim)" stroke="var(--color-panel)" strokeWidth={2} data-testid="map-other">
+            <title>{o.name}</title>
+          </circle>
+        ))}
         {rider && <circle cx={at(rider).x} cy={at(rider).y} r={6} fill="var(--color-accent)" stroke="var(--color-panel)" strokeWidth={2} data-testid="map-rider" />}
         <g transform={`translate(${PAD}, ${height - 10})`}>
           <line x1={0} x2={scale.units} y1={0} y2={0} stroke="var(--color-ink-faint)" strokeWidth={2} />

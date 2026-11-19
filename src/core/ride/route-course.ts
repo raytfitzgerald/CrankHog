@@ -14,7 +14,8 @@ export const LOOP_CLOSE_M = 50
 const LOOP_MIN_LENGTH_M = 500
 
 /** True when the route ends where it starts, so it can be ridden for several laps. */
-export function isLoopRoute(route: Pick<Route, 'points' | 'distanceM'>): boolean {
+export function isLoopRoute(route: Pick<Route, 'points' | 'distanceM' | 'loop'>): boolean {
+  if (route.loop) return true
   const a = route.points[0]
   const b = route.points[route.points.length - 1]
   if (!a || !b || !(route.distanceM >= LOOP_MIN_LENGTH_M)) return false

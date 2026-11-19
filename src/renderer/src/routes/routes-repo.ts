@@ -1,5 +1,6 @@
-// The route library: CrankHog's built-in demo routes plus whatever the rider
-// imports (GPX / TCX), and the rides on each route that a Challenge can race.
+// The route library: CrankHog's built-in demo routes, the shared tracks of
+// Ride with others (OpenBikeNet), plus whatever the rider imports (GPX /
+// TCX), and the rides on each route that a Challenge can race.
 import type { RideRecord } from '@core/ride/recorder'
 import { isLoopRoute } from '@core/ride/route-course'
 import { ghostFromDistances, recordedPaceGhost } from '@core/ride/route-ghost'
@@ -8,6 +9,7 @@ import type { Route, RouteSource } from '@core/routes/model'
 import type { GhostSample, RouteMode } from '@core/routes/player'
 import { buildRoute, routeFromFile } from '@core/routes/route'
 import { demoRoutes } from '@core/routes/synthetic'
+import { sharedTrackForRoute, sharedTrackRoutes } from '@core/openbikenet/tracks'
 import { db } from '../db/db'
 import { routeThumb, toStoredRoute, unpackPoints, type RouteThumb, type StoredRoute, type StoredRouteRide } from './route-codec'
 
@@ -17,6 +19,8 @@ export interface RouteEntry {
   name: string
   source: RouteSource
   builtin: boolean
+  /** A shared track others can ride too: its OpenBikeNet route ID. */
+  sharedTrack: string | null
   distanceM: number
   elevationGainM: number
   maxGradePct: number
@@ -52,13 +56,16 @@ let builtins: Route[] | null = null
 /** Rebuilt routes by id, valid while the stored row keeps its import time (a re-import or a restore invalidates it). */
 const cache = new Map<string, { importedAt: number; route: Route }>()
 
-/** The demo routes, built once. */
+/** The demo routes and the shared tracks, built once. */
 export function builtinRoutes(): Route[] {
-  builtins ??= demoRoutes()
+  builtins ??= [...demoRoutes(), ...sharedTrackRoutes()]
   return builtins
 }
 
 export const isBuiltinRoute = (id: string): boolean => builtinRoutes().some((r) => r.id === id)
+
+/** Shared tracks are for Ride with others, which needs the Mac app: the web app and iPhone don't offer them. */
+export const offeredHere = (r: RouteEntry): boolean => r.sharedTrack === null || !__CRANKHOG_WEB__
 
 /** Built-ins first, then imports, newest first. */
 export async function listRoutes(): Promise<RouteEntry[]> {
@@ -204,6 +211,7 @@ function builtinEntry(r: Route): RouteEntry {
     name: r.name,
     source: r.source,
     builtin: true,
+    sharedTrack: sharedTrackForRoute(r.id)?.obnId ?? null,
     distanceM: r.distanceM,
     elevationGainM: r.elevationGainM,
     maxGradePct: r.maxGradePct,
@@ -220,6 +228,7 @@ function storedEntry(r: StoredRoute): RouteEntry {
     name: r.name,
     source: r.source,
     builtin: false,
+    sharedTrack: null,
     distanceM: r.distanceM,
     elevationGainM: r.elevationGainM,
     maxGradePct: r.maxGradePct,

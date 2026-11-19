@@ -137,7 +137,7 @@ export function Slider({
   )
 }
 
-export function Section({ title, description, children }: { title: string; description?: string; children: ReactNode }) {
+export function Section({ title, description, children }: { title: ReactNode; description?: string; children: ReactNode }) {
   return (
     <section className="rounded-2xl border border-line bg-panel px-6 py-4">
       <div className="border-b border-line pb-3">

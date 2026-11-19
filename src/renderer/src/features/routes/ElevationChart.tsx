@@ -100,7 +100,12 @@ export function ElevationChart({
       const origin = rider ?? fromX
       return ticks(0, end - origin, Math.max(2, Math.floor(innerW / 90))).map((v) => ({ x: origin + v, label: v === 0 ? 'now' : `+${formatMetres(v, units)}` }))
     }
-    return ticks(fromX, end, Math.max(2, Math.floor(innerW / 80))).map((v) => ({ x: v, label: `${formatKm(v, 1, units)}${v === 0 ? '' : ` ${distanceUnit(units)}`}` }))
+    // a lap of a velodrome is a few hundred metres: tenths of a km would repeat themselves
+    const short = end - fromX < 1000
+    return ticks(fromX, end, Math.max(2, Math.floor(innerW / 80))).map((v) => ({
+      x: v,
+      label: v === 0 ? '0' : short ? formatMetres(v, units) : `${formatKm(v, 1, units)} ${distanceUnit(units)}`,
+    }))
   }, [axis, rider, fromX, end, innerW, units])
 
   const eleAt = (x: number) => {

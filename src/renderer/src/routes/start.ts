@@ -1,5 +1,6 @@
 // Starting a route ride, and keeping what a later Challenge needs from it.
 import { RoutePlan } from '@core/ride/route-plan'
+import { sharedTrackForRoute } from '@core/openbikenet/tracks'
 import type { RideSession } from '@core/ride/session'
 import type { Route } from '@core/routes/model'
 import type { GhostSample, RouteMode } from '@core/routes/player'
@@ -32,6 +33,8 @@ export async function startRouteRide(route: Route, opts: RouteRideOptions): Prom
     rider: { riderKg: athlete.weightKg, bikeKg: t.bikeKg, cda: t.cda, crr: t.crr, ftpW: athlete.ftpW },
     ghost: ghost?.samples,
     ghostLabel: ghost?.label,
+    // a shared track goes round every half a minute: km markers, not a lap each time
+    segments: sharedTrackForRoute(route.id) ? 'km' : 'laps',
   })
   const off = rt.rides.onSessionStart((session) => {
     if (session.options.plan === plan) keepGhost(session, plan)

@@ -4,7 +4,7 @@ import { Link } from '@tanstack/react-router'
 import { ArrowLeft, Bike, CircleCheck, CircleDashed, ListChecks, Mountain, Play, Search, Star, Timer, type LucideIcon } from 'lucide-react'
 import { TIME_RIDE_MINUTES, TIME_RIDE_MAX, TIME_RIDE_MIN, timeRideWorkout, type TimeRideEffort } from '@core/workout/time-ride'
 import { useFtp } from '../../db/use-athlete'
-import { listRoutes, type RouteEntry } from '../../routes/routes-repo'
+import { listRoutes, offeredHere, type RouteEntry } from '../../routes/routes-repo'
 import { formatKm, formatMetres } from '../../routes/format'
 import { useDevices } from '../../stores/devices'
 import { useSettings } from '../../stores/settings'
@@ -282,7 +282,7 @@ const routeText = (r: RouteEntry) => r.name
 const workoutText = (e: LibraryEntry) => `${e.workout.name} ${e.workout.tags.join(' ')}`
 
 function RoutePicker() {
-  const routes = useLiveQuery(() => listRoutes(), [])
+  const routes = useLiveQuery(async () => (await listRoutes()).filter(offeredHere), [])
   const units = useSettings((s) => s.units)
   const [query, setQuery] = useState('')
   const [open, setOpen] = useState<RouteEntry | null>(null)
@@ -294,7 +294,7 @@ function RoutePicker() {
       <PickerSearch value={query} onChange={setQuery} label="Search routes" />
       <div className="mt-2">
         {shown.slice(0, SHOWN).map((r) => (
-          <Row key={r.id} onClick={() => setOpen(r)} title={r.name} meta={`${formatKm(r.distanceM, 1, units)} · ↑ ${formatMetres(r.elevationGainM, units)}`} testId={`pick-route-${r.id}`} />
+          <Row key={r.id} onClick={() => setOpen(r)} title={r.name} meta={`${r.distanceM < 1000 ? formatMetres(r.distanceM, units) : formatKm(r.distanceM, 1, units)} · ↑ ${formatMetres(r.elevationGainM, units)}`} testId={`pick-route-${r.id}`} />
         ))}
         {routes && shown.length === 0 && <p className="px-3 py-2 text-sm text-ink-faint">No routes match.</p>}
       </div>

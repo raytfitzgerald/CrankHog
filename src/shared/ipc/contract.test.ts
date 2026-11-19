@@ -9,8 +9,19 @@ describe('IPC contract', () => {
 
   it('preload event allowlist matches EventMap', () => {
     // EventMap is a type; keep this list in sync by construction.
-    const events: Record<keyof EventMap, true> = { 'app.log': true, 'settings.changed': true, 'ble.chooser': true, 'ble.chosen': true, 'power.suspend': true, 'uploads.changed': true, 'google.calendar.changed': true, 'update.status': true, 'ai.stream.delta': true, 'ai.stream.end': true, 'live.broadcast': true, 'ride.command': true, 'mcp.call': true, 'mcp.status': true }
+    const events: Record<keyof EventMap, true> = { 'app.log': true, 'settings.changed': true, 'ble.chooser': true, 'ble.chosen': true, 'power.suspend': true, 'uploads.changed': true, 'google.calendar.changed': true, 'update.status': true, 'ai.stream.delta': true, 'ai.stream.end': true, 'live.broadcast': true, 'ride.command': true, 'mcp.call': true, 'mcp.status': true, 'groupRide.state': true }
     expect([...EVENT_CHANNELS].sort()).toEqual(Object.keys(events).sort())
+  })
+
+  it('takes a shared track and the rider on it, and nothing odd', () => {
+    const set = (req: unknown) => invoke['groupRide.set'].req.safeParse(req).success
+    const rider = { lap: 3, distance: 112.4, speed: 11.8, power: 245, cadence: 92, heartRate: null }
+    expect(set({ watch: 'velodrome-250', rider, simulated: false })).toBe(true)
+    expect(set({ watch: null, rider: null, simulated: false })).toBe(true)
+    expect(set({ watch: 'Velodrome 250', rider: null, simulated: false })).toBe(false)
+    expect(set({ watch: 'velodrome-250', rider: { ...rider, lap: -1 }, simulated: false })).toBe(false)
+    expect(set({ watch: 'velodrome-250', rider: { ...rider, speed: Number.NaN }, simulated: false })).toBe(false)
+    expect(set({ watch: 'velodrome-250', rider })).toBe(false)
   })
 
   it('rejects oversized ping payloads', () => {

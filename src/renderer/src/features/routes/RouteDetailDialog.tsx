@@ -19,11 +19,26 @@ import { distanceUnit, formatElevation, formatSpeedKmh, speedUnit, type UnitSyst
 import { formatGrade } from '../../routes/grade'
 import { deleteRoute, loadRoute, routeRides, type RouteEntry, type RouteRideEntry } from '../../routes/routes-repo'
 import { startRouteRide, type GhostChoice } from '../../routes/start'
+import { sharedTrack } from '@core/openbikenet/tracks'
+import { TrackRidersNow } from '../../group-ride/TrackRiders'
 import { ElevationChart } from './ElevationChart'
 import { GradeLegend } from './GradeLegend'
 import { RouteOutline } from './RouteOutline'
 
 export type Notice = { tone: 'good' | 'bad'; text: string }
+
+/** How far a shared track ride goes: a lap of a velodrome is half a minute, so it's chosen as a distance. */
+const TRACK_KM = [5, 10, 20, 30, 40, 60, 80, 100]
+const TRACK_MI = [3, 5, 10, 15, 20, 25, 40, 60]
+const TRACK_DEFAULT = 2
+
+function trackDistances(units: UnitSystem, lapM: number): { laps: number; label: string }[] {
+  const list = units === 'imperial' ? TRACK_MI.map((d) => [d, d * 1609.344] as const) : TRACK_KM.map((d) => [d, d * 1000] as const)
+  return list.map(([d, m]) => {
+    const laps = Math.max(1, Math.ceil(m / lapM - 1e-9))
+    return { laps, label: `${d} ${distanceUnit(units)} · ${laps} laps` }
+  })
+}
 
 const MODES: { mode: RouteMode; label: string; hint: string }[] = [
   { mode: 'reactive', label: 'Reactive', hint: 'Your watts set your speed; the trainer follows the gradient.' },
@@ -40,7 +55,9 @@ export function RouteDetailDialog({ entry, onClose, onNotice }: { entry: RouteEn
   const trainer = useDevices((s) => s.devices.some((d) => d.role === 'trainer' && d.state === 'connected'))
   const units = useSettings((s) => s.units)
   const speed = useSettings((s) => s.speedUnit)
-  const [laps, setLaps] = useState(1)
+  const track = entry.sharedTrack !== null ? sharedTrack(entry.sharedTrack) : null
+  const distances = track ? trackDistances(units, track.lengthM) : []
+  const [laps, setLaps] = useState(() => distances[TRACK_DEFAULT]?.laps ?? 1)
   const [ghostKey, setGhostKey] = useState<string | null>(null)
   const [busy, setBusy] = useState(false)
   const [confirmDelete, setConfirmDelete] = useState(false)
@@ -93,6 +110,8 @@ export function RouteDetailDialog({ entry, onClose, onNotice }: { entry: RouteEn
             <Stats route={route} entry={entry} ftpW={athlete?.ftpW ?? null} weightKg={athlete?.weightKg ?? null} laps={entry.loop ? laps : 1} />
           </div>
 
+          {track && <TrackRidersNow track={track} />}
+
           {!trainer && !riding && (
             <div className="flex items-center gap-2 rounded-xl border border-warn/40 bg-warn/10 px-3 py-2 text-xs">
               <AlertTriangle className="size-3.5 text-warn" /> No trainer connected: the route will play, but nothing will set the resistance.
@@ -100,7 +119,18 @@ export function RouteDetailDialog({ entry, onClose, onNotice }: { entry: RouteEn
           )}
 
           <div className="flex flex-wrap items-end gap-3 border-t border-line pt-4">
-            {entry.loop && (
+            {track ? (
+              <label className="text-xs text-ink-dim">
+                <div className="mb-1">Distance</div>
+                <Select value={laps} onChange={(e) => setLaps(Number(e.target.value))} aria-label="Distance" data-testid="route-laps">
+                  {distances.map((d) => (
+                    <option key={d.laps} value={d.laps}>
+                      {d.label}
+                    </option>
+                  ))}
+                </Select>
+              </label>
+            ) : entry.loop && (
               <label className="text-xs text-ink-dim">
                 <div className="mb-1">Laps</div>
                 <Select value={laps} onChange={(e) => setLaps(Number(e.target.value))} aria-label="Laps" data-testid="route-laps">
@@ -229,6 +259,7 @@ function rideLabel(r: RouteRideEntry, units: UnitSystem): string {
 }
 
 function describe(e: RouteEntry): string {
+  if (e.sharedTrack !== null) return 'Shared track (beta): riders of other apps can ride it with you over OpenBikeNet, when Ride with others is on.'
   const where = e.builtin ? 'Built-in demo route' : `Imported ${e.fileName ? `from ${e.fileName}` : e.source.toUpperCase()}`
   return `${where}${e.loop ? ' · a loop you can ride for laps' : ''}${e.hasTimes ? ' · Steady rides its recorded pace' : ''}.`
 }
