@@ -59,6 +59,32 @@ describe('session drafts', () => {
     expect('draft' in swim && swim.draft.sections[0]!.steps[0]).toMatchObject({ amount: '100', unit: 'y', value: '1:30' })
   })
 
+  it('keeps a swim written in yards in yards, with or without a pool line', () => {
+    const body = '- 300y easy\n\nDrills 4x\n- 50y drill\n- 15s rest\n\nMain set 8x\n- 100y 100% Pace\n- 15s rest\n\n- 200y easy\n'
+    for (const text of [`sport: swim\nname: CSS 8x100\npool: 25y\n\n${body}`, `sport: swim\nname: CSS 8x100\n\n${body}`]) {
+      const r = draftFromText(text)
+      if (!('draft' in r)) throw new Error(r.error)
+      expect(r.draft.pool).toBe('25y')
+      const lengths = r.draft.sections.flatMap((s) => s.steps.filter((st) => st.unit !== 'sec').map((st) => `${st.amount}${st.unit}`))
+      expect(lengths).toEqual(['300y', '50y', '100y', '200y'])
+      expect(draftText(r.draft).text).toContain('- 300y easy\n')
+    }
+  })
+
+  it('keeps a distance in the unit it was written in when the builder has that unit', () => {
+    const swim = draftFromText('sport: swim\npool: 25m\n\n- 400mtr easy\n- 100y kick\n')
+    expect('draft' in swim && swim.draft.sections[0]!.steps.map((st) => [st.amount, st.unit])).toEqual([
+      ['400', 'mtr'],
+      ['100', 'y'],
+    ])
+    const run = draftFromText('sport: run\n\n- 1mi 7:00/mi Pace\n- 1.5km easy\n- 800mtr easy\n', 'mi')
+    expect('draft' in run && run.draft.sections[0]!.steps.map((st) => [st.amount, st.unit])).toEqual([
+      ['1', 'mi'],
+      ['1.5', 'km'],
+      ['800', 'mtr'],
+    ])
+  })
+
   it('won’t make a draft of a file with errors, or a session without steps', () => {
     expect(draftFromText('sport: run\n\n- 10m Z2 HR 4:00/km Pace\n')).toEqual({ error: expect.stringContaining('line 3: one target per step') })
     expect(draftFromText('sport: run\nduration: 45m\n')).toEqual({ error: expect.stringContaining('no steps') })

@@ -147,7 +147,9 @@ export function estimateSession(sport: SessionSport, sections: readonly SessionS
   else if (loadUnknown && steps.some((s) => s.target?.kind === 'bpm')) warnings.push('Heart-rate targets in bpm need your threshold heart rate to score the load. Set it in Settings, Athlete.')
   return {
     durationS: durationS !== null ? round(durationS, 0) : null,
-    distanceM: distanceM !== null && distanceM > 0 ? round(distanceM, 0) : null,
+    // to the decimetre, not the metre: the shown distance rounds once, in its own unit, so 1,500 yd
+    // (1,371.6 m) doesn't become 1,372 m and then 1,499 yd
+    distanceM: distanceM !== null && distanceM > 0 ? round(distanceM, 1) : null,
     load: total !== null ? round(total) : null,
     warnings,
   }

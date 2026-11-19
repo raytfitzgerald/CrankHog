@@ -17,7 +17,7 @@ import { isSportGroup } from '../sport/group'
 import { isEffort, type Effort } from '../sport/load'
 import { parseDatedFileName } from '../workout/plan'
 import type { DateKey } from '../workout/schedule'
-import type { PoolLength, SessionSection, SessionSport, SessionStep, StepTarget } from './model'
+import type { DistanceUnit, PoolLength, SessionSection, SessionSport, SessionStep, StepTarget } from './model'
 
 export interface SessionMessage {
   /** 1-based line in the file; missing for a message about the whole file. */
@@ -70,8 +70,16 @@ export function isSessionFile(text: string): boolean {
   return false
 }
 
-/** A time: "30s", "10m", "1h", "1h20m", "5m30s". `m` is always minutes. */
-export function parseLength(token: string): { durationS?: number; distanceM?: number } | null {
+/** How many metres one of each unit is. */
+export const METRES: Record<DistanceUnit, number> = { mtr: 1, km: 1000, mi: M_PER_MI, y: M_PER_YD }
+
+/**
+ * A time: "30s", "10m", "1h", "1h20m", "5m30s". `m` is always minutes. Or a
+ * distance: "400mtr", "1.5km", "1mi", "100y". A distance keeps its metres to
+ * the tenth of a millimetre, so yards add up exactly: rounding 100y to 91.4 m
+ * made 15 of them 1,499 yd.
+ */
+export function parseLength(token: string): { durationS?: number; distanceM?: number; distanceUnit?: DistanceUnit } | null {
   const t = token.toLowerCase()
   const time = /^(?:(\d+(?:\.\d+)?)h)?(?:(\d+(?:\.\d+)?)m)?(?:(\d+(?:\.\d+)?)s)?$/.exec(t)
   if (time && (time[1] ?? time[2] ?? time[3]) !== undefined) {
@@ -80,9 +88,9 @@ export function parseLength(token: string): { durationS?: number; distanceM?: nu
   }
   const dist = /^(\d+(?:\.\d+)?)(mtr|km|mi|y|yd)$/.exec(t)
   if (dist) {
-    const v = Number(dist[1])
-    const m = dist[2] === 'km' ? v * 1000 : dist[2] === 'mi' ? v * M_PER_MI : dist[2] === 'mtr' ? v : v * M_PER_YD
-    return m > 0 ? { distanceM: Math.round(m * 10) / 10 } : null
+    const unit: DistanceUnit = dist[2] === 'yd' ? 'y' : (dist[2] as DistanceUnit)
+    const m = Number(dist[1]) * METRES[unit]
+    return m > 0 ? { distanceM: Math.round(m * 1e4) / 1e4, distanceUnit: unit } : null
   }
   return null
 }
@@ -295,8 +303,7 @@ export function parseSession(fileName: string, text: string): ParsedSession {
         if (st.distanceM === undefined) continue
         const lengths = st.distanceM / lengthM
         if (Math.abs(lengths - Math.round(lengths)) > 0.01) {
-          const shown = header.pool === '25y' ? `${Math.round(st.distanceM / M_PER_YD)}y` : `${Math.round(st.distanceM)}mtr`
-          warnings.push({ line: st.line, text: `distance ${shown} isn't a whole number of ${header.pool} lengths.` })
+          warnings.push({ line: st.line, text: `distance ${formatDistance(st.distanceM, st.distanceUnit)} isn't a whole number of ${header.pool} lengths.` })
         }
       }
     }
@@ -317,7 +324,7 @@ export function parseSession(fileName: string, text: string): ParsedSession {
 
 /** A step written back in the format: "- 8m 4:10-4:20/km Pace drill". */
 export function formatStep(st: SessionStep): string {
-  const len = st.distanceM !== undefined ? formatDistance(st.distanceM) : formatTime(st.durationS ?? 0)
+  const len = st.distanceM !== undefined ? formatDistance(st.distanceM, st.distanceUnit) : formatTime(st.durationS ?? 0)
   const parts = [len]
   if (st.target) parts.push(formatTarget(st.target))
   if (st.rest) parts.push('rest')
@@ -352,7 +359,9 @@ function formatTime(s: number): string {
   return `${h ? `${h}h` : ''}${m ? `${m}m` : ''}${sec ? `${sec}s` : ''}` || '0s'
 }
 
-function formatDistance(m: number): string {
+/** A distance in the unit it was written in; a step made without one (not read from a file) in metres or km. */
+function formatDistance(m: number, unit?: DistanceUnit): string {
+  if (unit) return `${Math.round((m / METRES[unit]) * 1000) / 1000}${unit}`
   if (m >= 1000 && Number.isInteger(m / 100)) return `${m / 1000}km`
   return `${Math.round(m)}mtr`
 }
